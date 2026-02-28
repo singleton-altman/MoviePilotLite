@@ -78,7 +78,7 @@ jobs:
           echo "Keystore validated successfully."
 
       - name: Build APK
-        run: flutter build apk --release --dart-define=FLUTTER_APP_ENV=release
+        run: flutter build apk --debug --dart-define=FLUTTER_APP_ENV=debug
 
       - name: Get version from pubspec
         id: version
