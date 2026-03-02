@@ -1,10 +1,8 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_section.dart';
-import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_widget_header.dart';
-import 'package:moviepilot_mobile/theme/section.dart';
 import 'package:moviepilot_mobile/utils/size_formatter.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import '../controllers/dashboard_controller.dart';
 
 /// 实时速率组件
@@ -21,7 +19,8 @@ class RealTimeSpeedWidget extends StatelessWidget {
       final uploadSize = downloaderData['upload_size'] ?? 0.0;
       final freeSpace = downloaderData['free_space'] ?? 0.0;
 
-      return Section(
+      return Skeletonizer(
+        enabled: downloaderData.isEmpty,
         child: Column(
           children: [
             // 第一行：上传/下载速度

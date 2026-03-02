@@ -6,7 +6,6 @@ import 'package:moviepilot_mobile/modules/dashboard/widgets/mixed_img_widget.dar
 import 'package:moviepilot_mobile/modules/mediaserver/controllers/mediaserver_controller.dart';
 import 'package:moviepilot_mobile/modules/mediaserver/models/library_model.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
-import 'package:moviepilot_mobile/widgets/cached_image.dart';
 
 /// 我的媒体库组件
 class MyMediaLibraryWidget extends StatelessWidget {

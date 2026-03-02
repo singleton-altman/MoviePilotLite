@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_section.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import '../controllers/dashboard_controller.dart';
 
 /// 媒体统计组件
@@ -15,40 +16,43 @@ class MediaStatsWidget extends StatelessWidget {
       final stats = [
         {
           'label': '电影',
-          'value': statisticData.movie_count,
+          'value': statisticData?.movie_count ?? 0,
           'icon': CupertinoIcons.film,
           'color': CupertinoColors.systemPurple,
         },
         {
           'label': '电视剧',
-          'value': statisticData.tv_count,
+          'value': statisticData?.tv_count ?? 0,
           'icon': CupertinoIcons.tv,
           'color': CupertinoColors.systemGreen,
         },
         {
           'label': '剧集',
-          'value': statisticData.episode_count,
+          'value': statisticData?.episode_count ?? 0,
           'icon': CupertinoIcons.collections,
           'color': CupertinoColors.systemOrange,
         },
         {
           'label': '用户',
-          'value': statisticData.user_count,
+          'value': statisticData?.user_count ?? 0,
           'icon': CupertinoIcons.person,
           'color': CupertinoColors.systemBlue,
         },
       ];
-      return Row(
-        children: stats.map((stat) {
-          return Expanded(
-            child: _buildStatItem(
-              stat['label'] as String,
-              (stat['value'] as int).toString(),
-              stat['icon'] as IconData,
-              stat['color'] as Color,
-            ),
-          );
-        }).toList(),
+      return Skeletonizer(
+        enabled: statisticData == null,
+        child: Row(
+          children: stats.map((stat) {
+            return Expanded(
+              child: _buildStatItem(
+                stat['label'] as String,
+                (stat['value'] as int).toString(),
+                stat['icon'] as IconData,
+                stat['color'] as Color,
+              ),
+            );
+          }).toList(),
+        ),
       );
     });
   }

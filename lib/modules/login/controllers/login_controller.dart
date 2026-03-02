@@ -196,13 +196,14 @@ class LoginController extends GetxController {
       } else {
         // 获取用户信息失败，需要用户手动登录
         _talker.warning('自动登录失败，需要用户手动登录');
+        isAutoLogin.value = false;
       }
     } catch (e) {
       // 获取用户信息失败，需要用户手动登录
       _talker.warning('自动登录失败，需要用户手动登录: $e');
+      isAutoLogin.value = false;
     } finally {
       isLoading.value = false;
-      isAutoLogin.value = false;
     }
   }
 

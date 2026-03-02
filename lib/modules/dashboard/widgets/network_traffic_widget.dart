@@ -5,6 +5,7 @@ import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_section.da
 import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_widget_header.dart';
 import 'package:moviepilot_mobile/theme/section.dart';
 import 'package:moviepilot_mobile/utils/size_formatter.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import '../controllers/dashboard_controller.dart';
 
 /// 网络流量组件
@@ -15,22 +16,25 @@ class NetworkTrafficWidget extends StatelessWidget {
     final controller = Get.find<DashboardController>();
     return Obx(() {
       final traffic = controller.networkTraffic;
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildTrafficItem(
-            '上行',
-            '${SizeFormatter.formatSize(traffic.first)}ps',
-            CupertinoIcons.arrow_up,
-            Theme.of(context).colorScheme.secondary,
-          ),
-          _buildTrafficItem(
-            '下行',
-            '${SizeFormatter.formatSize(traffic.last)}ps',
-            CupertinoIcons.arrow_down,
-            Theme.of(context).colorScheme.primary,
-          ),
-        ],
+      return Skeletonizer(
+        enabled: traffic.isEmpty,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildTrafficItem(
+              '上行',
+              '${SizeFormatter.formatSize(traffic.first)}ps',
+              CupertinoIcons.arrow_up,
+              Theme.of(context).colorScheme.secondary,
+            ),
+            _buildTrafficItem(
+              '下行',
+              '${SizeFormatter.formatSize(traffic.last)}ps',
+              CupertinoIcons.arrow_down,
+              Theme.of(context).colorScheme.primary,
+            ),
+          ],
+        ),
       );
     });
   }

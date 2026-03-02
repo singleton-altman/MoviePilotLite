@@ -15,6 +15,7 @@ import 'package:moviepilot_mobile/modules/system_message/controllers/system_mess
 
 import 'package:moviepilot_mobile/services/realm_service.dart';
 import 'package:moviepilot_mobile/modules/login/models/login_profile.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 import '../controllers/dashboard_controller.dart';
 import '../widgets/dashboard_widgets.dart';
@@ -27,7 +28,6 @@ class DashboardPage extends GetView<DashboardController> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _buildNavigationBar(context),
-      floatingActionButton: _buildFloatingActionButton(context),
       body: CustomScrollView(
         slivers: [
           CupertinoSliverRefreshControl(
@@ -44,14 +44,6 @@ class DashboardPage extends GetView<DashboardController> {
           SliverToBoxAdapter(child: SizedBox(height: _bottomSpacer(context))),
         ],
       ),
-    );
-  }
-
-  /// 构建FloatingActionButton
-  Widget _buildFloatingActionButton(BuildContext context) {
-    return FloatingActionButton(
-      onPressed: () => Get.toNamed('/edit-dashboard'),
-      child: const Icon(Icons.settings),
     );
   }
 
@@ -186,34 +178,6 @@ class DashboardPage extends GetView<DashboardController> {
   /// 构建组件网格
   Widget _buildWidgetGrid(BuildContext context) {
     return Obx(() {
-      if (controller.displayedWidgets.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                CupertinoIcons.square_grid_2x2,
-                size: 64,
-                color: CupertinoColors.systemGrey3,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                '暂无组件',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: CupertinoColors.systemGrey,
-                ),
-              ),
-              const SizedBox(height: 8),
-              CupertinoButton(
-                onPressed: () => _showWidgetSelector(context),
-                child: const Text('添加组件'),
-              ),
-            ],
-          ),
-        );
-      }
-
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: controller.displayedWidgets

@@ -46,7 +46,7 @@ class DashboardController extends GetxController {
   final networkTraffic = <int>[0, 0].obs;
 
   /// 内存数据 [内存占用(字节), 使用率(%)]
-  final memoryData = <int>[0, 0].obs;
+  final memoryData = <int>[].obs;
 
   /// 下载器数据
   final downloaderData = <String, dynamic>{}.obs;
@@ -55,14 +55,7 @@ class DashboardController extends GetxController {
   final storageData = <String, dynamic>{}.obs;
 
   /// 媒体统计数据
-  final statisticData = Rx<StatisticModel>(
-    const StatisticModel(
-      movie_count: 0,
-      tv_count: 0,
-      episode_count: 0,
-      user_count: 0,
-    ),
-  );
+  final statisticData = Rx<StatisticModel?>(null);
 
   /// 后台任务列表数据
   final scheduleData = Rx<List<ScheduleModel>>([]);
@@ -754,7 +747,7 @@ class DashboardController extends GetxController {
           message: 'local',
           data: DashboardConfigData(value: value),
         );
-        _updateDisplayedWidgets(value);
+        // _updateDisplayedWidgets(value);
         _hasLocalDashboardConfig = true;
       }
 

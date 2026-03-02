@@ -5,6 +5,7 @@ import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_section.da
 import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_widget_header.dart';
 import 'package:moviepilot_mobile/theme/section.dart';
 import 'package:moviepilot_mobile/utils/size_formatter.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import '../controllers/dashboard_controller.dart';
 
 /// 存储空间组件
@@ -33,62 +34,65 @@ class StorageWidget extends StatelessWidget {
       final usedPercentage = (progress * 100).toStringAsFixed(1);
       final freeStorage = totalStorage - usedStorage;
 
-      return Column(
-        children: [
-          // 只显示存储使用信息，移除右侧图标
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                _formatStorageSize(usedStorage),
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.primary,
+      return Skeletonizer(
+        enabled: storageData.isEmpty,
+        child: Column(
+          children: [
+            // 只显示存储使用信息，移除右侧图标
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _formatStorageSize(usedStorage),
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
-              ),
-              Row(
-                children: [
-                  Text(
-                    '已使用 $usedPercentage%',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: CupertinoColors.systemGrey,
+                Row(
+                  children: [
+                    Text(
+                      '已使用 $usedPercentage%',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: CupertinoColors.systemGrey,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(
-                    Icons.rocket_launch,
-                    size: 14,
-                    color: CupertinoColors.systemOrange,
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildProgressBar(context, progress),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '总容量: ${_formatStorageSize(totalStorage)}',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: CupertinoColors.systemGrey,
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.rocket_launch,
+                      size: 14,
+                      color: CupertinoColors.systemOrange,
+                    ),
+                  ],
                 ),
-              ),
-              Text(
-                '可用: ${_formatStorageSize(freeStorage)}',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: CupertinoColors.systemGrey,
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildProgressBar(context, progress),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '总容量: ${_formatStorageSize(totalStorage)}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: CupertinoColors.systemGrey,
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+                Text(
+                  '可用: ${_formatStorageSize(freeStorage)}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: CupertinoColors.systemGrey,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       );
     });
   }
