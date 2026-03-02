@@ -9,6 +9,7 @@ import 'package:moviepilot_mobile/modules/login/repositories/auth_repository.dar
 import 'package:moviepilot_mobile/modules/recommend/controllers/recommend_api_item_ext.dart';
 import 'package:moviepilot_mobile/modules/recommend/models/recommend_api_item.dart';
 import 'package:moviepilot_mobile/modules/subscribe/controllers/subscribe_controller.dart';
+import 'package:moviepilot_mobile/modules/subscribe/controllers/subscribe_service.dart';
 import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_models.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
@@ -95,7 +96,7 @@ class RecommendController extends GetxController {
   final isLoadingByKey = <String, bool>{}.obs;
   final errorByKey = <String, String?>{}.obs;
 
-  final subscribeController = Get.put(SubscribeController());
+  final subscribeService = Get.put(SubscribeService());
 
   Future<void> _requestQueue = Future.value();
   final _pendingKeys = <String>{};
@@ -559,7 +560,7 @@ class RecommendController extends GetxController {
   }
 
   _fetchItemsSubscribeStatus(RecommendApiItem item) {
-    subscribeController.fetchAndSaveSubscribeStatus(
+    subscribeService.fetchAndSaveSubscribeStatus(
       item.mediaKey,
       season: item.season,
       title: item.title,

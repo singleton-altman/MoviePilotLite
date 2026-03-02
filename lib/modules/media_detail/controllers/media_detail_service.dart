@@ -4,6 +4,7 @@ import 'package:moviepilot_mobile/modules/media_detail/models/media_detail_model
 import 'package:moviepilot_mobile/modules/media_detail/models/media_notexists.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/season_episode_detail.dart';
 import 'package:moviepilot_mobile/modules/subscribe/controllers/subscribe_controller.dart';
+import 'package:moviepilot_mobile/modules/subscribe/controllers/subscribe_service.dart';
 import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_models.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
@@ -12,8 +13,8 @@ class MediaDetailService extends GetxService {
   final _apiClient = Get.find<ApiClient>();
   final _appService = Get.find<AppService>();
   final _log = Get.find<AppLog>();
-  final _subscribeController = Get.put(SubscribeController());
-  
+  final _subscribeService = Get.put(SubscribeService());
+
   String? _getToken() =>
       _appService.loginResponse?.accessToken ??
       _appService.latestLoginProfileAccessToken ??
@@ -103,7 +104,7 @@ class MediaDetailService extends GetxService {
     String? title,
   }) async {
     try {
-      return _subscribeController.getSubscribeMediaStatus(
+      return _subscribeService.fetchAndSaveSubscribeStatus(
         mediaKey,
         season: season,
         title: title,

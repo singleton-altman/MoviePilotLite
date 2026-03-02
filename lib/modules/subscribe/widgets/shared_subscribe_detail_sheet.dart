@@ -22,12 +22,18 @@ class SharedSubscribeDetailSheet extends StatefulWidget {
 
 class _SharedSubscribeDetailSheetState
     extends State<SharedSubscribeDetailSheet> {
-  final controller = Get.find<SubscribeController>();
+  final controller = Get.put(SubscribeController());
   final state = SharedSubscribeDetailSheetState.normal.obs;
   @override
   void initState() {
     super.initState();
     // controller.loadSharedSubscribeDetail(widget.item.id);
+  }
+
+  @override
+  void dispose() {
+    Get.delete<SubscribeController>();
+    super.dispose();
   }
 
   @override
@@ -67,47 +73,48 @@ class _SharedSubscribeDetailSheetState
               maxLines: 5,
             ),
             const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Section(
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.person,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        Text('作者: ${widget.item.shareUser}'),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.comment,
-                          color: Theme.of(context).textTheme.bodyMedium?.color,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
+            Section(
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.person,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text('作者: ${widget.item.shareUser}'),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.comment,
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
                           '${widget.item.shareTitle ?? ''} / ${widget.item.shareComment}',
+                          maxLines: 5,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Icon(
-                          CupertinoIcons.paperplane_fill,
-                          color: CupertinoColors.activeBlue,
-                        ),
-                        const SizedBox(width: 8),
-                        Text('复用人数: ${widget.item.count}'),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Icon(
+                        CupertinoIcons.paperplane_fill,
+                        color: CupertinoColors.activeBlue,
+                      ),
+                      const SizedBox(width: 8),
+                      Text('复用人数: ${widget.item.count}'),
+                    ],
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16),

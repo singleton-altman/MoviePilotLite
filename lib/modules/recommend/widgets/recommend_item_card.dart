@@ -2,15 +2,16 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/modules/recommend/controllers/recommend_api_item_ext.dart';
+import 'package:moviepilot_mobile/modules/recommend/controllers/recommend_controller.dart';
 import 'package:moviepilot_mobile/modules/recommend/models/recommend_api_item.dart';
 import 'package:moviepilot_mobile/modules/search/pages/search_mid_sheet.dart';
-import 'package:moviepilot_mobile/modules/subscribe/controllers/subscribe_controller.dart';
+import 'package:moviepilot_mobile/modules/subscribe/controllers/subscribe_service.dart';
 import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_models.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
 import 'package:moviepilot_mobile/widgets/cached_image.dart';
 
-class RecommendItemCard extends GetView<SubscribeController> {
+class RecommendItemCard extends GetView<SubscribeService> {
   const RecommendItemCard({
     super.key,
     required this.item,

@@ -10,6 +10,7 @@ import 'package:moviepilot_mobile/modules/media_detail/models/media_detail_model
 import 'package:moviepilot_mobile/modules/media_detail/models/media_notexists.dart';
 import 'package:moviepilot_mobile/modules/recommend/models/recommend_api_item.dart';
 import 'package:moviepilot_mobile/modules/subscribe/controllers/subscribe_controller.dart';
+import 'package:moviepilot_mobile/modules/subscribe/controllers/subscribe_service.dart';
 import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_models.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
@@ -25,7 +26,7 @@ class MediaDetailController extends GetxController {
   final _log = Get.find<AppLog>();
   final _realmService = Get.find<RealmService>();
   final _mediaDetailService = Get.find<MediaDetailService>();
-  final _subscribeController = Get.put(SubscribeController());
+  final _subscribeService = Get.put(SubscribeService());
   final subscribeLoadingState = false.obs;
   final isLoading = false.obs;
   final mediaDetail = Rxn<MediaDetail>();
@@ -611,7 +612,7 @@ class MediaDetailController extends GetxController {
     subscribeLoadingState.value = true;
     if (_isSubscribed(mediaDetail.value!, season)) {
       final mediaKey = args.path;
-      final ok = await _subscribeController.deleteMediaSubscribe(
+      final ok = await _subscribeService.deleteMediaSubscribe(
         mediaKey,
         season: season == null ? '0' : season.toString(),
       );
@@ -630,12 +631,15 @@ class MediaDetailController extends GetxController {
       }
       final isTv = _isTv(detail);
       if (isTv) {
-        final ok = await _subscribeController.submitTvSubscribe(
-          doubanid: detail.douban_id?.toString() ?? '',
-          name: detail.title?.trim() ?? '',
-          season: season,
-          year: detail.year?.trim() ?? '',
-          tmdbid: detail.tmdb_id?.toString(),
+        final ok = await _subscribeService.submitSubscribe(
+          'tv',
+          payload: {
+            'doubanid': detail.douban_id?.toString() ?? '',
+            'name': detail.title?.trim() ?? '',
+            'season': season?.toString() ?? '',
+            'year': detail.year?.trim() ?? '',
+            'tmdbid': detail.tmdb_id?.toString(),
+          },
         );
         if (ok.success == true) {
           final tvItem = SubscribeItem(
@@ -655,7 +659,7 @@ class MediaDetailController extends GetxController {
         subscribeLoadingState.value = false;
         return (ok.success == true, true);
       } else {
-        final ok = await _subscribeController.submitMovieSubscribe(
+        final ok = await _subscribeService.submitMovieSubscribe(
           doubanid: detail.douban_id?.toString() ?? '',
           name: detail.title?.trim() ?? '',
           season: season,

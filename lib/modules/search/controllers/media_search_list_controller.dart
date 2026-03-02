@@ -1,10 +1,13 @@
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
+import 'package:moviepilot_mobile/modules/recommend/controllers/recommend_api_item_ext.dart';
 import 'package:moviepilot_mobile/modules/recommend/models/recommend_api_item.dart';
+import 'package:moviepilot_mobile/modules/subscribe/controllers/subscribe_service.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
 
 class MediaSearchListController extends GetxController {
+  final _subscribeService = Get.put(SubscribeService());
   MediaSearchListController({String? initialKeyword, String? initialType}) {
     final seed = initialKeyword?.trim();
     if (seed != null && seed.isNotEmpty) {
@@ -104,6 +107,13 @@ class MediaSearchListController extends GetxController {
       _updatePagination(raw, page, parsed.length, append);
       if (parsed.isEmpty && !append) {
         error.value = '没有找到匹配的媒体';
+      }
+      for (final item in parsed) {
+        _subscribeService.fetchAndSaveSubscribeStatus(
+          item.mediaKey,
+          season: item.season,
+          title: item.title,
+        );
       }
     } catch (e, st) {
       _log.handle(e, stackTrace: st, message: '媒体搜索失败');

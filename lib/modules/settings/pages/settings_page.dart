@@ -79,6 +79,9 @@ class SliverCupertinoListSection extends StatelessWidget {
         final rowCount = isServiceRow ? 1 : category.items.length;
 
         return CupertinoListSection.insetGrouped(
+          backgroundColor: CupertinoColors.systemGroupedBackground.resolveFrom(
+            context,
+          ),
           header: Padding(
             padding: const EdgeInsets.only(left: 16, bottom: 6),
             child: Text(

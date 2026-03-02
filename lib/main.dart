@@ -265,14 +265,20 @@ class MyApp extends StatelessWidget {
           name: '/subscribe-tv',
           page: () => const SubscribePage(),
           binding: BindingsBuilder(() {
-            Get.put(SubscribeController(), permanent: false);
+            Get.put(
+              SubscribeController()..subscribeType = SubscribeType.tv,
+              permanent: false,
+            );
           }),
         ),
         GetPage(
           name: '/subscribe-movie',
           page: () => const SubscribePage(),
           binding: BindingsBuilder(() {
-            Get.put(SubscribeController(), permanent: false);
+            Get.put(
+              SubscribeController()..subscribeType = SubscribeType.movie,
+              permanent: false,
+            );
           }),
         ),
         GetPage(
