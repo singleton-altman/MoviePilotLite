@@ -69,11 +69,12 @@ const List<MultifunctionSection> multifunctionSections = [
         route: '/media-organize',
       ),
       MultifunctionItem(
-        title: 'TODO://文件管理',
+        title: '文件管理',
         subtitle: '批量清理与归档',
         icon: Icons.snippet_folder_outlined,
         accent: Color(0xFF6D5DF6),
         style: MultifunctionCardStyle.wide,
+        route: '/file-manager',
       ),
     ],
   ),

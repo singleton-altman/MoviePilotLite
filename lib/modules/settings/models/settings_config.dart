@@ -196,7 +196,14 @@ List<SettingsCategory> get settingsCategories => [
     title: '服务',
     subtitle: '后台任务列表',
     icon: Icons.list_alt_outlined,
-    items: const [],
+    items: const [
+      SettingsSubItem(
+        id: 'background-task-list',
+        title: '后台任务列表',
+        route: '/background-task-list',
+        icon: Icons.list_alt_outlined,
+      ),
+    ],
     directRoute: '/background-task-list',
   ),
   // SettingsCategory(
@@ -205,8 +212,18 @@ List<SettingsCategory> get settingsCategories => [
   //   subtitle: '通知渠道、通知模块',
   //   icon: Icons.notifications_outlined,
   //   items: const [
-  //     SettingsSubItem(id: 'channels', title: '通知渠道', route: null, icon: Icons.campaign_outlined),
-  //     SettingsSubItem(id: 'modules', title: '通知模块', route: null, icon: Icons.extension_outlined),
+  //     SettingsSubItem(
+  //       id: 'channels',
+  //       title: '通知渠道',
+  //       route: null,
+  //       icon: Icons.campaign_outlined,
+  //     ),
+  //     SettingsSubItem(
+  //       id: 'modules',
+  //       title: '通知模块',
+  //       route: null,
+  //       icon: Icons.extension_outlined,
+  //     ),
   //   ],
   // ),
 ];

@@ -10,26 +10,29 @@ class SectionHeader extends StatelessWidget {
     final primaryColor = theme.colorScheme.primary;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          SizedBox(width: 16),
-          Container(
-            width: 5,
-            height: 20,
-            decoration: BoxDecoration(
-              color: primaryColor,
-              borderRadius: BorderRadius.circular(10),
+      child: SizedBox(
+        height: 44,
+        child: Row(
+          children: [
+            SizedBox(width: 16),
+            Container(
+              width: 5,
+              height: 20,
+              decoration: BoxDecoration(
+                color: primaryColor,
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            title,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-          const Spacer(),
-          if (trailing != null) trailing!,
-          const SizedBox(width: 16),
-        ],
+            const SizedBox(width: 12),
+            Text(
+              title,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            const Spacer(),
+            if (trailing != null) trailing!,
+            const SizedBox(width: 16),
+          ],
+        ),
       ),
     );
   }

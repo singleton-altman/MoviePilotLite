@@ -102,6 +102,8 @@ import 'modules/rule/pages/priority_rule_page.dart';
 import 'modules/rule/pages/download_rule_page.dart';
 import 'modules/workflow/controllers/workflow_controller.dart';
 import 'modules/workflow/pages/workflow_page.dart';
+import 'modules/file_manager/controllers/file_manager_browser_controller.dart';
+import 'modules/file_manager/pages/file_manager_browser_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -575,6 +577,24 @@ class MyApp extends StatelessWidget {
           page: () => const WorkflowPage(),
           binding: BindingsBuilder(() {
             Get.lazyPut(() => WorkflowController());
+          }),
+        ),
+        GetPage(
+          name: '/file-manager',
+          page: () => const FileManagerBrowserPage(),
+          binding: BindingsBuilder(() {
+            if (!Get.isRegistered<StorageListController>()) {
+              Get.put(StorageListController(), permanent: true);
+            }
+            final args = Get.arguments ?? {};
+            Get.put(FileManagerBrowserController(
+              isPickerMode: args['isPickerMode'] == true,
+              allowMultipleSelection: args['allowMultipleSelection'] == true,
+              allowFileSelection: args['allowFileSelection'] != false,
+              allowDirSelection: args['allowDirSelection'] != false,
+              initialStorageType: args['initialStorage']?.toString(),
+              initialPath: args['initialPath']?.toString(),
+            ));
           }),
         ),
         GetPage(

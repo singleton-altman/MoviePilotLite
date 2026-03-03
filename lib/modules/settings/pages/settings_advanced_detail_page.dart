@@ -6,7 +6,8 @@ import 'package:moviepilot_mobile/modules/settings/models/settings_field_config.
 import 'package:moviepilot_mobile/modules/settings/widgets/settings_field_row.dart';
 
 /// 高级设置详情页：按基础设置风格，区块展示 系统、媒体、网络、日志、实验室
-class SettingsAdvancedDetailPage extends GetView<SettingsAdvancedDetailController> {
+class SettingsAdvancedDetailPage
+    extends GetView<SettingsAdvancedDetailController> {
   const SettingsAdvancedDetailPage({super.key});
 
   @override
@@ -18,9 +19,13 @@ class SettingsAdvancedDetailPage extends GetView<SettingsAdvancedDetailControlle
           onPressed: () => Get.back(),
           child: const Icon(CupertinoIcons.back),
         ),
-        middle: const Text('高级设置', style: TextStyle(fontWeight: FontWeight.w600)),
-        backgroundColor:
-            CupertinoColors.systemGroupedBackground.resolveFrom(context),
+        middle: const Text(
+          '高级设置',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: CupertinoColors.systemGroupedBackground.resolveFrom(
+          context,
+        ),
         border: null,
       ),
       child: Obx(() {
@@ -38,7 +43,9 @@ class SettingsAdvancedDetailPage extends GetView<SettingsAdvancedDetailControlle
                     controller.errorText.value ?? '',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                      color: CupertinoColors.secondaryLabel.resolveFrom(
+                        context,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -55,7 +62,7 @@ class SettingsAdvancedDetailPage extends GetView<SettingsAdvancedDetailControlle
           slivers: [
             for (final section in controller.sections)
               _buildSection(context, header: section.$1, fields: section.$2),
-          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            const SliverToBoxAdapter(child: SizedBox(height: 24)),
           ],
         );
       }),
@@ -72,7 +79,9 @@ class SettingsAdvancedDetailPage extends GetView<SettingsAdvancedDetailControlle
     }
     return SliverToBoxAdapter(
       child: CupertinoListSection.insetGrouped(
-        backgroundColor: CupertinoColors.systemGroupedBackground.resolveFrom(context),
+        backgroundColor: CupertinoColors.systemGroupedBackground.resolveFrom(
+          context,
+        ),
         header: Padding(
           padding: const EdgeInsets.only(left: 16, bottom: 4, top: 2),
           child: Text(
