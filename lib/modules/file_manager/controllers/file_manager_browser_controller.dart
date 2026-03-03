@@ -9,15 +9,25 @@ import 'package:moviepilot_mobile/modules/recognize/models/recognize_model.dart'
 import 'package:moviepilot_mobile/modules/storage/controllers/storage_list_controller.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 
-/// 文件浏览器控制器 - 单页 pathStack 导航，GetX 状态管理
+/// 文件浏览器控制器 - 使用 Get.to 页面级导航，每页单一 currentPath
 class FileManagerBrowserController extends GetxController {
   final _apiClient = Get.find<ApiClient>();
   final _log = Get.find<AppLog>();
 
-  // 路径栈
-  final pathStack = <String>[].obs;
+  /// 当前路径（本页）
+  final currentPath = '/'.obs;
 
-  String get currentPath => pathStack.isEmpty ? '/' : pathStack.last;
+  /// 面包屑用路径层级（由 currentPath 推导）
+  List<String> get pathStack {
+    final path = currentPath.value;
+    if (path == '/' || path.isEmpty) return ['/'];
+    final parts = path.split('/').where((p) => p.isNotEmpty).toList();
+    final stack = <String>['/'];
+    for (final p in parts) {
+      stack.add('${stack.last == '/' ? '' : stack.last}/$p');
+    }
+    return stack;
+  }
 
   // 当前选中存储
   final selectedStorage = Rxn<StorageSetting>();
@@ -48,13 +58,15 @@ class FileManagerBrowserController extends GetxController {
     String? initialStorageType,
     String? initialPath,
   }) {
-    pathStack.assignAll([initialPath ?? '/']);
+    currentPath.value = initialPath ?? '/';
+    if (currentPath.value == '/' || currentPath.value.isEmpty) {
+      FileManagerPickerService.clear();
+    }
   }
 
   @override
   void onInit() {
     super.onInit();
-    FileManagerPickerService.clear();
     _initStorage();
   }
 
@@ -92,30 +104,14 @@ class FileManagerBrowserController extends GetxController {
 
   void switchStorage(StorageSetting s) {
     selectedStorage.value = s;
-    pathStack.assignAll(['/']);
+    currentPath.value = '/';
     loadFiles();
   }
 
-  void enterDirectory(MediaOrganizeFileItem item) {
-    if (!_isDirectory(item)) return;
-    final nextPath = getNextPath(item);
-    pathStack.add(nextPath);
-    loadFiles();
-  }
-
-  void goBack() {
-    if (pathStack.length > 1) {
-      pathStack.removeLast();
-      loadFiles();
-    }
-  }
-
-  void jumpToPath(int index) {
-    if (index < 0 || index >= pathStack.length) return;
-    if (index < pathStack.length - 1) {
-      pathStack.removeRange(index + 1, pathStack.length);
-      loadFiles();
-    }
+  /// 获取进入子目录后的路径，由 Page 使用 Get.to 跳转
+  String? getNextPathForDir(MediaOrganizeFileItem item) {
+    if (!_isDirectory(item)) return null;
+    return getNextPath(item);
   }
 
   @override
@@ -134,7 +130,7 @@ class FileManagerBrowserController extends GetxController {
     try {
       final response = await _apiClient.post<dynamic>(
         '/api/v1/storage/list?sort=${sortBy.value}',
-        data: {'type': 'dir', 'storage': storage.type, 'path': currentPath},
+        data: {'type': 'dir', 'storage': storage.type, 'path': currentPath.value},
       );
 
       final status = response.statusCode ?? 0;
@@ -151,8 +147,8 @@ class FileManagerBrowserController extends GetxController {
           if (raw is Map<String, dynamic>) {
             try {
               list.add(MediaOrganizeFileItem.fromJson(raw));
-            } catch (e, st) {
-              _log.handle(e, stackTrace: st, message: '解析文件项失败');
+            } catch (e) {
+              _log.handle(e, message: '解析文件项失败');
             }
           }
         }
@@ -163,8 +159,8 @@ class FileManagerBrowserController extends GetxController {
           if (raw is Map<String, dynamic>) {
             try {
               list.add(MediaOrganizeFileItem.fromJson(raw));
-            } catch (e, st) {
-              _log.handle(e, stackTrace: st, message: '解析文件项失败');
+            } catch (e) {
+              _log.handle(e, message: '解析文件项失败');
             }
           }
         }
@@ -172,8 +168,8 @@ class FileManagerBrowserController extends GetxController {
       } else {
         files.clear();
       }
-    } catch (e, st) {
-      _log.handle(e, stackTrace: st, message: '获取文件列表失败');
+    } catch (e) {
+      _log.handle(e, message: '获取文件列表失败');
       errorText.value = '请求失败，请稍后重试';
       files.clear();
     } finally {
@@ -187,8 +183,9 @@ class FileManagerBrowserController extends GetxController {
   }
 
   String getNextPath(MediaOrganizeFileItem item) {
-    if (!_isDirectory(item)) return currentPath;
-    return item.path ?? '${currentPath == '/' ? '' : currentPath}/${item.name}';
+    final path = currentPath.value;
+    if (!_isDirectory(item)) return path;
+    return item.path ?? '${path == '/' ? '' : path}/${item.name}';
   }
 
   /// 本地过滤后的文件列表
@@ -251,8 +248,8 @@ class FileManagerBrowserController extends GetxController {
         return true;
       }
       return false;
-    } catch (e, st) {
-      _log.handle(e, stackTrace: st, message: '删除文件失败');
+    } catch (e) {
+      _log.handle(e, message: '删除文件失败');
       return false;
     }
   }
@@ -275,7 +272,7 @@ class FileManagerBrowserController extends GetxController {
     if (storage == null) return null;
 
     final path =
-        item.path ?? '${currentPath == '/' ? '' : currentPath}/${item.name}';
+        item.path ?? '${currentPath.value == '/' ? '' : currentPath.value}/${item.name}';
     if (path.isEmpty) return null;
 
     try {
@@ -288,8 +285,8 @@ class FileManagerBrowserController extends GetxController {
         return _parseRecognizeResponse(response.data);
       }
       return null;
-    } catch (e, st) {
-      _log.handle(e, stackTrace: st, message: '识别文件失败');
+    } catch (e) {
+      _log.handle(e, message: '识别文件失败');
       return null;
     }
   }
@@ -327,8 +324,8 @@ class FileManagerBrowserController extends GetxController {
       );
       final status = response.statusCode ?? 0;
       return status >= 200 && status < 300;
-    } catch (e, st) {
-      _log.handle(e, stackTrace: st, message: '刮削失败');
+    } catch (e) {
+      _log.handle(e, message: '刮削失败');
       return false;
     }
   }
@@ -339,7 +336,7 @@ class FileManagerBrowserController extends GetxController {
     if (storage == null) return null;
 
     final path =
-        item.path ?? '${currentPath == '/' ? '' : currentPath}/${item.name}';
+        item.path ?? '${currentPath.value == '/' ? '' : currentPath.value}/${item.name}';
     if (path.isEmpty) return null;
 
     final filetype = _isDirectory(item) ? 'dir' : 'file';
@@ -360,8 +357,8 @@ class FileManagerBrowserController extends GetxController {
         }
       }
       return null;
-    } catch (e, st) {
-      _log.handle(e, stackTrace: st, message: '获取建议名称失败');
+    } catch (e) {
+      _log.handle(e, message: '获取建议名称失败');
       return null;
     }
   }
@@ -395,8 +392,8 @@ class FileManagerBrowserController extends GetxController {
         return true;
       }
       return false;
-    } catch (e, st) {
-      _log.handle(e, stackTrace: st, message: '重命名失败');
+    } catch (e) {
+      _log.handle(e, message: '重命名失败');
       return false;
     }
   }

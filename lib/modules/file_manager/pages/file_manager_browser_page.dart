@@ -40,9 +40,16 @@ Widget _storageIconWidget(String type, {double size = 24}) {
   }
 }
 
-/// 文件浏览器页面 - 单页 pathStack 导航
+/// 文件浏览器页面 - 使用 Get.to 页面级导航
 class FileManagerBrowserPage extends GetView<FileManagerBrowserController> {
   const FileManagerBrowserPage({super.key});
+
+  @override
+  FileManagerBrowserController get controller {
+    final args = Get.arguments;
+    final tag = args is Map ? args['_controllerTag']?.toString() : null;
+    return Get.find<FileManagerBrowserController>(tag: tag);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -108,7 +115,10 @@ class FileManagerBrowserPage extends GetView<FileManagerBrowserController> {
             ],
           ),
         ),
-        onSelected: (s) => controller.switchStorage(s),
+        onSelected: (s) {
+          Get.until((route) => route.settings.name == '/file-manager');
+          Get.find<FileManagerBrowserController>().switchStorage(s);
+        },
         itemBuilder: (context) => [
           for (final s in list)
             PopupMenuItem<StorageSetting>(
@@ -153,13 +163,7 @@ class FileManagerBrowserPage extends GetView<FileManagerBrowserController> {
         final atRoot = controller.pathStack.length <= 1;
         return CupertinoButton(
           padding: EdgeInsets.zero,
-          onPressed: () {
-            if (atRoot) {
-              Get.back();
-            } else {
-              controller.goBack();
-            }
-          },
+          onPressed: Get.back,
           child: atRoot
               ? const Icon(CupertinoIcons.xmark, size: 22)
               : const Row(
@@ -247,12 +251,42 @@ class FileManagerBrowserPage extends GetView<FileManagerBrowserController> {
     );
   }
 
+  void _jumpToPathByPop(int index) {
+    final stack = controller.pathStack;
+    if (index < 0 || index >= stack.length - 1) return;
+    final popCount = stack.length - 1 - index;
+    for (var i = 0; i < popCount; i++) {
+      Get.back();
+    }
+  }
+
+  void _navigateToDirectory(String nextPath) {
+    try {
+      final args = <String, dynamic>{
+        'initialPath': nextPath,
+        'initialStorage': controller.selectedStorage.value?.type,
+        'isPickerMode': controller.isPickerMode,
+        'allowMultipleSelection': controller.allowMultipleSelection,
+        'allowFileSelection': controller.allowFileSelection,
+        'allowDirSelection': controller.allowDirSelection,
+        '_controllerTag': 'fm-${DateTime.now().millisecondsSinceEpoch}',
+      };
+      Get.toNamed(
+        '/file-manager?${args.entries.map((e) => '${e.key}=${e.value}').join('&')}',
+        arguments: args,
+        preventDuplicates: true,
+      );
+    } catch (e) {
+      print('Failed to navigate to directory: $e');
+    }
+  }
+
   Widget _buildPathBreadcrumb() {
     return Obx(() {
       final stack = controller.pathStack;
       if (stack.isEmpty) return const SizedBox.shrink();
       return Container(
-        margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        margin: const EdgeInsets.fromLTRB(16, 5, 16, 0),
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
@@ -269,7 +303,7 @@ class FileManagerBrowserPage extends GetView<FileManagerBrowserController> {
                     ),
                   ),
                 GestureDetector(
-                  onTap: () => controller.jumpToPath(i),
+                  onTap: () => _jumpToPathByPop(i),
                   behavior: HitTestBehavior.opaque,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
@@ -349,6 +383,7 @@ class FileManagerBrowserPage extends GetView<FileManagerBrowserController> {
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate((context, index) {
                   final file = controller.filteredFiles[index];
+                  final divider = index != controller.filteredFiles.length - 1;
                   return Container(
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.surface,
@@ -359,7 +394,7 @@ class FileManagerBrowserPage extends GetView<FileManagerBrowserController> {
                             : Radius.zero,
                       ),
                     ),
-                    child: _buildFileItem(file),
+                    child: _buildFileItem(file, divider: divider),
                   );
                 }, childCount: controller.filteredFiles.length),
               ),
@@ -377,33 +412,23 @@ class FileManagerBrowserPage extends GetView<FileManagerBrowserController> {
     return t == 'dir' || t == 'directory' || t == 'folder';
   }
 
-  Widget _buildFileItem(MediaOrganizeFileItem file) {
+  Widget _buildFileItem(MediaOrganizeFileItem file, {bool divider = true}) {
     final isDir = _isDirectory(file);
     final canSelect =
         controller.isPickerMode &&
         ((isDir && controller.allowDirSelection) ||
             (!isDir && controller.allowFileSelection));
 
-    return Obx(() {
-      final selectedFiles = FileManagerPickerService.selectedFiles;
-      final isSelected = selectedFiles.contains(file);
-
-      return GestureDetector(
-        behavior: HitTestBehavior.opaque,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         onTap: () {
           if (isDir) {
-            controller.enterDirectory(file);
+            final nextPath = controller.getNextPathForDir(file);
+            if (nextPath != null) {
+              _navigateToDirectory(nextPath);
+            }
           } else if (controller.isPickerMode && canSelect) {
-            FileManagerPickerService.toggleSelection(
-              file,
-              controller.allowMultipleSelection,
-            );
-          }
-        },
-        onLongPress: () {
-          if (controller.isPickerMode &&
-              isDir &&
-              controller.allowDirSelection) {
             FileManagerPickerService.toggleSelection(
               file,
               controller.allowMultipleSelection,
@@ -441,16 +466,23 @@ class FileManagerBrowserPage extends GetView<FileManagerBrowserController> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  _buildTrailing(file, canSelect, isSelected),
+                  Obx(
+                    () => _buildTrailing(
+                      file,
+                      canSelect,
+                      FileManagerPickerService.selectedFiles.contains(file),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 10),
-              Divider(height: 0.5, color: CupertinoColors.systemGrey5),
+              if (divider)
+                Divider(height: 0.1, color: CupertinoColors.systemGrey6),
             ],
           ),
         ),
-      );
-    });
+      ),
+    );
   }
 
   bool _hasSubtitle(MediaOrganizeFileItem file) {
@@ -910,11 +942,11 @@ class FileManagerBrowserPage extends GetView<FileManagerBrowserController> {
         ),
         actions: [
           CupertinoDialogAction(
-            onPressed: () => Navigator.of(ctx).pop(false),
+            onPressed: () => Get.back(result: false),
             child: const Text('取消'),
           ),
           CupertinoDialogAction(
-            onPressed: () => Navigator.of(ctx).pop(true),
+            onPressed: () => Get.back(result: true),
             child: const Text('刮削'),
           ),
         ],
@@ -953,12 +985,12 @@ class FileManagerBrowserPage extends GetView<FileManagerBrowserController> {
         ),
         actions: [
           CupertinoDialogAction(
-            onPressed: () => Navigator.of(ctx).pop(false),
+            onPressed: () => Get.back(result: false),
             child: const Text('取消'),
           ),
           CupertinoDialogAction(
             isDestructiveAction: true,
-            onPressed: () => Navigator.of(ctx).pop(true),
+            onPressed: () => Get.back(result: true),
             child: const Text('删除'),
           ),
         ],

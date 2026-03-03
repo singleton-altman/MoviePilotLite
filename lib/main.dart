@@ -586,15 +586,20 @@ class MyApp extends StatelessWidget {
             if (!Get.isRegistered<StorageListController>()) {
               Get.put(StorageListController(), permanent: true);
             }
-            final args = Get.arguments ?? {};
-            Get.put(FileManagerBrowserController(
-              isPickerMode: args['isPickerMode'] == true,
-              allowMultipleSelection: args['allowMultipleSelection'] == true,
-              allowFileSelection: args['allowFileSelection'] != false,
-              allowDirSelection: args['allowDirSelection'] != false,
-              initialStorageType: args['initialStorage']?.toString(),
-              initialPath: args['initialPath']?.toString(),
-            ));
+            final args = Get.arguments is Map ? Get.arguments as Map : <String, dynamic>{};
+            final tag = args['_controllerTag']?.toString();
+            Get.put(
+              FileManagerBrowserController(
+                isPickerMode: args['isPickerMode'] == true,
+                allowMultipleSelection: args['allowMultipleSelection'] == true,
+                allowFileSelection: args['allowFileSelection'] != false,
+                allowDirSelection: args['allowDirSelection'] != false,
+                initialStorageType: args['initialStorage']?.toString(),
+                initialPath: args['initialPath']?.toString(),
+              ),
+              tag: tag,
+              permanent: false,
+            );
           }),
         ),
         GetPage(
