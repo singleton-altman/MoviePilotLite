@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/modules/dashboard/controllers/dashboard_controller.dart';
 import 'package:moviepilot_mobile/modules/dashboard/models/schedule_model.dart';
+import 'package:moviepilot_mobile/theme/section.dart';
 
 /// 后台任务列表页面
 class BackgroundTaskListPage extends StatefulWidget {
@@ -113,7 +114,18 @@ class _BackgroundTaskListPageState extends State<BackgroundTaskListPage> {
               else
                 ...sections.map(
                   (e) => SliverToBoxAdapter(
-                    child: CupertinoListSection.insetGrouped(
+                    child: Section(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      padding: EdgeInsets.all(0),
+                      separatorBuilder: (context) {
+                        return Divider(
+                          height: 1,
+                          color: Theme.of(context).dividerColor,
+                        );
+                      },
                       header: Padding(
                         padding: const EdgeInsets.only(
                           left: 4,
