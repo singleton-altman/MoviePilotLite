@@ -1,33 +1,23 @@
-# Telegram Bot 通知 Action
-# 用于在 GitHub Actions 中发送 Telegram 消息
-#
-# 使用前请在仓库中添加：
-# - Secrets: TG_BOT_TOKEN (Bot Token)
-# - Secrets/Variables: TG_CHAT_ID (接收消息的 Chat ID，如个人为你的 user id，群组为负数)
-#
-# 获取 Chat ID: 先给 Bot 发一条消息，然后访问
-# https://api.telegram.org/bot<TOKEN>/getUpdates 查看返回中的 chat.id
-
 name: Telegram Notify
 
 description: 通过 Telegram Bot 发送通知消息
 
 inputs:
   token:
-    description: "Telegram Bot Token（建议使用 secrets.TG_BOT_TOKEN）"
+    description: "Telegram Bot Token"
     required: true
   chat_id:
     description: "接收消息的 Chat ID"
     required: true
   message:
-    description: "要发送的消息内容"
+    description: "要发送的消息内容（支持 HTML）"
     required: true
   parse_mode:
     description: "解析模式：HTML 或 Markdown"
     required: false
     default: "HTML"
   disable_notification:
-    description: "是否静默发送（不推送通知）"
+    description: "是否静默发送"
     required: false
     default: "false"
 
@@ -49,27 +39,29 @@ runs:
         PARSE_MODE: ${{ inputs.parse_mode }}
         DISABLE_NOTIFICATION: ${{ inputs.disable_notification }}
       run: |
-        set -e
-        if [ -z "$TOKEN" ] || [ -z "$CHAT_ID" ]; then
-          echo "::warning::TG_BOT_TOKEN 或 TG_CHAT_ID 未设置，跳过 Telegram 通知"
+        set -euo pipefail
+        if [ -z "${TOKEN:-}" ] || [ -z "${CHAT_ID:-}" ]; then
+          echo "::warning::TG_BOT_TOKEN 或 TG_CHAT_ID 未配置，跳过通知"
           echo "success=false" >> $GITHUB_OUTPUT
           exit 0
         fi
-        PAYLOAD=$(jq -n \
+        disable=$([ "$DISABLE_NOTIFICATION" = "true" ] && echo "true" || echo "false")
+        payload=$(jq -n \
           --arg chat_id "$CHAT_ID" \
           --arg text "$MESSAGE" \
           --arg parse_mode "$PARSE_MODE" \
-          --argjson disable "$([ "$DISABLE_NOTIFICATION" = "true" ] && echo true || echo false)" \
+          --argjson disable "$disable" \
           '{chat_id: $chat_id, text: $text, parse_mode: $parse_mode, disable_notification: $disable}')
-        RESULT=$(curl -s -w "\n%{http_code}" -X POST \
+        resp=$(curl -s -w "\n%{http_code}" -X POST \
           "https://api.telegram.org/bot${TOKEN}/sendMessage" \
           -H "Content-Type: application/json" \
-          -d "$PAYLOAD" 2>/dev/null || true)
-        HTTP_CODE=$(echo "$RESULT" | tail -n1)
-        if [ "$HTTP_CODE" = "200" ]; then
+          -d "$payload") || true
+        http_code=$(echo "$resp" | tail -n1)
+        body=$(echo "$resp" | sed '$d')
+        if [ "$http_code" = "200" ]; then
           echo "success=true" >> $GITHUB_OUTPUT
-          echo "✓ Telegram 通知已发送"
+          echo "Telegram 通知已发送"
         else
           echo "success=false" >> $GITHUB_OUTPUT
-          echo "::warning::Telegram 发送失败 (HTTP $HTTP_CODE)"
+          echo "::warning::Telegram 发送失败 (HTTP $http_code): $body"
         fi

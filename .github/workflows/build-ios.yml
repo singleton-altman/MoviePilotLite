@@ -86,8 +86,10 @@ jobs:
       - name: Generate release name
         id: release
         run: |
-          RELEASE_NAME="v${{ steps.version.outputs.version }}-ios-$(date +%Y-%m-%d)"
+          BUILD_DATE=$(date +%Y-%m-%d)
+          RELEASE_NAME="v${{ steps.version.outputs.version }}-ios-${BUILD_DATE}"
           echo "name=$RELEASE_NAME" >> $GITHUB_OUTPUT
+          echo "date=$BUILD_DATE" >> $GITHUB_OUTPUT
 
       # 🔟 创建 GitHub Release
       - name: Create GitHub Release
@@ -99,7 +101,7 @@ jobs:
             ## MoviePilot iOS Release
 
             - Version: ${{ steps.version.outputs.version }}
-            - Build Date: $(date +%Y-%m-%d)
+            - Build Date: ${{ steps.release.outputs.date }}
             - Type: Unsigned IPA
 
             ### ⚠️ Installation
@@ -122,3 +124,21 @@ jobs:
 
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 1️⃣1️⃣ Telegram 通知（仅构建成功时发送）
+      - name: Telegram 通知
+        uses: ./.github/actions/telegram-notify
+        with:
+          token: ${{ secrets.TG_BOT_TOKEN }}
+          chat_id: ${{ secrets.TG_CHAT_ID }}
+          message: |
+            <b>🎬 MoviePilot iOS 构建完成</b>
+
+            <b>Release:</b> <code>${{ steps.release.outputs.name }}</code>
+            <b>版本:</b> ${{ steps.version.outputs.version }}
+            <b>日期:</b> ${{ steps.release.outputs.date }}
+
+            <b>说明:</b> Unsigned IPA，需通过 AltStore / Sideloadly / Xcode 自行签名安装。
+
+            <a href="https://github.com/${{ github.repository }}/releases/tag/${{ steps.release.outputs.name }}">📦 查看 Release</a>
+            <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}">🔗 Workflow 运行</a>
