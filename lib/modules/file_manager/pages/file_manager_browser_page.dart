@@ -881,8 +881,36 @@ class FileManagerBrowserPage extends GetView<FileManagerBrowserController> {
     // TODO: 后续实现重命名
   }
 
-  void _handleScrape(MediaOrganizeFileItem file) {
-    // TODO: 后续实现刮削
+  Future<void> _handleScrape(MediaOrganizeFileItem file) async {
+    final displayName = file.name ?? file.basename ?? '该文件';
+    final isDir = _isDirectory(file);
+    final confirmed = await showCupertinoDialog<bool>(
+      context: Get.context!,
+      builder: (ctx) => CupertinoAlertDialog(
+        title: const Text('确认刮削'),
+        content: Text(
+          isDir ? '确定要对文件夹「$displayName」执行刮削吗？' : '确定要对文件「$displayName」执行刮削吗？',
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('取消'),
+          ),
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('刮削'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    final success = await controller.scrapeFile(file);
+    if (success) {
+      ToastUtil.success('刮削任务已提交');
+    } else {
+      ToastUtil.error('刮削失败');
+    }
   }
 
   void _handleRecognize(MediaOrganizeFileItem file) {

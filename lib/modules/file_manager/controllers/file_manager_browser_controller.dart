@@ -299,6 +299,29 @@ class FileManagerBrowserController extends GetxController {
     return null;
   }
 
+  /// 刮削文件/文件夹 - POST /api/v1/media/scrape/{storage}
+  Future<bool> scrapeFile(MediaOrganizeFileItem file) async {
+    final storage = selectedStorage.value;
+    if (storage == null) return false;
+
+    final body = file.toJson();
+    if (body['storage'] == null || (body['storage'] as String).isEmpty) {
+      body['storage'] = storage.type;
+    }
+
+    try {
+      final response = await _apiClient.post<dynamic>(
+        '/api/v1/media/scrape/${storage.type}',
+        data: body,
+      );
+      final status = response.statusCode ?? 0;
+      return status >= 200 && status < 300;
+    } catch (e, st) {
+      _log.handle(e, stackTrace: st, message: '刮削失败');
+      return false;
+    }
+  }
+
   void retryLoadStorages() {
     if (Get.isRegistered<StorageListController>()) {
       Get.find<StorageListController>().loadStorages();
