@@ -106,14 +106,6 @@ const List<MultifunctionSection> multifunctionSections = [
         style: MultifunctionCardStyle.wide,
         route: '/user-management',
       ),
-      MultifunctionItem(
-        title: '设定',
-        subtitle: '系统参数配置',
-        icon: Icons.settings_outlined,
-        accent: Color(0xFFFFA000),
-        style: MultifunctionCardStyle.wide,
-        route: '/settings',
-      ),
     ],
   ),
 ];

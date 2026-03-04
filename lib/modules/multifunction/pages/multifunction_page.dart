@@ -52,7 +52,7 @@ class MultifunctionPage extends GetView<MultifunctionController> {
         CupertinoButton(
           padding: EdgeInsets.zero,
           child: const Icon(Icons.settings_outlined),
-          onPressed: () => Get.toNamed('/app-setting'),
+          onPressed: () => Get.toNamed('/settings'),
         ),
       ],
     );
