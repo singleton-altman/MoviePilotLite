@@ -31,10 +31,10 @@ class AppTheme {
   static const Color lightCardBackgroundColor = Colors.white;
 
   /// 背景色（深色主题）
-  static const Color darkBackgroundColor = Color.fromRGBO(44, 44, 46, 1);
+  static const Color darkCardBackgroundColor = Color.fromRGBO(44, 44, 46, 1);
 
   /// 卡片背景色（深色主题）
-  static const Color darkCardBackgroundColor = Color.fromRGBO(20, 20, 20, 1);
+  static const Color darkBackgroundColor = Color.fromRGBO(20, 20, 20, 1);
 
   /// 文本主色（浅色主题）
   static const Color lightTextPrimaryColor = Color.fromRGBO(28, 28, 28, 1);

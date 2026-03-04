@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 
 class SectionHeader extends StatelessWidget {
-  const SectionHeader({super.key, required this.title, this.trailing});
+  const SectionHeader({
+    super.key,
+    required this.title,
+    this.trailing,
+    this.style,
+  });
   final String title;
   final Widget? trailing;
+  final TextStyle? style;
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -26,7 +32,8 @@ class SectionHeader extends StatelessWidget {
             const SizedBox(width: 12),
             Text(
               title,
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style:
+                  style ?? TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             const Spacer(),
             if (trailing != null) trailing!,

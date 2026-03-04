@@ -45,6 +45,7 @@ class SettingsSubItem {
 /// 主分类 ID 常量
 class SettingsCategoryId {
   SettingsCategoryId._();
+  static const String app = 'app';
   static const String system = 'system';
   static const String storage = 'storage';
   static const String site = 'site';
@@ -57,6 +58,26 @@ class SettingsCategoryId {
 
 /// 静态配置：8 个主分类及子项
 List<SettingsCategory> get settingsCategories => [
+  SettingsCategory(
+    id: SettingsCategoryId.app,
+    title: 'App',
+    icon: Icons.settings_outlined,
+    items: const [
+      SettingsSubItem(
+        id: 'theme-mode',
+        title: '主题模式',
+        route: '/settings/app/theme-mode',
+        icon: Icons.settings_outlined,
+      ),
+      // SettingsSubItem(
+      //   id: 'dashboard-config',
+      //   title: 'Dashboard配置',
+      //   route: '/settings/app/dashboard-config',
+      //   icon: Icons.dashboard_outlined,
+      // ),
+    ],
+  ),
+
   SettingsCategory(
     id: SettingsCategoryId.system,
     title: '系统',

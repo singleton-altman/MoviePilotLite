@@ -4,8 +4,10 @@ import 'package:liquid_tabbar_minimize/liquid_tabbar_minimize.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:moviepilot_mobile/modules/index.dart';
 import 'package:moviepilot_mobile/modules/media_detail/controllers/media_detail_service.dart';
+import 'package:moviepilot_mobile/modules/search/controllers/app_setting_controller.dart';
 import 'package:moviepilot_mobile/modules/search/controllers/media_search_list_controller.dart';
 import 'package:moviepilot_mobile/modules/search/controllers/search_controller.dart';
+import 'package:moviepilot_mobile/modules/search/pages/app_theme_setting_page.dart';
 import 'package:moviepilot_mobile/modules/search/pages/media_search_list_page.dart';
 import 'package:moviepilot_mobile/modules/search/pages/search_media_result_page.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
@@ -123,12 +125,12 @@ class MyApp extends StatelessWidget {
     WidgetsFlutterBinding.ensureInitialized();
     // 获取Talker实例
     final talker = Get.find<AppLog>();
-
+    final appService = Get.find<AppService>();
     // 创建Talker路由观察器
     final routeObserver = TalkerRouteObserver(talker.talker);
-
     return GetMaterialApp(
       title: 'MoviePilot',
+      themeMode: appService.themeMode.value,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       initialBinding: AppBinding(),
@@ -586,7 +588,9 @@ class MyApp extends StatelessWidget {
             if (!Get.isRegistered<StorageListController>()) {
               Get.put(StorageListController(), permanent: true);
             }
-            final args = Get.arguments is Map ? Get.arguments as Map : <String, dynamic>{};
+            final args = Get.arguments is Map
+                ? Get.arguments as Map
+                : <String, dynamic>{};
             final tag = args['_controllerTag']?.toString();
             Get.put(
               FileManagerBrowserController(
@@ -649,6 +653,13 @@ class MyApp extends StatelessWidget {
             final cookie = args['cookie'] ?? '';
             return WebViewScreen(url: url, cookie: cookie);
           },
+        ),
+        GetPage(
+          name: '/settings/app/theme-mode',
+          page: () => const AppThemeSettingPage(),
+          binding: BindingsBuilder(() {
+            Get.lazyPut(() => AppSettingController());
+          }),
         ),
       ],
       // 配置错误处理

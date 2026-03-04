@@ -37,6 +37,7 @@ class Section extends StatelessWidget {
             decoration: BoxDecoration(color: color, borderRadius: borderRadius),
             child: children != null
                 ? ListView.separated(
+                    padding: EdgeInsets.zero,
                     shrinkWrap: true,
                     physics: NeverScrollableScrollPhysics(),
                     itemBuilder: (context, index) => children![index],

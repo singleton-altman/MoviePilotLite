@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/modules/multifunction/controllers/multifunction_controller.dart';
@@ -47,6 +48,13 @@ class MultifunctionPage extends GetView<MultifunctionController> {
         style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
       ),
       centerTitle: false,
+      actions: [
+        CupertinoButton(
+          padding: EdgeInsets.zero,
+          child: const Icon(Icons.settings_outlined),
+          onPressed: () => Get.toNamed('/app-setting'),
+        ),
+      ],
     );
   }
 

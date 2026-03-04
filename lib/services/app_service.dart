@@ -1,9 +1,26 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/modules/login/models/login_response.dart';
 import 'package:moviepilot_mobile/modules/profile/models/user_info.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// 应用全局服务
 class AppService extends GetxService {
+  final themeMode = ThemeMode.system.obs;
+  @override
+  Future<void> onInit() async {
+    super.onInit();
+    final prefs = await SharedPreferences.getInstance();
+    themeMode.value = ThemeMode.values[prefs.getInt('themeMode') ?? 0];
+  }
+
+  Future<void> updateThemeMode(ThemeMode mode) async {
+    final prefs = await SharedPreferences.getInstance();
+    themeMode.value = mode;
+    prefs.setInt('themeMode', mode.index);
+    Get.forceAppUpdate();
+  }
+
   /// 基础URL
   String? _baseUrl;
 
