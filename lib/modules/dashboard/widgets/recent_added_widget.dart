@@ -98,6 +98,7 @@ class RecentAddedWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DashboardSection(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       title: '最近入库',
       icon: CupertinoIcons.clock,
       onTapMore: () {

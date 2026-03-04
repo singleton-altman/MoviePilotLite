@@ -12,6 +12,7 @@ class ScheduleWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DashboardSection(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       title: '后台任务',
       icon: CupertinoIcons.calendar,
       onTapMore: () {
@@ -47,7 +48,11 @@ class ScheduleWidget extends StatelessWidget {
       return Column(
         children: [
           ...displayList.map((schedule) {
-            return _buildScheduleItem(schedule);
+            return _buildScheduleItem(
+              schedule,
+              context,
+              schedule == displayList.last,
+            );
           }),
         ],
       );
@@ -55,19 +60,27 @@ class ScheduleWidget extends StatelessWidget {
   }
 
   /// 构建任务项
-  Widget _buildScheduleItem(dynamic schedule) {
+  Widget _buildScheduleItem(
+    dynamic schedule,
+    BuildContext context,
+    bool isLast,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          padding: const EdgeInsets.symmetric(vertical: 12.0),
           child: Row(
             children: [
               Expanded(
                 child: Text(
                   schedule.name,
-                  style: const TextStyle(fontSize: 15),
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w400,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -95,10 +108,11 @@ class ScheduleWidget extends StatelessWidget {
             ],
           ),
         ),
-        Divider(
-          color: CupertinoColors.systemGrey.withValues(alpha: 0.5),
-          height: 1,
-        ),
+        if (!isLast)
+          Divider(
+            color: CupertinoColors.systemGrey.withValues(alpha: 0.5),
+            height: 1,
+          ),
       ],
     );
   }
