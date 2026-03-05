@@ -1,7 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/models/form_block_models.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/utils/vuetify_mappings.dart';
+import 'package:moviepilot_mobile/services/api_client.dart';
+import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/theme/section.dart';
 
 /// 信息卡片：基于 CupertinoListSection.insetGrouped 构建，
@@ -105,7 +109,105 @@ class InfoCardWidget extends StatelessWidget {
   Widget _buildRowTile(BuildContext context, InfoCardRow row) {
     final iconData = VuetifyMappings.iconFromMdi(row.iconName);
     final iconColor = _resolveColor(row.iconColor);
-    final hasSubtitle = row.subtitle != null && row.subtitle!.isNotEmpty;
+    final clickEvent = _extractClickEvent(
+      row.map(
+        (data) => data.events,
+        progress: (data) => data.events,
+        menu: (data) => data.events,
+      ),
+    );
+
+    return row.map(
+      (data) => _buildBasicRow(context, data, iconData, iconColor, clickEvent),
+      progress: (data) =>
+          _buildProgressRow(context, data, iconData, iconColor, clickEvent),
+      menu: (data) =>
+          _buildMenuRow(context, data, iconData, iconColor, clickEvent),
+    );
+  }
+
+  Widget _buildBasicRow(
+    BuildContext context,
+    InfoCardRowBase row,
+    IconData? iconData,
+    Color iconColor,
+    _InfoCardClickEvent? clickEvent,
+  ) {
+    return CupertinoListTile(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      leading: iconData != null
+          ? _buildSubtleIconBadge(iconData, iconColor)
+          : null,
+      title: Text(
+        row.label,
+        style: TextStyle(
+          fontSize: 15,
+          color: CupertinoDynamicColor.resolve(CupertinoColors.label, context),
+        ),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: _buildSubtitle(context, row.subtitle),
+      trailing: _buildValueChipTrailing(
+        context,
+        value: row.value,
+        chipText: row.chipText,
+        chipColor: row.chipColor,
+      ),
+      onTap: clickEvent != null ? () => _handleClickEvent(clickEvent) : null,
+    );
+  }
+
+  Widget _buildProgressRow(
+    BuildContext context,
+    InfoCardRowProgress row,
+    IconData? iconData,
+    Color iconColor,
+    _InfoCardClickEvent? clickEvent,
+  ) {
+    return CupertinoListTile(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      leading: iconData != null
+          ? _buildSubtleIconBadge(iconData, iconColor)
+          : null,
+      title: Text(
+        row.label,
+        style: TextStyle(
+          fontSize: 15,
+          color: CupertinoDynamicColor.resolve(CupertinoColors.label, context),
+        ),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: _buildSubtitle(context, row.subtitle),
+      trailing: _buildProgressTrailing(context, row),
+      onTap: clickEvent != null ? () => _handleClickEvent(clickEvent) : null,
+    );
+  }
+
+  Widget _buildMenuRow(
+    BuildContext context,
+    InfoCardRowMenu row,
+    IconData? iconData,
+    Color iconColor,
+    _InfoCardClickEvent? clickEvent,
+  ) {
+    final valueTrailing = _buildValueChipTrailing(
+      context,
+      value: row.value,
+      chipText: row.chipText,
+      chipColor: row.chipColor,
+    );
+    final trailingWidgets = <Widget>[];
+    if (valueTrailing != null) {
+      trailingWidgets.add(Flexible(child: valueTrailing));
+      if (row.menuItems.isNotEmpty) {
+        trailingWidgets.add(const SizedBox(width: 6));
+      }
+    }
+    if (row.menuItems.isNotEmpty) {
+      trailingWidgets.add(_buildPopupMenuButton(context, row.menuItems));
+    }
 
     return CupertinoListTile(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -121,50 +223,171 @@ class InfoCardWidget extends StatelessWidget {
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       ),
-      subtitle: hasSubtitle
-          ? Text(
-              row.subtitle!,
-              style: TextStyle(
-                fontSize: 13,
-                color: CupertinoDynamicColor.resolve(
-                  CupertinoColors.secondaryLabel,
-                  context,
-                ),
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            )
+      subtitle: _buildSubtitle(context, row.subtitle),
+      trailing: trailingWidgets.isNotEmpty
+          ? Row(mainAxisSize: MainAxisSize.min, children: trailingWidgets)
           : null,
-      trailing: _buildRowTrailing(context, row),
+      onTap: clickEvent != null ? () => _handleClickEvent(clickEvent) : null,
     );
   }
 
-  Widget? _buildRowTrailing(BuildContext context, InfoCardRow row) {
-    final hasChip = row.chipText != null && row.chipText!.isNotEmpty;
-    final hasValue = row.value != null && row.value!.isNotEmpty;
-    if (!hasChip && !hasValue) return null;
+  Widget? _buildSubtitle(BuildContext context, String? subtitle) {
+    if (subtitle == null || subtitle.isEmpty) return null;
+    return Text(
+      subtitle,
+      style: TextStyle(
+        fontSize: 13,
+        color: CupertinoDynamicColor.resolve(
+          CupertinoColors.secondaryLabel,
+          context,
+        ),
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (hasValue)
-          Flexible(
-            child: Text(
-              row.value!,
-              style: TextStyle(
-                fontSize: 14,
-                color: CupertinoDynamicColor.resolve(
-                  CupertinoColors.secondaryLabel,
-                  context,
-                ),
+  Widget? _buildValueChipTrailing(
+    BuildContext context, {
+    String? value,
+    String? chipText,
+    String? chipColor,
+  }) {
+    final hasValue = value != null && value.isNotEmpty;
+    final hasChip = chipText != null && chipText.isNotEmpty;
+    if (!hasValue && !hasChip) return null;
+
+    final children = <Widget>[];
+    if (hasValue) {
+      children.add(
+        Flexible(
+          child: Text(
+            value!,
+            style: TextStyle(
+              fontSize: 14,
+              color: CupertinoDynamicColor.resolve(
+                CupertinoColors.secondaryLabel,
+                context,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      );
+    }
+    if (hasValue && hasChip) {
+      children.add(const SizedBox(width: 8));
+    }
+    if (hasChip) {
+      children.add(_buildBadgeChip(chipText!, chipColor));
+    }
+    return Row(mainAxisSize: MainAxisSize.min, children: children);
+  }
+
+  Widget _buildProgressTrailing(BuildContext context, InfoCardRowProgress row) {
+    final valueText = row.value?.isNotEmpty == true ? row.value : null;
+    final chipText = row.chipText?.isNotEmpty == true ? row.chipText : null;
+    final progress = row.progressValue.clamp(0.0, 1.0);
+    final progressColor = _resolveColor(row.progressColor);
+    final backgroundColor =
+        (row.progressBackgroundColor?.isNotEmpty == true
+                ? _resolveColor(row.progressBackgroundColor)
+                : progressColor.withOpacity(0.2))
+            .withOpacity(0.4);
+    final labelText = row.progressLabel?.isNotEmpty == true
+        ? row.progressLabel!
+        : '${(progress * 100).round()}%';
+
+    final children = <Widget>[];
+    if (chipText != null) {
+      children.add(const SizedBox(height: 4));
+      children.add(_buildBadgeChip(chipText, row.chipColor));
+      children.add(const SizedBox(height: 4));
+    }
+    if (valueText != null) {
+      children.add(
+        Text(
+          valueText,
+          style: TextStyle(
+            fontSize: 14,
+            color: CupertinoDynamicColor.resolve(
+              CupertinoColors.secondaryLabel,
+              context,
             ),
           ),
-        if (hasValue && hasChip) const SizedBox(width: 8),
-        if (hasChip) _buildBadgeChip(row.chipText!, row.chipColor),
-      ],
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      );
+      children.add(const SizedBox(height: 6));
+    }
+    children.add(
+      ClipRRect(
+        borderRadius: BorderRadius.circular(3),
+        child: LinearProgressIndicator(
+          value: progress,
+          color: progressColor,
+          backgroundColor: backgroundColor,
+          minHeight: 6,
+        ),
+      ),
+    );
+    children.add(const SizedBox(height: 4));
+    children.add(
+      Text(
+        labelText,
+        style: TextStyle(
+          fontSize: 12,
+          color: CupertinoDynamicColor.resolve(
+            CupertinoColors.secondaryLabel,
+            context,
+          ),
+        ),
+      ),
+    );
+
+    return SizedBox(
+      width: 150,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: children,
+      ),
+    );
+  }
+
+  Widget _buildPopupMenuButton(
+    BuildContext context,
+    List<InfoCardRowMenuItem> items,
+  ) {
+    final iconColor = CupertinoDynamicColor.resolve(
+      CupertinoColors.secondaryLabel,
+      context,
+    );
+    return PopupMenuButton<InfoCardRowMenuItem>(
+      padding: EdgeInsets.zero,
+      tooltip: '更多',
+      icon: Icon(CupertinoIcons.ellipsis_vertical, color: iconColor, size: 20),
+      onSelected: (item) async {
+        final event = _extractClickEvent(item.events);
+        if (event != null) await _handleClickEvent(event);
+      },
+      itemBuilder: (_) => items.map((item) {
+        final iconData = VuetifyMappings.iconFromMdi(item.iconName);
+        return PopupMenuItem(
+          value: item,
+          child: Row(
+            children: [
+              if (iconData != null) ...[
+                Icon(iconData, size: 18, color: _resolveColor(item.iconColor)),
+                const SizedBox(width: 6),
+              ],
+              Expanded(child: Text(item.label)),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -335,6 +558,35 @@ class InfoCardWidget extends StatelessWidget {
         const Color(0xFF34C759);
   }
 
+  _InfoCardClickEvent? _extractClickEvent(Map<String, dynamic>? events) {
+    if (events == null) return null;
+    final click = events['click'];
+    if (click is! Map) return null;
+    final api = click['api']?.toString();
+    final method = click['method']?.toString().toLowerCase() ?? 'get';
+    if (api == null || api.isEmpty) return null;
+    return _InfoCardClickEvent(api: api, method: method);
+  }
+
+  static Future<void> _handleClickEvent(_InfoCardClickEvent event) async {
+    try {
+      final apiClient = Get.find<ApiClient>();
+      final appService = Get.find<AppService>();
+      final token =
+          appService.loginResponse?.accessToken ??
+          appService.latestLoginProfileAccessToken ??
+          apiClient.token;
+      if (token == null || token.isEmpty) return;
+      if (event.method == 'post') {
+        await apiClient.post<dynamic>(event.api, token: token);
+      } else {
+        await apiClient.get<dynamic>(event.api, token: token);
+      }
+    } catch (e, st) {
+      Get.find<AppLog>().handle(e, stackTrace: st, message: 'API 调用失败');
+    }
+  }
+
   static Color? _namedColor(String name) {
     switch (name.toLowerCase()) {
       case 'green':
@@ -393,4 +645,11 @@ class InfoCardWidget extends StatelessWidget {
         );
     }
   }
+}
+
+class _InfoCardClickEvent {
+  const _InfoCardClickEvent({required this.api, required this.method});
+
+  final String api;
+  final String method;
 }

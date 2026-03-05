@@ -189,6 +189,43 @@ class InfoCardRow with _$InfoCardRow {
     String? value,
     String? chipText,
     String? chipColor,
-    String? progressValue,
-  }) = _InfoCardRow;
+    Map<String, dynamic>? events,
+  }) = InfoCardRowBase;
+
+  const factory InfoCardRow.progress({
+    String? iconName,
+    String? iconColor,
+    required String label,
+    String? subtitle,
+    required double progressValue,
+    String? progressLabel,
+    String? progressColor,
+    String? progressBackgroundColor,
+    String? value,
+    String? chipText,
+    String? chipColor,
+    Map<String, dynamic>? events,
+  }) = InfoCardRowProgress;
+
+  const factory InfoCardRow.menu({
+    String? iconName,
+    String? iconColor,
+    required String label,
+    String? subtitle,
+    String? value,
+    String? chipText,
+    String? chipColor,
+    @Default([]) List<InfoCardRowMenuItem> menuItems,
+    Map<String, dynamic>? events,
+  }) = InfoCardRowMenu;
+}
+
+@freezed
+class InfoCardRowMenuItem with _$InfoCardRowMenuItem {
+  const factory InfoCardRowMenuItem({
+    required String label,
+    String? iconName,
+    String? iconColor,
+    Map<String, dynamic>? events,
+  }) = _InfoCardRowMenuItem;
 }

@@ -1,4 +1,5 @@
 import 'package:moviepilot_mobile/modules/dynamic_form/models/form_block_models.dart';
+import 'package:moviepilot_mobile/utils/size_formatter.dart';
 
 /// ProxmoxVEBackup 插件专用转换器：将 API 原始 JSON 转换为 FormBlock 列表
 class ProxmoxVEBackupConverter {
@@ -76,7 +77,13 @@ class ProxmoxVEBackupConverter {
     final loadStr = loadAvg.map((e) => e?.toString() ?? '').join(' / ');
     final cpuTemp = (pveStatus['cpu_temp'] as num?)?.toDouble();
     final pveVersion = pveStatus['pve_version']?.toString() ?? '';
-
+    final totalMem = pveStatus['mem_total'] as num? ?? 0.0;
+    final memUsed = pveStatus['mem_used'] as num? ?? 0.0;
+    final totalDisk = pveStatus['disk_total'] as num? ?? 0.0;
+    final diskUsed = pveStatus['disk_used'] as num? ?? 0.0;
+    final swapUsage = pveStatus['swap_usage'] as num? ?? 0.0;
+    final swapUsed = pveStatus['swap_used'] as num? ?? 0.0;
+    final swapTotal = pveStatus['swap_total'] as num? ?? 0.0;
     final rows = <InfoCardRow>[
       InfoCardRow(
         iconName: 'mdi-server',
@@ -95,36 +102,45 @@ class ProxmoxVEBackupConverter {
       InfoCardRow(iconName: 'mdi-desktop-mac', label: '主机名', value: hostname),
       if (ip.isNotEmpty)
         InfoCardRow(iconName: 'mdi-ip', label: 'IP', value: ip),
-      InfoCardRow(
+      InfoCardRow.progress(
         iconName: 'mdi-chip',
         iconColor: 'blue',
         label: 'CPU 使用率',
-        chipText: '${cpuUsage.toStringAsFixed(1)}%',
+        chipText:
+            '${cpuUsage.toStringAsFixed(1)}%/${cpuTemp != null ? '${cpuTemp.toStringAsFixed(0)}°C' : ''}',
         chipColor: cpuUsage > 80 ? 'red' : 'blue',
+        progressValue: cpuUsage / 100.0,
       ),
-      InfoCardRow(
+
+      InfoCardRow.progress(
         iconName: 'mdi-memory',
         iconColor: 'teal',
         label: '内存使用率',
-        chipText: '${memUsage.toStringAsFixed(1)}%',
+        chipText:
+            '${SizeFormatter.formatSizeFromMb(memUsed)}/${SizeFormatter.formatSizeFromMb(totalMem)}',
         chipColor: memUsage > 80 ? 'red' : 'teal',
+        progressValue: memUsage / 100.0,
       ),
-      InfoCardRow(
+      InfoCardRow.progress(
         iconName: 'mdi-harddisk',
         iconColor: 'purple',
         label: '磁盘使用率',
-        chipText: '${diskUsage.toStringAsFixed(1)}%',
+        chipText:
+            '${SizeFormatter.formatSizeFromMb(diskUsed)}/${SizeFormatter.formatSizeFromMb(totalDisk)}',
         chipColor: diskUsage > 80 ? 'red' : 'purple',
+        progressValue: diskUsage / 100.0,
       ),
       if (loadStr.isNotEmpty)
-        InfoCardRow(iconName: 'mdi-chart-line', label: '负载', value: loadStr),
-      if (cpuTemp != null)
-        InfoCardRow(
-          iconName: 'mdi-thermometer',
-          label: 'CPU 温度',
-          chipText: '${cpuTemp.toStringAsFixed(0)}°C',
-          chipColor: cpuTemp > 70 ? 'red' : 'grey',
+        InfoCardRow.progress(
+          iconName: 'mdi-chart-line',
+          iconColor: 'blue',
+          label: '负载',
+          chipText:
+              '${SizeFormatter.formatSizeFromMb(swapUsed)}/${SizeFormatter.formatSizeFromMb(swapTotal)}',
+          chipColor: swapUsage > 80 ? 'red' : 'blue',
+          progressValue: swapUsage / 100.0,
         ),
+
       if (pveVersion.isNotEmpty)
         InfoCardRow(
           iconName: 'mdi-information',
