@@ -4,10 +4,12 @@ class SectionHeader extends StatelessWidget {
   const SectionHeader({
     super.key,
     required this.title,
+    this.subtitle,
     this.trailing,
     this.style,
   });
   final String title;
+  final String? subtitle;
   final Widget? trailing;
   final TextStyle? style;
   @override
@@ -36,6 +38,12 @@ class SectionHeader extends StatelessWidget {
                   style ?? TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             const Spacer(),
+
+            if (subtitle != null)
+              Text(
+                subtitle!,
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
+              ),
             if (trailing != null) trailing!,
             const SizedBox(width: 16),
           ],

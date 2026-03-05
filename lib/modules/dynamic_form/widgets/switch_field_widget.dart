@@ -20,6 +20,7 @@ class SwitchFieldWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Section(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         children: [
           Expanded(
@@ -34,10 +35,7 @@ class SwitchFieldWidget extends StatelessWidget {
               ),
             ),
           ),
-          CupertinoSwitch(
-            value: _effectiveValue,
-            onChanged: onChanged,
-          ),
+          CupertinoSwitch(value: _effectiveValue, onChanged: onChanged),
         ],
       ),
     );

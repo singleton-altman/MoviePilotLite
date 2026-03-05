@@ -94,7 +94,7 @@ openssl base64 -A -in moviepilot-release.keystore | tr -d '\n' | pbcopy
 | 后宫管理系统 | `nexusinvitee` | [nexusinvitee.png](https://raw.githubusercontent.com/madrays/MoviePilot-Plugins/main/icons/nexusinvitee.png) | 2 | [madrays](https://github.com/madrays) | ✅ 已完成 |
 | 垃圾文件清理 | `TrashClean` | [clean1.png](https://raw.githubusercontent.com/madrays/MoviePilot-Plugins/main/icons/clean1.png) | 1 | [madrays](https://github.com/madrays) | ✅ 已完成 |
 | P115StrmHelper | `P115StrmHelper` | - | - | [DDSRem](https://github.com/DDSRem) | 🔄 适配中 (预计 1.0.2) |
-| ProxmoxVEBackup | `ProxmoxVEBackup` | - | - | [xijin285](https://github.com/xijin285) | 🔄 适配中 (预计 1.0.2) |
+| ProxmoxVEBackup | `ProxmoxVEBackup` | - | - | [xijin285](https://github.com/xijin285) | 基础适配 |
 | 随机图床状态 | `RandomPic` | - | - | [xijin285](https://github.com/xijin285) | 🔄 适配中 (预计 1.0.2) |
 
 ## 未来路线

@@ -5,7 +5,7 @@ import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/adapters/plugin_form_adapter.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/models/dynamic_form_models.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/models/form_block_models.dart';
-import 'package:moviepilot_mobile/modules/dynamic_form/services/trash_clean_converter.dart';
+import 'package:moviepilot_mobile/modules/dynamic_form/services/trash_converter/trash_clean_converter.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
 

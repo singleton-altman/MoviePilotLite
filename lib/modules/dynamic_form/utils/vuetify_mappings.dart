@@ -233,6 +233,18 @@ class VuetifyMappings {
     'mdi-water': Icons.water_drop,
     'mdi-leaf': Icons.eco,
     'mdi-paw': Icons.pets,
+    'mdi-desktop-mac': Icons.desktop_mac_outlined,
+    'mdi-ip': Icons.network_wifi_outlined,
+    'mdi-cpu': Icons.cabin_outlined,
+    'mdi-memory': Icons.memory_outlined,
+    'mdi-harddisk': Icons.storage_outlined,
+    'mdi-network': Icons.network_wifi_outlined,
+    'mdi-network-off': Icons.network_wifi_outlined,
+    'mdi-network-security': Icons.security_outlined,
+    'mdi-thermometer': Icons.thermostat_outlined,
+    'mdi-chart-line': Icons.show_chart_outlined,
+    'mdi-backup-restore': Icons.backup_table_outlined,
+    'mdi-file-archive': Icons.file_present_outlined,
   };
 
   /// dashboard-stats 标签 -> MDI 图标名（后端 JSON 无 icon，Web 端按 label 映射）

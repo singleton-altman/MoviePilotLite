@@ -2,9 +2,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/adapters/plugin_form_adapter.dart';
+import 'package:moviepilot_mobile/modules/dynamic_form/adapters/plugin_form_adapter_registry.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/controllers/dynamic_form_controller.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/models/form_block_models.dart';
-import 'package:moviepilot_mobile/modules/dynamic_form/pages/sub/plugin_clean_progress_sheet.dart';
+import 'package:moviepilot_mobile/modules/dynamic_form/widgets/VueStyle/clean/plugin_clean_progress_sheet.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/widgets/alert_widget.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/widgets/chart_widget.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/widgets/cron_field_widget.dart';
@@ -161,7 +162,7 @@ class DynamicFormPage extends GetView<DynamicFormController> {
           return VuetifyPageRenderer(nodes: pNodes, controller: controller);
         }
 
-        // form 模式 / TrashClean 等：使用 FormBlock 渲染
+        // 默认：FormBlock 渲染
         final items = _toDisplayItems(blocks);
         return ListView.builder(
           padding: const EdgeInsets.fromLTRB(

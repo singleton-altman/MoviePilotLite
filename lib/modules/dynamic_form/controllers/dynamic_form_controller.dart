@@ -270,6 +270,8 @@ class DynamicFormController extends GetxController {
   final formModePlugins = [
     'AutoSignIn',
     'TrashClean',
+    'ProxmoxVEBackup',
+    'RandomPic',
     'MonitorPaths',
     'SiteStatistic',
     'MedalWall',

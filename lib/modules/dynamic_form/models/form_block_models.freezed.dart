@@ -7835,6 +7835,7 @@ class _$InfoCardRowImpl implements _InfoCardRow {
     this.value,
     this.chipText,
     this.chipColor,
+    this.progressValue,
   });
 
   @override
@@ -7851,7 +7852,8 @@ class _$InfoCardRowImpl implements _InfoCardRow {
   final String? chipText;
   @override
   final String? chipColor;
-
+  @override
+  final String? progressValue;
   @override
   String toString() {
     return 'InfoCardRow(iconName: $iconName, iconColor: $iconColor, label: $label, subtitle: $subtitle, value: $value, chipText: $chipText, chipColor: $chipColor)';
@@ -7906,6 +7908,7 @@ abstract class _InfoCardRow implements InfoCardRow {
     final String? value,
     final String? chipText,
     final String? chipColor,
+    final String? progressValue,
   }) = _$InfoCardRowImpl;
 
   @override
@@ -7922,6 +7925,8 @@ abstract class _InfoCardRow implements InfoCardRow {
   String? get chipText;
   @override
   String? get chipColor;
+  @override
+  String? get progressValue;
 
   /// Create a copy of InfoCardRow
   /// with the given fields replaced by the non-null parameter values.

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Dynamic Form Page"
+  short_description: "Adapt plugin dashboards and config forms powered by the dynamic form module"
+  default_prompt: >
+    You are assisting with the Dynamic Form Page. Follow the instructions in this skill before touching
+    `lib/modules/dynamic_form`. Consult the architecture reference for routing and controller flow and the
+    block-types reference when adding new FormBlock variants, widgets, or converter logic.

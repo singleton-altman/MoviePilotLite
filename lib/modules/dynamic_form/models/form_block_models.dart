@@ -174,10 +174,8 @@ class MedalCardData with _$MedalCardData {
 /// 选择项：标题 + 值
 @freezed
 class SelectOption with _$SelectOption {
-  const factory SelectOption({
-    required String title,
-    required dynamic value,
-  }) = _SelectOption;
+  const factory SelectOption({required String title, required dynamic value}) =
+      _SelectOption;
 }
 
 /// 信息卡片行：图标 + 标签 + 可选副标题 + 右侧值/Chip
@@ -191,5 +189,6 @@ class InfoCardRow with _$InfoCardRow {
     String? value,
     String? chipText,
     String? chipColor,
+    String? progressValue,
   }) = _InfoCardRow;
 }

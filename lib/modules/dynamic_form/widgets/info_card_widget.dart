@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/models/form_block_models.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/utils/vuetify_mappings.dart';
+import 'package:moviepilot_mobile/theme/section.dart';
 
 /// 信息卡片：基于 CupertinoListSection.insetGrouped 构建，
 /// 参考 iOS 系统设置/通讯录风格：彩色圆角图标 + 行列式布局
@@ -17,7 +18,9 @@ class InfoCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoListSection.insetGrouped(
+    return Section(
+      padding: EdgeInsets.zero,
+      separatorBuilder: (context) => Divider(),
       margin: EdgeInsets.zero,
       header: _buildHeader(context),
       children: _buildChildren(context),
@@ -58,8 +61,7 @@ class InfoCardWidget extends StatelessWidget {
               ),
             ),
           ),
-          if (block.headerChipText != null &&
-              block.headerChipText!.isNotEmpty)
+          if (block.headerChipText != null && block.headerChipText!.isNotEmpty)
             _buildBadgeChip(block.headerChipText!, block.headerChipColor),
         ],
       ),

@@ -30,4 +30,9 @@ class SizeFormatter {
 
     return '${size.toStringAsFixed(decimals)} ${sizes[index]}';
   }
+
+  static String formatSizeFromMb(dynamic mb, [int decimals = 0]) {
+    if (mb == null || mb == 0) return '0 MB';
+    return formatSize(mb * 1024 * 1024, decimals);
+  }
 }

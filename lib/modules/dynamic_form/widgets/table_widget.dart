@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/models/form_block_models.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/utils/vuetify_mappings.dart';
+import 'package:moviepilot_mobile/theme/section.dart';
 
 /// 表格区块：移动端以卡片列表展示，每行一条卡片
 class TableWidget extends StatelessWidget {
@@ -89,11 +90,8 @@ class _TableRowCard extends StatelessWidget {
     final value = row.first;
     final realHeaders = headers.sublist(1, maxCol);
     final realValues = row.sublist(1, maxCol);
-    return CupertinoListSection.insetGrouped(
-      backgroundColor: CupertinoDynamicColor.resolve(
-        CupertinoColors.secondarySystemBackground,
-        context,
-      ),
+    return Section(
+      separatorBuilder: (context) => Divider(),
       margin: EdgeInsets.zero,
       header: _buildItem(context, null, value, theme, isHeaderRow),
       children: realHeaders.asMap().entries.map((entry) {
