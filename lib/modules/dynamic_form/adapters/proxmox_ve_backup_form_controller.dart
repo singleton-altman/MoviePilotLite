@@ -313,10 +313,23 @@ class ProxmoxVEBackupFormController extends GetxController
   bool get supportsFormEntry => true;
 
   @override
-  List<AppBarActionItem>? get actionList => null;
+  List<AppBarActionItem>? get actionList => [
+    AppBarActionItem(
+      label: '关机',
+      iconName: 'mdi-power',
+      type: 'shutdown',
+      iconColor: 'red',
+    ),
+    AppBarActionItem(
+      label: '重启',
+      iconName: 'mdi-restart',
+      type: 'reboot',
+      iconColor: 'blue',
+    ),
+  ];
 
   @override
   Future<void> onAppBarAction(String type) async {
-    // TODO: implement onAppBarAction
+    ToastUtil.error('暂为实现, 有需要请提供接口参数');
   }
 }

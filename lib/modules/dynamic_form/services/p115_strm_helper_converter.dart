@@ -1,4 +1,5 @@
 import 'package:moviepilot_mobile/modules/dynamic_form/models/form_block_models.dart';
+import 'package:moviepilot_mobile/utils/size_formatter.dart';
 
 /// P115StrmHelper 插件专用转换器：将 API 原始 JSON 转换为 FormBlock 列表
 class P115StrmHelperConverter {
@@ -110,11 +111,15 @@ class P115StrmHelperConverter {
       final used = storageMap['used'];
       if (total.isNotEmpty || used.isNotEmpty) {
         rows.add(
-          InfoCardRow(
+          InfoCardRow.progress(
             iconName: 'mdi-harddisk',
             iconColor: 'teal',
             label: '存储空间',
-            value: '$used / $total',
+            chipText: '$used / $total',
+            chipColor: 'teal',
+            progressValue:
+                SizeFormatter.parseSizeToBytes(used) /
+                SizeFormatter.parseSizeToBytes(total),
           ),
         );
       }

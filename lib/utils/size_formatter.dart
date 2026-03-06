@@ -35,4 +35,30 @@ class SizeFormatter {
     if (mb == null || mb == 0) return '0 MB';
     return formatSize(mb * 1024 * 1024, decimals);
   }
+
+  static int parseSizeToBytes(String input) {
+    final regex = RegExp(
+      r'^\s*(\d+(?:\.\d+)?)\s*(B|KB|MB|GB|TB|PB)\s*$',
+      caseSensitive: false,
+    );
+
+    final match = regex.firstMatch(input);
+    if (match == null) {
+      throw FormatException('Invalid size format: $input');
+    }
+
+    final value = double.parse(match.group(1)!);
+    final unit = match.group(2)!.toUpperCase();
+
+    const units = {
+      'B': 1,
+      'KB': 1024,
+      'MB': 1024 * 1024,
+      'GB': 1024 * 1024 * 1024,
+      'TB': 1024 * 1024 * 1024 * 1024,
+      'PB': 1024 * 1024 * 1024 * 1024 * 1024,
+    };
+
+    return (value * units[unit]!).round();
+  }
 }
