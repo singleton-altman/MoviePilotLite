@@ -7,6 +7,7 @@ import 'package:moviepilot_mobile/theme/section.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
 import 'package:moviepilot_mobile/widgets/cached_image.dart';
+import 'package:moviepilot_mobile/widgets/section_header.dart';
 
 import '../controllers/plugin_controller.dart';
 
@@ -31,23 +32,20 @@ class _PluginInfoSheetState extends State<PluginInfoSheet> {
         : '';
     return Material(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: Column(
           children: [
-            Row(
-              children: [
-                Text(
-                  widget.item.pluginName,
-                  style: Theme.of(context).textTheme.titleLarge,
+            SectionHeader(
+              title: widget.item.pluginName,
+              trailing: IconButton(
+                icon: Icon(
+                  Icons.close,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
-                Spacer(),
-                IconButton(
-                  onPressed: () {
-                    Get.back();
-                  },
-                  icon: Icon(Icons.close),
-                ),
-              ],
+                onPressed: () {
+                  Get.back();
+                },
+              ),
             ),
             CachedImage(
               imageUrl: iconUrl,

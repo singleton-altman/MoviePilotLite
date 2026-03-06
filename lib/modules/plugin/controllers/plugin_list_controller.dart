@@ -1,20 +1,22 @@
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
+import 'package:moviepilot_mobile/modules/login/repositories/auth_repository.dart';
 import 'package:moviepilot_mobile/modules/plugin/defines/plugin_list_filter_defines.dart';
 import 'package:moviepilot_mobile/modules/plugin/models/plugin_model_cache.dart';
 import 'package:moviepilot_mobile/modules/plugin/models/plugin_models.dart';
 import 'package:moviepilot_mobile/modules/plugin/services/plugin_palette_cache.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
+import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/services/realm_service.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
-import 'package:realm/realm.dart';
 
 class PluginListController extends GetxController {
   final _apiClient = Get.find<ApiClient>();
   final _log = Get.find<AppLog>();
   final _realm = Get.find<RealmService>();
-
+  final _appService = Get.find<AppService>();
+  final _authRepository = Get.find<AuthRepository>();
   static const int _pageSize = 40;
 
   final scrollController = ScrollController();
@@ -70,9 +72,29 @@ class PluginListController extends GetxController {
     return response.data ?? {};
   }
 
+  Future<void> _refreshUserCookie() async {
+    final server = _appService.baseUrl ?? _apiClient.baseUrl;
+    final token =
+        _appService.loginResponse?.accessToken ??
+        _appService.latestLoginProfileAccessToken ??
+        _apiClient.token;
+    if (server == null || server.isEmpty || token == null || token.isEmpty) {
+      return;
+    }
+    try {
+      await _authRepository.getUserGlobalConfig(
+        server: server,
+        accessToken: token,
+      );
+    } catch (e, st) {
+      _log.handle(e, stackTrace: st, message: '刷新详情 Cookie 失败');
+    }
+  }
+
   Future<void> load({bool force = false}) async {
     isLoading.value = true;
     errorText.value = null;
+    await _refreshUserCookie();
     if (!force) {
       loadFromCache();
     }
