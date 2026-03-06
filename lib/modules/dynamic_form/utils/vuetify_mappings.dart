@@ -247,6 +247,9 @@ class VuetifyMappings {
     'mdi-file-archive': Icons.file_present_outlined,
     'mdi-snapshot': Icons.camera_alt,
     'mdi-restart': Icons.restart_alt,
+    'mdi-client': Icons.laptop_outlined,
+    'mdi-cloud': Icons.cloud_outlined,
+    'mdi-settings': Icons.settings_outlined,
   };
 
   /// dashboard-stats 标签 -> MDI 图标名（后端 JSON 无 icon，Web 端按 label 映射）

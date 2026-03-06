@@ -40,7 +40,7 @@ class InfoCardWidget extends StatelessWidget {
     final color = _resolveColor(block.iconColor);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: [
           if (iconData != null) ...[
@@ -133,6 +133,66 @@ class InfoCardWidget extends StatelessWidget {
     Color iconColor,
     _InfoCardClickEvent? clickEvent,
   ) {
+    return GestureDetector(
+      onTap: clickEvent != null ? () => _handleClickEvent(clickEvent) : null,
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Row(
+          children: [
+            iconData != null
+                ? _buildSubtleIconBadge(iconData, iconColor)
+                : const SizedBox.shrink(),
+            const SizedBox(width: 8),
+            if (row.label.isNotEmpty) ...[
+              Expanded(
+                child: Text(
+                  row.label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: CupertinoDynamicColor.resolve(
+                      CupertinoColors.label,
+                      context,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+            if (row.subtitle != null && row.subtitle!.isNotEmpty) ...[
+              const SizedBox(width: 1),
+              Expanded(
+                child: Text(
+                  row.subtitle!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: CupertinoDynamicColor.resolve(
+                      CupertinoColors.secondaryLabel,
+                      context,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+
+            if (row.value != null && row.value!.isNotEmpty) ...[
+              Spacer(),
+              Text(row.value!),
+            ],
+            if (row.chipText != null && row.chipText!.isNotEmpty) ...[
+              Spacer(),
+              _buildValueChipTrailing(
+                context,
+                chipText: row.chipText,
+                chipColor: row.chipColor,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
     return CupertinoListTile(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       leading: iconData != null
@@ -199,11 +259,9 @@ class InfoCardWidget extends StatelessWidget {
       chipColor: row.chipColor,
     );
     final trailingWidgets = <Widget>[];
-    if (valueTrailing != null) {
-      trailingWidgets.add(Flexible(child: valueTrailing));
-      if (row.menuItems.isNotEmpty) {
-        trailingWidgets.add(const SizedBox(width: 6));
-      }
+    trailingWidgets.add(Flexible(child: valueTrailing));
+    if (row.menuItems.isNotEmpty) {
+      trailingWidgets.add(const SizedBox(width: 6));
     }
     if (row.menuItems.isNotEmpty) {
       trailingWidgets.add(_buildPopupMenuButton(context, row.menuItems));
@@ -247,7 +305,7 @@ class InfoCardWidget extends StatelessWidget {
     );
   }
 
-  Widget? _buildValueChipTrailing(
+  Widget _buildValueChipTrailing(
     BuildContext context, {
     String? value,
     String? chipText,
@@ -255,14 +313,14 @@ class InfoCardWidget extends StatelessWidget {
   }) {
     final hasValue = value != null && value.isNotEmpty;
     final hasChip = chipText != null && chipText.isNotEmpty;
-    if (!hasValue && !hasChip) return null;
+    if (!hasValue && !hasChip) return const SizedBox.shrink();
 
     final children = <Widget>[];
     if (hasValue) {
       children.add(
         Flexible(
           child: Text(
-            value!,
+            value,
             style: TextStyle(
               fontSize: 14,
               color: CupertinoDynamicColor.resolve(
@@ -494,7 +552,7 @@ class InfoCardWidget extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: color,
+        color: color.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(size * 0.24),
       ),
       child: Icon(icon, size: iconSize, color: Colors.white),

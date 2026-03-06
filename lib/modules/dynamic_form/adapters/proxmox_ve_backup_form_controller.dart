@@ -227,7 +227,8 @@ class ProxmoxVEBackupFormController extends GetxController
   String _extractErrorMessage(dynamic data, int status, String fallback) {
     final map = _extractMap(data);
     if (map != null) {
-      final msg = map['msg']?.toString().trim() ??
+      final msg =
+          map['msg']?.toString().trim() ??
           map['message']?.toString().trim() ??
           map['detail']?.toString().trim() ??
           map['error']?.toString().trim();
@@ -303,5 +304,19 @@ class ProxmoxVEBackupFormController extends GetxController
     } finally {
       containerActionLoading.value = false;
     }
+  }
+
+  @override
+  get supportsSave => true;
+
+  @override
+  bool get supportsFormEntry => true;
+
+  @override
+  List<AppBarActionItem>? get actionList => null;
+
+  @override
+  Future<void> onAppBarAction(String type) async {
+    // TODO: implement onAppBarAction
   }
 }

@@ -220,6 +220,18 @@ class InfoCardRow with _$InfoCardRow {
     @Default([]) List<InfoCardRowMenuItem> menuItems,
     Map<String, dynamic>? events,
   }) = InfoCardRowMenu;
+
+  const factory InfoCardRow.group({
+    String? iconName,
+    String? iconColor,
+    required String label,
+    String? subtitle,
+    String? value,
+    String? chipText,
+    String? chipColor,
+    @Default([]) List<InfoCardRowMenuItem> menuItems,
+    Map<String, dynamic>? events,
+  }) = InfoCardRowMenu;
 }
 
 @freezed

@@ -2,9 +2,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/adapters/plugin_form_adapter.dart';
-import 'package:moviepilot_mobile/modules/dynamic_form/adapters/plugin_form_adapter_registry.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/controllers/dynamic_form_controller.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/models/form_block_models.dart';
+import 'package:moviepilot_mobile/modules/dynamic_form/utils/vuetify_mappings.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/widgets/VueStyle/clean/plugin_clean_progress_sheet.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/widgets/alert_widget.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/widgets/chart_widget.dart';
@@ -87,13 +87,12 @@ class DynamicFormPage extends GetView<DynamicFormController> {
               tooltip: '立即清理',
               onPressed: () => _onTriggerClean(context),
             ),
-          // IconButton(
-          //   icon: const Icon(Icons.replay_outlined),
-          //   tooltip: '刷新',
-          //   onPressed: controller.load,
-          // ),
+          if (!controller.formMode.value &&
+              (controller.pluginAdapter?.actionList ?? []).isNotEmpty)
+            _buildAppBarActionMenu(context),
           Obx(() {
-            if (controller.hasFormModel) {
+            final showSave = controller.hasFormModel;
+            if (showSave) {
               if (controller.isLoading.value) {
                 return CupertinoActivityIndicator();
               }
@@ -184,9 +183,11 @@ class DynamicFormPage extends GetView<DynamicFormController> {
         );
       }),
       floatingActionButton: Obx(() {
-        if (controller.formMode.value) {
-          return const SizedBox.shrink();
-        }
+        // 依赖 isLoading，以便 adapter 异步注入后能重新计算是否显示入口
+        controller.isLoading.value;
+        if (controller.formMode.value) return const SizedBox.shrink();
+        final showEntry = controller.pluginAdapter?.supportsFormEntry ?? true;
+        if (!showEntry) return const SizedBox.shrink();
         return Container(
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.primary,
@@ -205,6 +206,65 @@ class DynamicFormPage extends GetView<DynamicFormController> {
         );
       }),
     );
+  }
+
+  Widget _buildAppBarActionMenu(BuildContext context) {
+    final adapter = controller.pluginAdapter!;
+    final items = adapter.actionList ?? [];
+    if (items.isEmpty) return const SizedBox.shrink();
+    return PopupMenuButton<AppBarActionItem>(
+      tooltip: '更多操作',
+      padding: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 4,
+      shadowColor: Colors.black.withValues(alpha: 0.1),
+      offset: const Offset(0, 10),
+      icon: Icon(Icons.more_vert, color: Theme.of(context).colorScheme.primary),
+      onSelected: (item) async {
+        await adapter.onAppBarAction(item.type);
+      },
+      itemBuilder: (_) => items.map((item) {
+        final iconData = item.iconName != null
+            ? VuetifyMappings.iconFromMdi(item.iconName)
+            : null;
+        final color = _resolveActionColor(context, item.iconColor);
+        return PopupMenuItem<AppBarActionItem>(
+          value: item,
+          child: Row(
+            children: [
+              if (iconData != null) ...[
+                Icon(iconData, size: 20, color: color),
+                const SizedBox(width: 8),
+              ],
+              Expanded(
+                child: Text(
+                  item.label,
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Color _resolveActionColor(BuildContext context, String? colorKey) {
+    if (colorKey == null || colorKey.isEmpty) {
+      return Theme.of(context).colorScheme.primary;
+    }
+    final hex = VuetifyMappings.colorFromHex(colorKey);
+    if (hex != null) return hex;
+    switch (colorKey.toLowerCase()) {
+      case 'primary':
+        return Theme.of(context).colorScheme.primary;
+      case 'error':
+        return CupertinoColors.destructiveRed;
+      case 'success':
+        return const Color(0xFF4CAF50);
+      default:
+        return Theme.of(context).colorScheme.primary;
+    }
   }
 
   void _onTriggerClean(BuildContext context) {
@@ -291,9 +351,9 @@ class DynamicFormPage extends GetView<DynamicFormController> {
       statCard: (b) => StatCardWidget(block: b),
       chart: (b) => ChartWidget(block: b),
       table: (b) => TableWidget(
-            block: b,
-            actionLoading: controller.pluginAdapter?.actionLoading,
-          ),
+        block: b,
+        actionLoading: controller.pluginAdapter?.actionLoading,
+      ),
       switchField: (b) => Obx(
         () => SwitchFieldWidget(
           block: b,

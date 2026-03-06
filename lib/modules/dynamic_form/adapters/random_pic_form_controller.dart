@@ -141,4 +141,18 @@ class RandomPicFormController extends GetxController
     }
     return null;
   }
+
+  @override
+  bool get supportsSave => true;
+
+  @override
+  bool get supportsFormEntry => true;
+
+  @override
+  List<AppBarActionItem>? get actionList => null;
+
+  @override
+  Future<void> onAppBarAction(String type) async {
+    // TODO: implement onAppBarAction
+  }
 }

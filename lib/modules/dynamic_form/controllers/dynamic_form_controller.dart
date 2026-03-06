@@ -278,6 +278,7 @@ class DynamicFormController extends GetxController {
     'AutoSignIn',
     'TrashClean',
     'ProxmoxVEBackup',
+    'P115StrmHelper',
     'RandomPic',
     'MonitorPaths',
     'SiteStatistic',
