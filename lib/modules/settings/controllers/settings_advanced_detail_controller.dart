@@ -3,6 +3,7 @@ import 'package:moviepilot_mobile/modules/settings/models/settings_advanced_conf
 import 'package:moviepilot_mobile/modules/settings/models/settings_field_config.dart';
 import 'package:moviepilot_mobile/modules/settings/models/system_env_model.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
+import 'package:moviepilot_mobile/utils/image_util.dart';
 
 /// 高级设置详情控制器：加载系统环境数据，提供只读展示
 class SettingsAdvancedDetailController extends GetxController {
@@ -11,6 +12,8 @@ class SettingsAdvancedDetailController extends GetxController {
   final envData = Rxn<SystemEnvData>();
   final isLoading = false.obs;
   final errorText = RxnString();
+
+  final imageUtil = Get.find<ImageUtil>();
 
   /// 所有区块：(标题, 字段列表)
   List<(String, List<SettingsFieldConfig>)> get sections => [
@@ -45,6 +48,9 @@ class SettingsAdvancedDetailController extends GetxController {
           final parsed = SystemEnvResponse.fromJson(body);
           if (parsed.success && parsed.data != null) {
             envData.value = parsed.data;
+            imageUtil.saveGlobalCachedEnabled(
+              envData.value?.globalImageCache ?? false,
+            );
             return;
           }
         }

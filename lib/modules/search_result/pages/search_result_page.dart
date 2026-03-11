@@ -13,6 +13,7 @@ import 'package:moviepilot_mobile/modules/search_result/widgets/search_result_to
 import 'package:moviepilot_mobile/modules/search_result/widgets/sort_pull_down_widget.dart';
 import 'package:moviepilot_mobile/theme/app_theme.dart';
 import 'package:moviepilot_mobile/theme/section.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class SearchResultPage extends GetView<SearchResultController> {
   const SearchResultPage({super.key, this.scrollController});
@@ -21,6 +22,7 @@ class SearchResultPage extends GetView<SearchResultController> {
 
   static const double _horizontalPadding = 16;
   static const double _cardSpacing = 12;
+  static const int _skeletonCardCount = 4;
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +35,7 @@ class SearchResultPage extends GetView<SearchResultController> {
         final errorText = controller.errorText.value;
         final viewMode = controller.viewMode.value;
 
+        final showSkeleton = isLoading && items.isEmpty;
         return CustomScrollView(
           controller: scrollController,
           slivers: [
@@ -45,12 +48,8 @@ class SearchResultPage extends GetView<SearchResultController> {
                 child: _buildSearchAndToolbar(context),
               ),
             ),
-            if (isLoading && items.isEmpty)
-              SliverFillRemaining(
-                child: Center(
-                  child: CircularProgressIndicator(color: context.primaryColor),
-                ),
-              )
+            if (showSkeleton)
+              _buildSkeletonSliver(context)
             else if (errorText != null)
               SliverToBoxAdapter(child: _buildErrorState(context, errorText))
             else if (items.isEmpty)
@@ -417,6 +416,98 @@ class SearchResultPage extends GetView<SearchResultController> {
           ),
           childCount: items.length,
         ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonSliver(BuildContext context) {
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: _horizontalPadding),
+      sliver: Skeletonizer.sliver(
+        enabled: true,
+        child: SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) => Padding(
+              padding: const EdgeInsets.only(bottom: _cardSpacing),
+              child: _buildSkeletonCard(context),
+            ),
+            childCount: _skeletonCardCount,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Bone(height: 20, borderRadius: BorderRadius.circular(6)),
+              ),
+              const SizedBox(width: 8),
+              Bone(
+                width: 64,
+                height: 18,
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Bone(
+                width: 100,
+                height: 14,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              const Spacer(),
+              Bone(
+                width: 40,
+                height: 14,
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Bone.multiText(lines: 2, width: double.infinity),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Bone(
+                width: 70,
+                height: 12,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              const SizedBox(width: 6),
+              Bone(
+                width: 60,
+                height: 12,
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Bone(
+                width: 80,
+                height: 18,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              const Spacer(),
+              Bone.icon(size: 20),
+            ],
+          ),
+        ],
       ),
     );
   }

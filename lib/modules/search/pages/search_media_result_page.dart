@@ -14,50 +14,278 @@ import 'package:moviepilot_mobile/modules/search_result/widgets/search_result_to
 import 'package:moviepilot_mobile/modules/search_result/widgets/sort_pull_down_widget.dart';
 import 'package:moviepilot_mobile/theme/app_theme.dart';
 import 'package:moviepilot_mobile/theme/section.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class SearchMediaResultPage extends GetView<SearchMediaController> {
   const SearchMediaResultPage({super.key});
 
   static const double _horizontalPadding = 16;
+  static const double _cardSpacing = 12;
+  static const int _skeletonCardCount = 4;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _buildNavigationBar(context),
-      body: Obx(() {
-        if (controller.isClosed) return const SizedBox.shrink();
-        final items = controller.visibleItems;
-        final isLoading = controller.isLoading.value;
-        final errorText = controller.errorText.value;
-        final viewMode = controller.viewMode.value;
+      body: Stack(
+        children: [
+          _buildBody(context),
+          // SSE 进度条（顶部线性进度条，类似 WebView）
+          _buildProgressIndicator(),
+        ],
+      ),
+    );
+  }
 
-        return CustomScrollView(
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: _horizontalPadding,
-                vertical: 15,
+  /// 构建 SSE 进度指示器
+  Widget _buildProgressIndicator() {
+    return Obx(() {
+      if (!controller.isProgressActive.value) {
+        return const SizedBox.shrink();
+      }
+
+      return Positioned(
+        top: 0,
+        left: 0,
+        right: 0,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 线性进度条
+            TweenAnimationBuilder<double>(
+              tween: Tween<double>(
+                begin: 0,
+                end: controller.searchProgress.value,
               ),
-              sliver: SliverToBoxAdapter(
-                child: _buildSearchAndToolbar(context),
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              builder: (context, value, child) {
+                return LinearProgressIndicator(
+                  value: value > 0 ? value : null,
+                  backgroundColor: Colors.grey.withValues(alpha: 0.2),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    _getProgressColor(controller.progressStatus.value),
+                  ),
+                  minHeight: 3,
+                );
+              },
+            ),
+            // 进度信息卡片
+            if (controller.progressMessage.value.isNotEmpty)
+              _buildProgressInfoCard(),
+          ],
+        ),
+      );
+    });
+  }
+
+  /// 构建进度信息卡片
+  Widget _buildProgressInfoCard() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                _getProgressColor(controller.progressStatus.value),
               ),
             ),
-            if (isLoading && controller.items.isEmpty)
-              SliverFillRemaining(
-                child: Center(
-                  child: CircularProgressIndicator(color: context.primaryColor),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  controller.progressMessage.value,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              )
-            else if (errorText != null)
-              SliverToBoxAdapter(child: _buildErrorState(context, errorText))
-            else if (items.isEmpty)
-              SliverToBoxAdapter(child: _buildEmptyState(context))
-            else
-              _buildResults(context, items, viewMode),
-            SliverToBoxAdapter(child: SizedBox(height: _bottomSpacer(context))),
-          ],
-        );
-      }),
+                if (controller.progressSource.value.isNotEmpty)
+                  Text(
+                    controller.progressSource.value,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      fontSize: 11,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            controller.formattedProgress,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 根据状态获取进度条颜色
+  Color _getProgressColor(String status) {
+    switch (status) {
+      case 'completed':
+        return Colors.green;
+      case 'failed':
+      case 'error':
+        return Colors.red;
+      case 'searching':
+      default:
+        return Colors.blue;
+    }
+  }
+
+  Widget _buildBody(BuildContext context) {
+    return Obx(() {
+      if (controller.isClosed) return const SizedBox.shrink();
+      final items = controller.visibleItems;
+      final isLoading = controller.isLoading.value;
+      final errorText = controller.errorText.value;
+      final viewMode = controller.viewMode.value;
+
+      final showSkeleton = isLoading && controller.items.isEmpty;
+      return CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: _horizontalPadding,
+              vertical: 15,
+            ),
+            sliver: SliverToBoxAdapter(child: _buildSearchAndToolbar(context)),
+          ),
+          if (showSkeleton)
+            _buildSkeletonSliver(context)
+          else if (errorText != null)
+            SliverToBoxAdapter(child: _buildErrorState(context, errorText))
+          else if (items.isEmpty)
+            SliverToBoxAdapter(child: _buildEmptyState(context))
+          else
+            _buildResults(context, items, viewMode),
+          SliverToBoxAdapter(child: SizedBox(height: _bottomSpacer(context))),
+        ],
+      );
+    });
+  }
+
+  Widget _buildSkeletonSliver(BuildContext context) {
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: _horizontalPadding),
+      sliver: Skeletonizer.sliver(
+        enabled: true,
+        child: SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) => Padding(
+              padding: const EdgeInsets.only(bottom: _cardSpacing),
+              child: _buildSkeletonCard(context),
+            ),
+            childCount: _skeletonCardCount,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Bone(height: 20, borderRadius: BorderRadius.circular(6)),
+              ),
+              const SizedBox(width: 8),
+              Bone(
+                width: 64,
+                height: 18,
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Bone(
+                width: 100,
+                height: 14,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              const Spacer(),
+              Bone(
+                width: 40,
+                height: 14,
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Bone.multiText(lines: 2, width: double.infinity),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Bone(
+                width: 70,
+                height: 12,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              const SizedBox(width: 6),
+              Bone(
+                width: 60,
+                height: 12,
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Bone(
+                width: 80,
+                height: 18,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              const Spacer(),
+              Bone.icon(size: 20),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -160,7 +388,9 @@ class SearchMediaResultPage extends GetView<SearchMediaController> {
       CupertinoColors.tertiarySystemFill,
       context,
     );
-    final activeTint = context.primaryColor.withOpacity(isActive ? 0.2 : 0);
+    final activeTint = context.primaryColor.withValues(
+      alpha: isActive ? 0.2 : 0,
+    );
     final bgColor = Color.alphaBlend(activeTint, baseColor);
 
     return Container(
@@ -169,7 +399,10 @@ class SearchMediaResultPage extends GetView<SearchMediaController> {
         color: bgColor,
         borderRadius: BorderRadius.circular(8),
         border: isActive
-            ? Border.all(color: context.primaryColor.withOpacity(0.3), width: 1)
+            ? Border.all(
+                color: context.primaryColor.withValues(alpha: 0.3),
+                width: 1,
+              )
             : null,
       ),
       child: child,
@@ -196,7 +429,7 @@ class SearchMediaResultPage extends GetView<SearchMediaController> {
   }
 
   AppBar _buildNavigationBar(BuildContext context) {
-    return AppBar(title: Text('搜索结果'), centerTitle: false);
+    return AppBar(title: const Text('搜索结果'), centerTitle: false);
   }
 
   Widget _buildFilterChip(

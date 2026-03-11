@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
+import 'package:moviepilot_mobile/utils/image_util.dart';
 import '../../../utils/toast_util.dart';
 import '../../system_message/controllers/system_message_controller.dart';
 import '../models/login_profile.dart';
@@ -14,6 +15,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class LoginController extends GetxController {
   final _repository = Get.find<AuthRepository>();
   final _talker = Get.find<AppLog>();
+  final imageUtil = Get.find<ImageUtil>();
 
   /// 默认壁纸（无本地缓存时使用，如首次安装）
   static const List<String> defaultWallpapers = [
@@ -193,6 +195,7 @@ class LoginController extends GetxController {
         } else {
           Get.offAllNamed('/main');
         }
+        imageUtil.loadGlobalCachedConfig();
         Future.delayed(const Duration(seconds: 1), () {
           isAutoLogin.value = false;
         });

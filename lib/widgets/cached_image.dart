@@ -87,8 +87,7 @@ class CachedImage extends StatelessWidget {
       fadeInDuration: fadeInDuration,
       fadeOutDuration: fadeOutDuration,
       errorWidget: (context, url, error) {
-        print('img error: $url, $error');
-        return errorWidget ?? _buildDefaultErrorWidget();
+        return errorWidget ?? _buildDefaultErrorWidget(error);
       },
       progressIndicatorBuilder: (context, url, progress) =>
           placeholder ?? _buildProgressIndicator(progress),
@@ -143,7 +142,7 @@ class CachedImage extends StatelessWidget {
   }
 
   /// 构建默认错误占位符（iOS 风格）
-  Widget _buildDefaultErrorWidget() {
+  Widget _buildDefaultErrorWidget(Object error) {
     return Container(
       width: width,
       height: height,
@@ -159,7 +158,7 @@ class CachedImage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              '加载失败',
+              '加载失败 ${error.toString()}',
               style: TextStyle(fontSize: 12, color: CupertinoColors.systemGrey),
             ),
           ],

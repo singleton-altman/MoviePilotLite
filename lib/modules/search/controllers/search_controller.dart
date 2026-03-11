@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:get/get.dart';
@@ -7,6 +8,7 @@ import 'package:moviepilot_mobile/modules/search_result/controllers/search_resul
 import 'package:moviepilot_mobile/modules/search_result/models/search_result_models.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
+import 'package:moviepilot_mobile/services/sse_client.dart';
 
 enum SearchType { media, title }
 
@@ -40,6 +42,22 @@ class SearchMediaController extends GetxController {
   final selectedQualities = <String>{}.obs;
   final selectedResolutions = <String>{}.obs;
   final selectedTeams = <String>{}.obs;
+
+  // SSE 进度跟踪相关
+  final isProgressActive = false.obs;
+  final searchProgress = 0.0.obs;
+  final progressMessage = ''.obs;
+  final progressStatus = ''.obs; // 'searching', 'completed', 'failed'
+  final progressCurrent = 0.obs;
+  final progressTotal = 0.obs;
+  final progressSource = ''.obs;
+
+  SseClient? _sseClient;
+  StreamSubscription<SseEvent>? _sseSubscription;
+
+  int _progressSessionId = 0;
+
+  static const _progressPath = '/api/v1/system/progress/search';
 
   final _dateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
 
@@ -161,6 +179,9 @@ class SearchMediaController extends GetxController {
     isLoading.value = true;
     errorText.value = null;
 
+    // 开始进度跟踪
+    _startProgressTracking();
+
     try {
       final token =
           _appService.loginResponse?.accessToken ??
@@ -169,6 +190,7 @@ class SearchMediaController extends GetxController {
       if (token == null || token.isEmpty) {
         errorText.value = '请先登录后再进行搜索';
         isLoading.value = false;
+        _stopProgressTracking();
         return;
       }
 
@@ -200,6 +222,7 @@ class SearchMediaController extends GetxController {
       if (status >= 400) {
         errorText.value = '请求失败 (HTTP $status)';
         isLoading.value = false;
+        _stopProgressTracking();
         return;
       }
 
@@ -215,13 +238,176 @@ class SearchMediaController extends GetxController {
       errorText.value = '请求失败，请稍后重试 $e';
     } finally {
       isLoading.value = false;
+      // 延迟停止进度跟踪，让用户看到完成状态
+      final sessionId = _progressSessionId;
+      Future.delayed(const Duration(seconds: 1), () {
+        _stopProgressTracking(sessionId: sessionId);
+      });
     }
+  }
+
+  /// 开始 SSE 进度跟踪
+  void _startProgressTracking() async {
+    _stopProgressTracking();
+
+    final baseUrl = _apiClient.baseUrl;
+    if (baseUrl == null || baseUrl.isEmpty) {
+      _log.warning('Cannot start progress tracking: baseUrl is null');
+      return;
+    }
+
+    _log.info('Starting search progress tracking via SSE');
+    _log.info('SSE baseUrl: $baseUrl, endpoint: $_progressPath');
+
+    // 重置进度状态
+    isProgressActive.value = true;
+    searchProgress.value = 0.0;
+    progressMessage.value = '正在搜索...';
+    progressStatus.value = 'searching';
+    progressCurrent.value = 0;
+    progressTotal.value = 0;
+    progressSource.value = '';
+
+    _progressSessionId++;
+    final sessionId = _progressSessionId;
+
+    try {
+      // 获取 Cookie
+      final cookieHeader = await _apiClient.getCookieHeader();
+      _log.info('SSE cookie: $cookieHeader');
+
+      // 创建 SSE 客户端
+      _sseClient = SseClient(
+        baseUrl: baseUrl,
+        headers: _buildSseHeaders(cookieHeader),
+      );
+
+      // 连接 SSE 端点
+      _sseSubscription = _sseClient!.connect(_progressPath).listen(
+        _handleProgressEvent,
+        onError: _handleProgressError,
+        onDone: _handleProgressDone,
+      );
+      _log.info('SSE connection initiated');
+    } catch (e, st) {
+      _log.handle(e, stackTrace: st, message: 'Failed to start SSE connection');
+      // 静默失败，不影响搜索功能
+    }
+  }
+
+  /// 停止 SSE 进度跟踪
+  void _stopProgressTracking({int? sessionId}) {
+    if (sessionId != null && sessionId != _progressSessionId) {
+      return;
+    }
+
+    _log.info('Stopping search progress tracking');
+    _sseSubscription?.cancel();
+    _sseSubscription = null;
+    _sseClient?.disconnect();
+    _sseClient = null;
+    isProgressActive.value = false;
+  }
+
+  /// 构建 SSE 请求头
+  Map<String, String> _buildSseHeaders(String? cookieHeader) {
+    final headers = <String, String>{
+      'Accept': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+    };
+
+    // 添加 Cookie 认证
+    if (cookieHeader != null && cookieHeader.isNotEmpty) {
+      headers['Cookie'] = cookieHeader;
+      _log.info('SSE using Cookie auth');
+    } else {
+      _log.warning('SSE no cookie available');
+    }
+
+    return headers;
+  }
+
+  /// 处理进度事件
+  void _handleProgressEvent(SseEvent event) {
+    _log.debug('Received SSE event: ${event.event}, data: ${event.data}');
+
+    final jsonData = event.jsonData;
+    if (jsonData == null) {
+      _log.warning('Failed to parse SSE event data as JSON: ${event.data}');
+      return;
+    }
+
+    try {
+      final progressEvent = SearchProgressEvent.fromJson(jsonData);
+      _updateProgress(progressEvent);
+    } catch (e, st) {
+      _log.handle(e, stackTrace: st, message: 'Failed to parse progress event');
+    }
+  }
+
+  /// 更新进度状态
+  void _updateProgress(SearchProgressEvent event) {
+    searchProgress.value = event.progress;
+    progressStatus.value = event.status;
+    progressMessage.value = event.message ?? progressMessage.value;
+    // 从 data 中提取额外信息
+    if (event.data != null) {
+      progressCurrent.value = event.data!['current'] as int? ?? progressCurrent.value;
+      progressTotal.value = event.data!['total'] as int? ?? progressTotal.value;
+      progressSource.value = event.data!['source']?.toString() ?? progressSource.value;
+    }
+
+    _log.info(
+      'Search progress: ${(event.progress * 100).toStringAsFixed(1)}% - ${event.status} - ${event.message}',
+    );
+
+    // 如果进度已完成，延迟停止跟踪
+    if (event.isCompleted) {
+      final sessionId = _progressSessionId;
+      Future.delayed(const Duration(seconds: 2), () {
+        _stopProgressTracking(sessionId: sessionId);
+      });
+    }
+  }
+
+  /// 处理进度错误
+  void _handleProgressError(Object error) {
+    _log.error('SSE progress error: $error');
+    // 不显示错误状态，只是静默失败，让搜索请求继续
+    // 进度条会继续显示之前的进度或保持搜索中状态
+  }
+
+  /// 处理进度完成
+  void _handleProgressDone() {
+    _log.info('SSE progress stream closed');
+    // 流关闭时更新状态
+    if (isProgressActive.value && progressStatus.value == 'searching') {
+      progressStatus.value = 'completed';
+      searchProgress.value = 1.0;
+    }
+  }
+
+  /// 获取格式化的进度文本
+  String get formattedProgress {
+    if (!isProgressActive.value) return '';
+
+    final percent = (searchProgress.value * 100).toStringAsFixed(0);
+    if (progressTotal.value > 0) {
+      return '$percent% (${progressCurrent.value}/${progressTotal.value})';
+    }
+    return '$percent%';
   }
 
   @override
   void onReady() {
     super.onReady();
     performSearch();
+  }
+
+  @override
+  void onClose() {
+    _stopProgressTracking();
+    super.onClose();
   }
 
   Iterable<dynamic> _extractList(dynamic raw) {

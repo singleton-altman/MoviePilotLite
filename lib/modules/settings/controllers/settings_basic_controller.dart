@@ -4,6 +4,7 @@ import 'package:moviepilot_mobile/modules/settings/models/settings_basic_config.
 import 'package:moviepilot_mobile/modules/settings/models/settings_field_config.dart';
 import 'package:moviepilot_mobile/modules/settings/models/system_env_model.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
+import 'package:moviepilot_mobile/utils/image_util.dart';
 
 class SettingsBasicController extends GetxController {
   final _apiClient = Get.find<ApiClient>();
@@ -14,6 +15,9 @@ class SettingsBasicController extends GetxController {
   final isUpdating = false.obs;
   final isEditing = false.obs;
   final pendingChanges = <String, dynamic>{}.obs;
+
+  final imageUtil = Get.find<ImageUtil>();
+
   /// 编辑态下 AI 区域展开状态，切换开关时立即更新
   final aiSectionExpanded = false.obs;
 
@@ -70,7 +74,8 @@ class SettingsBasicController extends GetxController {
 
   void _syncAllTextControllers() {
     for (final f in [...basicFields, ...aiFields]) {
-      if (f.type == SettingsFieldType.text || f.type == SettingsFieldType.number) {
+      if (f.type == SettingsFieldType.text ||
+          f.type == SettingsFieldType.number) {
         final c = _textControllers[f.envKey];
         if (c != null) {
           final v = valueFor(f);
@@ -82,7 +87,8 @@ class SettingsBasicController extends GetxController {
 
   void _revertTextControllers() {
     for (final f in [...basicFields, ...aiFields]) {
-      if (f.type == SettingsFieldType.text || f.type == SettingsFieldType.number) {
+      if (f.type == SettingsFieldType.text ||
+          f.type == SettingsFieldType.number) {
         final c = _textControllers[f.envKey];
         if (c != null) {
           final v = valueFor(f);
@@ -147,7 +153,9 @@ class SettingsBasicController extends GetxController {
         '/api/v1/system/env',
         data: changes,
       );
-      if (resp.statusCode != null && resp.statusCode! >= 200 && resp.statusCode! < 300) {
+      if (resp.statusCode != null &&
+          resp.statusCode! >= 200 &&
+          resp.statusCode! < 300) {
         final body = resp.data;
         if (body != null) {
           final parsed = SystemEnvResponse.fromJson(body);
@@ -183,6 +191,9 @@ class SettingsBasicController extends GetxController {
           final parsed = SystemEnvResponse.fromJson(body);
           if (parsed.success && parsed.data != null) {
             envData.value = parsed.data;
+            imageUtil.saveGlobalCachedEnabled(
+              envData.value?.globalImageCache ?? false,
+            );
             return;
           }
         }

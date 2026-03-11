@@ -9,7 +9,7 @@ class AppImageCacheManager {
       'appImageCache',
       stalePeriod: const Duration(days: 14),
       maxNrOfCacheObjects: 1000,
+      fileService: HttpFileService(),
     ),
   );
 }
-
