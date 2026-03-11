@@ -87,6 +87,13 @@ class AppService extends GetxService {
     _cookie = null;
   }
 
+  /// 清除登录态（内存）
+  void clearLoginState() {
+    _loginResponse = null;
+    _userInfo = null;
+    _cookie = null;
+  }
+
   saveProfile(String server, LoginResponse login) {
     _loginResponse = login;
     setBaseUrl(server);

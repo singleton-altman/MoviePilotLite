@@ -8,7 +8,9 @@ import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:talker/talker.dart';
 import 'package:talker_dio_logger/talker_dio_logger.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
+import 'package:moviepilot_mobile/services/realm_service.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
+import 'package:moviepilot_mobile/modules/login/models/login_profile.dart';
 import 'package:get/get.dart' as g;
 
 enum RequestMethod { get, post, put, delete }
@@ -37,6 +39,7 @@ class ApiHttpException implements Exception {
 
 class ApiClient extends g.GetxController {
   final _appService = g.Get.find<AppService>();
+  final _realmService = g.Get.find<RealmService>();
   final _log = g.Get.find<AppLog>();
   late final Dio _dio;
   late final CookieJar _cookieJar;
@@ -47,6 +50,7 @@ class ApiClient extends g.GetxController {
   Uri? _cachedCookieUri;
   DateTime? _cachedCookieAt;
   bool _authRedirecting = false;
+  bool _authClearing = false;
 
   static const Duration _cookieCacheTtl = Duration(seconds: 30);
 
@@ -450,6 +454,7 @@ class ApiClient extends g.GetxController {
     if (_authRedirecting) return;
     if (!_hasEnteredMain()) return;
     _authRedirecting = true;
+    _clearSession();
     ToastUtil.error('会话已过期，请重新登录');
     g.Get.offAllNamed('/login');
     Future.delayed(const Duration(seconds: 1), () {
@@ -461,5 +466,32 @@ class ApiClient extends g.GetxController {
     final route = g.Get.currentRoute;
     if (route.isEmpty) return false;
     return route != '/login';
+  }
+
+  Future<void> _clearSession() async {
+    if (_authClearing) return;
+    _authClearing = true;
+    try {
+      token = null;
+      _appService.clearLoginState();
+      _cachedCookieHeader = null;
+      _cachedCookieUri = null;
+      _cachedCookieAt = null;
+      try {
+        await _cookieJar.deleteAll();
+      } catch (_) {}
+      try {
+        final profiles = _realmService.realm.all<LoginProfile>().toList();
+        if (profiles.isNotEmpty) {
+          profiles.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+          final latest = profiles.first;
+          _realmService.realm.write(() {
+            latest.accessToken = '';
+          });
+        }
+      } catch (_) {}
+    } finally {
+      _authClearing = false;
+    }
   }
 }
