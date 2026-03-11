@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
@@ -5,6 +7,8 @@ import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:intl/intl.dart';
 import 'package:moviepilot_mobile/modules/download/controllers/download_controller.dart';
 import 'package:moviepilot_mobile/modules/download/widgets/download_sheet.dart';
+import 'package:moviepilot_mobile/modules/site/controllers/site_controller.dart';
+import 'package:moviepilot_mobile/modules/site/models/site_models.dart';
 import 'package:moviepilot_mobile/modules/setting/controllers/setting_controller.dart';
 import 'package:moviepilot_mobile/theme/app_theme.dart';
 import 'package:moviepilot_mobile/utils/open_url.dart';
@@ -20,6 +24,7 @@ class SearchResultTorrentItem extends StatelessWidget {
   });
   final SearchResultItem item;
   final List<SearchResultItem>? similarItems;
+  static final Map<int, Future<List<int>?>> _iconFutures = {};
   @override
   Widget build(BuildContext context) {
     final meta = item.meta_info;
@@ -33,10 +38,14 @@ class SearchResultTorrentItem extends StatelessWidget {
     return GestureDetector(
       onTap: () => _openDownloadSheet(context, item),
       child: Container(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(3),
+          border: Border.all(
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.08),
+            width: 1,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -59,41 +68,7 @@ class SearchResultTorrentItem extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Row(
-              children: [
-                _buildSiteBadge(_siteName(item)),
-                const Spacer(),
-                if ((torrent?.seeders ?? 0) > 0) ...[
-                  Icon(
-                    Icons.arrow_upward,
-                    size: 18,
-                    color: Colors.green.shade600,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${torrent?.seeders ?? 0}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-                const SizedBox(width: 10),
-                if ((torrent?.peers ?? 0) > 0) ...[
-                  Icon(
-                    Icons.arrow_downward,
-                    size: 18,
-                    color: Colors.red.shade600,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${torrent?.peers ?? 0}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ],
-            ),
+            _buildSiteAndStatsRow(context, torrent),
             const SizedBox(height: 10),
             Text(
               torrent?.title ?? meta?.title ?? '',
@@ -116,22 +91,7 @@ class SearchResultTorrentItem extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 10),
-            Row(
-              children: [
-                Icon(
-                  Icons.schedule,
-                  size: 18,
-                  color: AppTheme.textSecondaryColor,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  _timeLabel(item),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textSecondaryColor,
-                  ),
-                ),
-              ],
-            ),
+            _buildMetaRow(context, item),
             if (tags.isNotEmpty) ...[
               const SizedBox(height: 12),
               Wrap(spacing: 8, runSpacing: 8, children: tags),
@@ -189,7 +149,7 @@ class SearchResultTorrentItem extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: AppTheme.textSecondaryColor.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(3),
       ),
       child: Text(
         label,
@@ -198,6 +158,138 @@ class SearchResultTorrentItem extends StatelessWidget {
           fontWeight: FontWeight.w600,
           color: AppTheme.textSecondaryColor,
         ),
+      ),
+    );
+  }
+
+  Widget _buildSiteAndStatsRow(
+    BuildContext context,
+    SearchTorrentInfo? torrent,
+  ) {
+    final seeders = torrent?.seeders ?? 0;
+    final peers = torrent?.peers ?? 0;
+    return Row(
+      children: [
+        _buildSiteIndicator(context),
+        const Spacer(),
+        if (seeders > 0)
+          _buildStatPill(
+            context,
+            icon: Icons.arrow_upward,
+            label: '$seeders',
+            color: const Color(0xFF16A34A),
+          ),
+        if (seeders > 0 && peers > 0) const SizedBox(width: 6),
+        if (peers > 0)
+          _buildStatPill(
+            context,
+            icon: Icons.arrow_downward,
+            label: '$peers',
+            color: const Color(0xFFDC2626),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildSiteIndicator(BuildContext context) {
+    final siteName = _siteName(item);
+    final siteId = item.torrent_info?.site;
+    final theme = Theme.of(context);
+    final controller = Get.isRegistered<SiteController>()
+        ? Get.find<SiteController>()
+        : Get.put(SiteController());
+
+    return Obx(() {
+      SiteItem? siteItem;
+      if (siteId != null) {
+        for (final value in controller.items) {
+          if (value.site.id == siteId) {
+            siteItem = value;
+            break;
+          }
+        }
+      }
+
+      final icon = _buildSiteIcon(context, controller, siteItem);
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.35,
+          ),
+          borderRadius: BorderRadius.circular(3),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            icon,
+            const SizedBox(width: 6),
+            Text(
+              siteName,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildSiteIcon(
+    BuildContext context,
+    SiteController controller,
+    SiteItem? siteItem,
+  ) {
+    final bytes = siteItem?.iconBytes;
+    if (bytes != null && bytes.isNotEmpty) {
+      return _imageFromBytes(bytes);
+    }
+    if (siteItem != null) {
+      final future = _iconFutures.putIfAbsent(
+        siteItem.site.id,
+        () => controller.loadIcon(siteItem.site),
+      );
+      return FutureBuilder<List<int>?>(
+        future: future,
+        builder: (context, snapshot) {
+          final data = snapshot.data;
+          if (data != null && data.isNotEmpty) {
+            return _imageFromBytes(data);
+          }
+          return _placeholderIcon(context);
+        },
+      );
+    }
+    return _placeholderIcon(context);
+  }
+
+  Widget _imageFromBytes(List<int> bytes) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(3),
+      child: Image.memory(
+        Uint8List.fromList(bytes),
+        width: 18,
+        height: 18,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+      ),
+    );
+  }
+
+  Widget _placeholderIcon(BuildContext context) {
+    return Container(
+      width: 18,
+      height: 18,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: Icon(
+        Icons.public,
+        size: 12,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
     );
   }
@@ -223,6 +315,88 @@ class SearchResultTorrentItem extends StatelessWidget {
           fontWeight: FontWeight.bold,
           fontSize: dense ? 11 : 12,
         ),
+      ),
+    );
+  }
+
+  Widget _buildMetaRow(BuildContext context, SearchResultItem item) {
+    final timeLabel = _timeLabel(item);
+    final size = item.torrent_info?.size;
+    final sizeLabel = size == null ? '未知大小' : SizeFormatter.formatSize(size, 2);
+    return Wrap(
+      spacing: 8,
+      runSpacing: 6,
+      children: [
+        _buildMetaPill(
+          context,
+          icon: Icons.schedule,
+          label: timeLabel,
+          color: const Color(0xFF0EA5E9),
+        ),
+        _buildMetaPill(
+          context,
+          icon: Icons.sd_storage_rounded,
+          label: sizeLabel,
+          color: context.primaryColor,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMetaPill(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.14),
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatPill(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.14),
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }

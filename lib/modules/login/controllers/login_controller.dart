@@ -168,6 +168,7 @@ class LoginController extends GetxController {
 
     // 获取最新的登录配置文件
     final latestProfile = profiles.first;
+    if (latestProfile.accessToken.isEmpty) return;
 
     // 尝试使用保存的accessToken获取用户信息
     isLoading.value = true;
@@ -263,6 +264,7 @@ class LoginController extends GetxController {
         otpPassword: otpPassword,
       );
       await _saveWallpapers();
+      imageUtil.loadGlobalCachedConfig();
       _loadProfiles();
       ToastUtil.success('已保存账号信息', title: '登录成功');
       // 跳转到 Dashboard
