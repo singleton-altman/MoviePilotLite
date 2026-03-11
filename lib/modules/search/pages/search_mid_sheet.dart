@@ -1,7 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/modules/site/controllers/site_controller.dart';
 import 'package:moviepilot_mobile/modules/site/models/site_models.dart';
+import 'package:moviepilot_mobile/services/app_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SiteSelectSheet extends StatefulWidget {
   const SiteSelectSheet({super.key, this.hasSegment = false});
@@ -12,13 +16,70 @@ class SiteSelectSheet extends StatefulWidget {
 
 class _SiteSelectSheetState extends State<SiteSelectSheet> {
   final siteController = Get.put(SiteController());
+  final appService = Get.find<AppService>();
   final selectedSite = <int>[].obs;
   final area = 'title'.obs;
+  final _iconFutures = <int, Future<List<int>?>>{};
+  late final Worker _siteItemsWorker;
+
+  static const _prefsKeyPrefix = 'site_select_last';
 
   void _done() {
+    _persistSelection();
     // 使用 Navigator.pop 确保关闭当前 bottom sheet 并返回结果。
     // Get.back() 会优先关闭 snackbar，导致 bottom sheet 不会被 pop，await 永不完结。
     Navigator.of(context).pop((area: area.value, sites: selectedSite.toList()));
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSelection();
+    _siteItemsWorker = ever<List<SiteItem>>(
+      siteController.items,
+      (_) => _filterSelection(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _siteItemsWorker.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadSelection() async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = _buildPrefsKey();
+    final raw = prefs.getStringList(key) ?? const <String>[];
+    if (raw.isEmpty) return;
+    final ids = raw.map((e) => int.tryParse(e)).whereType<int>().toList();
+    if (ids.isEmpty) return;
+    selectedSite.assignAll(ids);
+    _filterSelection();
+  }
+
+  Future<void> _persistSelection() async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = _buildPrefsKey();
+    final values = selectedSite.map((e) => e.toString()).toList();
+    await prefs.setStringList(key, values);
+  }
+
+  String _buildPrefsKey() {
+    final baseUrl = appService.baseUrl ?? 'unknown';
+    final userId = appService.loginResponse?.userId ?? 0;
+    return '$_prefsKeyPrefix:$baseUrl:$userId';
+  }
+
+  void _filterSelection() {
+    if (siteController.items.isEmpty) {
+      return;
+    }
+    final ids = siteController.items.map((e) => e.site.id).toSet();
+    final filtered = selectedSite.where(ids.contains).toList();
+    if (filtered.length != selectedSite.length) {
+      selectedSite.assignAll(filtered);
+    }
   }
 
   @override
@@ -85,7 +146,7 @@ class _SiteSelectSheetState extends State<SiteSelectSheet> {
                 const SizedBox(width: 8),
                 Obx(
                   () => FilledButton(
-                    onPressed: _done,
+                    onPressed: selectedSite.isEmpty ? null : _done,
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -283,15 +344,7 @@ class _SiteSelectSheetState extends State<SiteSelectSheet> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  isSelected
-                      ? Icons.check_circle
-                      : Icons.radio_button_unchecked,
-                  size: 18,
-                  color: isSelected
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurfaceVariant,
-                ),
+                _buildSiteIcon(item),
                 const SizedBox(width: 6),
                 Flexible(
                   child: Text(
@@ -309,11 +362,72 @@ class _SiteSelectSheetState extends State<SiteSelectSheet> {
                     ),
                   ),
                 ),
+                if (isSelected) ...[
+                  const SizedBox(width: 6),
+                  Icon(
+                    Icons.check_circle,
+                    size: 16,
+                    color: theme.colorScheme.primary,
+                  ),
+                ],
               ],
             ),
           ),
         ),
       );
     });
+  }
+
+  Widget _buildSiteIcon(SiteItem item) {
+    final bytes = item.iconBytes;
+    if (bytes != null && bytes.isNotEmpty) {
+      return _imageFromBytes(bytes);
+    }
+
+    final future = _iconFutures.putIfAbsent(
+      item.site.id,
+      () => siteController.loadIcon(item.site),
+    );
+
+    return FutureBuilder<List<int>?>(
+      future: future,
+      builder: (context, snapshot) {
+        final data = snapshot.data;
+        if (data != null && data.isNotEmpty) {
+          return _imageFromBytes(data);
+        }
+        return _placeholderIcon();
+      },
+    );
+  }
+
+  Widget _imageFromBytes(List<int> bytes) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(6),
+      child: Image.memory(
+        Uint8List.fromList(bytes),
+        width: 18,
+        height: 18,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+        errorBuilder: (_, __, ___) => _placeholderIcon(),
+      ),
+    );
+  }
+
+  Widget _placeholderIcon() {
+    return Container(
+      width: 18,
+      height: 18,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Icon(
+        Icons.public,
+        size: 12,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+    );
   }
 }

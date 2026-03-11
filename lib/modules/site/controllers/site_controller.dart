@@ -294,6 +294,22 @@ class SiteController extends GetxController {
     return _fetchIconBytesFromApi(site.id, url);
   }
 
+  /// 通用图标加载：优先本地缓存，其次请求接口；返回 bytes 并同步到 items
+  Future<List<int>?> loadIcon(SiteModel site) async {
+    final index = items.indexWhere((e) => e.site.id == site.id);
+    final cachedBytes = index == -1 ? null : items[index].iconBytes;
+    if (cachedBytes != null && cachedBytes.isNotEmpty) {
+      return cachedBytes;
+    }
+
+    final bytes = await _fetchIconBytes(site);
+    if (bytes != null && bytes.isNotEmpty && index != -1) {
+      final current = items[index];
+      items[index] = current.copyWith(iconBytes: bytes);
+    }
+    return bytes;
+  }
+
   Future<List<int>?> _fetchIconBytesFromApi(int siteId, String siteUrl) async {
     try {
       final response = await _apiClient.get<dynamic>(
