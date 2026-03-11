@@ -8,6 +8,7 @@ import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:talker/talker.dart';
 import 'package:talker_dio_logger/talker_dio_logger.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
+import 'package:moviepilot_mobile/utils/toast_util.dart';
 import 'package:get/get.dart' as g;
 
 enum RequestMethod { get, post, put, delete }
@@ -45,6 +46,7 @@ class ApiClient extends g.GetxController {
   String? _cachedCookieHeader;
   Uri? _cachedCookieUri;
   DateTime? _cachedCookieAt;
+  bool _authRedirecting = false;
 
   static const Duration _cookieCacheTtl = Duration(seconds: 30);
 
@@ -88,6 +90,18 @@ class ApiClient extends g.GetxController {
     }
     _cookieJar = cookieJar;
     _dio.interceptors.add(CookieManager(_cookieJar));
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onResponse: (response, handler) {
+          _handleUnauthorized(response.statusCode);
+          handler.next(response);
+        },
+        onError: (error, handler) {
+          _handleUnauthorized(error.response?.statusCode);
+          handler.next(error);
+        },
+      ),
+    );
     _dio.interceptors.add(
       TalkerDioLogger(
         talker: _log.talker,
@@ -195,32 +209,40 @@ class ApiClient extends g.GetxController {
       },
     );
     if (method == RequestMethod.get) {
-      return _dio.get<T>(
+      final response = await _dio.get<T>(
         url,
         queryParameters: queryParameters,
         options: options,
       );
+      _handleUnauthorized(response.statusCode);
+      return response;
     } else if (method == RequestMethod.post) {
-      return _dio.post<T>(
+      final response = await _dio.post<T>(
         url,
         data: data,
         queryParameters: queryParameters,
         options: options,
       );
+      _handleUnauthorized(response.statusCode);
+      return response;
     } else if (method == RequestMethod.put) {
-      return _dio.put<T>(
+      final response = await _dio.put<T>(
         url,
         data: data,
         queryParameters: queryParameters,
         options: options,
       );
+      _handleUnauthorized(response.statusCode);
+      return response;
     } else if (method == RequestMethod.delete) {
-      return _dio.delete<T>(
+      final response = await _dio.delete<T>(
         url,
         data: data,
         queryParameters: queryParameters,
         options: options,
       );
+      _handleUnauthorized(response.statusCode);
+      return response;
     } else {
       throw ArgumentError('Invalid method: $method');
     }
@@ -233,11 +255,13 @@ class ApiClient extends g.GetxController {
   }) async {
     await _ensureReady();
     final formData = FormData.fromMap(data);
-    return _dio.post<T>(
+    final response = await _dio.post<T>(
       path,
       data: formData,
       options: Options(receiveTimeout: Duration(seconds: timeout ?? 30)),
     );
+    _handleUnauthorized(response.statusCode);
+    return response;
   }
 
   Future<Response<T>> post<T>(
@@ -263,12 +287,14 @@ class ApiClient extends g.GetxController {
         return true;
       },
     );
-    return _dio.post<T>(
+    final response = await _dio.post<T>(
       path,
       data: data,
       queryParameters: queryParameters,
       options: options,
     );
+    _handleUnauthorized(response.statusCode);
+    return response;
   }
 
   Future<Response<T>> put<T>(
@@ -287,12 +313,14 @@ class ApiClient extends g.GetxController {
         return true;
       },
     );
-    return _dio.put<T>(
+    final response = await _dio.put<T>(
       path,
       data: data,
       queryParameters: queryParameters,
       options: options,
     );
+    _handleUnauthorized(response.statusCode);
+    return response;
   }
 
   /// POST 请求，data 可为 List 等可 JSON 序列化的对象（如 TorrentsPriority 的字符串数组）
@@ -317,7 +345,9 @@ class ApiClient extends g.GetxController {
       receiveTimeout: Duration(seconds: timeout ?? 30),
       validateStatus: (status) => true,
     );
-    return _dio.post<T>(path, data: data, options: options);
+    final response = await _dio.post<T>(path, data: data, options: options);
+    _handleUnauthorized(response.statusCode);
+    return response;
   }
 
   Future<Response<T>> get<T>(
@@ -343,6 +373,7 @@ class ApiClient extends g.GetxController {
       queryParameters: queryParameters,
       options: options,
     );
+    _handleUnauthorized(response.statusCode);
     return response;
   }
 
@@ -366,11 +397,13 @@ class ApiClient extends g.GetxController {
         return true;
       },
     );
-    return _dio.delete<T>(
+    final response = await _dio.delete<T>(
       path,
       queryParameters: queryParameters,
       options: options,
     );
+    _handleUnauthorized(response.statusCode);
+    return response;
   }
 
   /// SSE / 流式 GET，请求 `text/event-stream` 并返回按行解码后的字符串流。
@@ -397,6 +430,7 @@ class ApiClient extends g.GetxController {
     );
     final status = response.statusCode ?? 0;
     if (status == 401 || status == 403) {
+      _handleUnauthorized(status);
       throw ApiAuthException(status, response.statusMessage);
     }
     if (status >= 400) {
@@ -409,5 +443,23 @@ class ApiClient extends g.GetxController {
     // 将底层字节流转换为按行分隔的 UTF8 字符串流
     final byteStream = body.stream.map((chunk) => chunk as List<int>);
     return byteStream.transform(utf8.decoder).transform(const LineSplitter());
+  }
+
+  void _handleUnauthorized(int? status) {
+    if (status != 401 && status != 403) return;
+    if (_authRedirecting) return;
+    if (!_hasEnteredMain()) return;
+    _authRedirecting = true;
+    ToastUtil.error('会话已过期，请重新登录');
+    g.Get.offAllNamed('/login');
+    Future.delayed(const Duration(seconds: 1), () {
+      _authRedirecting = false;
+    });
+  }
+
+  bool _hasEnteredMain() {
+    final route = g.Get.currentRoute;
+    if (route.isEmpty) return false;
+    return route != '/login';
   }
 }

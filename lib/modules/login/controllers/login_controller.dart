@@ -263,6 +263,7 @@ class LoginController extends GetxController {
         otpPassword: otpPassword,
       );
       await _saveWallpapers();
+      imageUtil.loadGlobalCachedConfig();
       _loadProfiles();
       ToastUtil.success('已保存账号信息', title: '登录成功');
       // 跳转到 Dashboard
