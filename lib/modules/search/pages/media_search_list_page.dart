@@ -26,169 +26,14 @@ class MediaSearchListPage extends GetView<MediaSearchListController> {
         ),
         centerTitle: false,
         actions: [
-          // SSE 进度指示器（参考 WebView 样式）
-          Obx(() {
-            if (!controller.isProgressActive.value) {
-              return const SizedBox.shrink();
-            }
-            return Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  value: controller.searchProgress.value > 0
-                      ? controller.searchProgress.value
-                      : null,
-                ),
-              ),
-            );
-          }),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () => controller.search(),
           ),
         ],
       ),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            _buildBody(context),
-            // SSE 进度条（顶部线性进度条，类似 WebView）
-            _buildProgressIndicator(),
-          ],
-        ),
-      ),
+      body: SafeArea(child: Stack(children: [_buildBody(context)])),
     );
-  }
-
-  /// 构建 SSE 进度指示器
-  Widget _buildProgressIndicator() {
-    return Obx(() {
-      if (!controller.isProgressActive.value) {
-        return const SizedBox.shrink();
-      }
-
-      return Positioned(
-        top: 0,
-        left: 0,
-        right: 0,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 线性进度条
-            TweenAnimationBuilder<double>(
-              tween: Tween<double>(
-                begin: 0,
-                end: controller.searchProgress.value,
-              ),
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              builder: (context, value, child) {
-                return LinearProgressIndicator(
-                  value: value > 0 ? value : null,
-                  backgroundColor: Colors.grey.withValues(alpha: 0.2),
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    _getProgressColor(controller.progressStatus.value),
-                  ),
-                  minHeight: 3,
-                );
-              },
-            ),
-            // 进度信息卡片
-            if (controller.progressMessage.value.isNotEmpty)
-              _buildProgressInfoCard(),
-          ],
-        ),
-      );
-    });
-  }
-
-  /// 构建进度信息卡片
-  Widget _buildProgressInfoCard() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 16,
-            height: 16,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                _getProgressColor(controller.progressStatus.value),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  controller.progressMessage.value,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (controller.progressSource.value.isNotEmpty)
-                  Text(
-                    controller.progressSource.value,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.7),
-                      fontSize: 11,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            controller.formattedProgress,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 根据状态获取进度条颜色
-  Color _getProgressColor(String status) {
-    switch (status) {
-      case 'completed':
-        return Colors.green;
-      case 'failed':
-      case 'error':
-        return Colors.red;
-      case 'searching':
-      default:
-        return Colors.blue;
-    }
   }
 
   Widget _buildBody(BuildContext context) {
@@ -272,45 +117,6 @@ class MediaSearchListPage extends GetView<MediaSearchListController> {
   }
 
   Widget _buildPlaceholderState(bool isLoading, String? error) {
-    // 如果有 SSE 进度，显示进度状态而不是简单的 loading
-    if (controller.isProgressActive.value) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              width: 48,
-              height: 48,
-              child: CircularProgressIndicator(
-                strokeWidth: 3,
-                value: controller.searchProgress.value > 0
-                    ? controller.searchProgress.value
-                    : null,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              controller.progressMessage.value.isNotEmpty
-                  ? controller.progressMessage.value
-                  : '正在搜索...',
-              style: const TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            if (controller.formattedProgress.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                controller.formattedProgress,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ],
-        ),
-      );
-    }
-
     if (isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -337,44 +143,6 @@ class MediaSearchListPage extends GetView<MediaSearchListController> {
   }) {
     if (!hasItems) {
       return const SizedBox.shrink();
-    }
-
-    // 如果有 SSE 进度，显示进度指示而不是简单的 loading
-    if (isLoading && controller.isProgressActive.value) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        child: Center(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  value: controller.searchProgress.value > 0
-                      ? controller.searchProgress.value
-                      : null,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                controller.progressMessage.value.isNotEmpty
-                    ? controller.progressMessage.value
-                    : '加载中...',
-                style: const TextStyle(color: Colors.grey, fontSize: 14),
-              ),
-              if (controller.formattedProgress.isNotEmpty) ...[
-                const SizedBox(width: 8),
-                Text(
-                  '(${controller.formattedProgress})',
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-              ],
-            ],
-          ),
-        ),
-      );
     }
 
     if (isLoading) {
