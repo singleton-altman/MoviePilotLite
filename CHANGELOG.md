@@ -23,3 +23,7 @@
 - TOTP 管理页支持单项导出，提供二维码与字符串（含 `name`、`key`）复制。
 - 增加 iOS/Android 相机权限配置以支持二维码扫描。
 - tv 类型订阅完成后支持二次编辑
+
+## 2026-03-26
+- 订阅页/搜索结果页的搜索与筛选入口统一为 `centerDocked` 悬浮条（fake input + filter + sort）。
+- 更新 floating bar skill：补充浅色边框规范。
