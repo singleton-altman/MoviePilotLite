@@ -27,3 +27,4 @@
 ## 2026-03-26
 - 订阅页/搜索结果页的搜索与筛选入口统一为 `centerDocked` 悬浮条（fake input + filter + sort）。
 - 更新 floating bar skill：补充浅色边框规范。
+- 设置页面表单结构全面更新（统一表单管线与骨架屏规范）。
