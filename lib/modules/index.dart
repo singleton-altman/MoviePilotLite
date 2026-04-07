@@ -91,7 +91,7 @@ class _IndexState extends State<Index> {
   }
 
   void _handleScroll(double offset, double delta) {
-    LiquidBottomNavigationBar.handleScroll(offset, delta);
+    // LiquidBottomNavigationBar.handleScroll(offset, delta);
   }
 
   void _applyInitialIndex() {

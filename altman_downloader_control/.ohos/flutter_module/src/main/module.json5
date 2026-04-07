@@ -1,0 +1,18 @@
+{
+  "module": {
+    "name": "flutter_module",
+    "type": "har",
+    "description": "flutter_module",
+    "mainElement": "",
+    "deviceTypes": [
+      "phone",
+      "tablet",
+      "2in1"
+    ],
+    "installationFree": false,
+    "abilities": [],
+    "requestPermissions": [
+      {"name" :  "ohos.permission.INTERNET"},
+    ]
+  }
+}

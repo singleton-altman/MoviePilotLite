@@ -4,6 +4,8 @@
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
+require 'fileutils'
+
 project 'Runner', {
   'Debug' => :debug,
   'Profile' => :release,
@@ -29,6 +31,15 @@ flutter_ios_podfile_setup
 
 target 'Runner' do
   use_frameworks!
+
+  realm_dir = Dir.glob(File.join(ENV['HOME'], '.pub-cache', 'git', 'fluttertpc_realm-*')).first
+  if realm_dir
+    FileUtils.mkdir_p(File.join(realm_dir, 'packages', 'realm_dart', 'binary', 'ios'))
+    realm_xcframework_link = File.join(realm_dir, 'packages', 'realm', 'ios', 'realm_dart.xcframework')
+    if File.symlink?(realm_xcframework_link)
+      FileUtils.rm_f(realm_xcframework_link)
+    end
+  end
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
   target 'RunnerTests' do

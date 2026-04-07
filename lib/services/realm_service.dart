@@ -1,4 +1,4 @@
-import 'package:get/get_state_manager/src/rx_flutter/rx_disposable.dart';
+import 'package:get/get.dart';
 import 'package:moviepilot_mobile/modules/plugin/models/installed_plugin_model_cache.dart';
 import 'package:moviepilot_mobile/modules/plugin/models/plugin_model_cache.dart';
 import 'package:moviepilot_mobile/modules/plugin/models/plugin_palette_cache_entry.dart';

@@ -1,0 +1,10 @@
+{
+  "name": "@ohos/flutter_module",
+  "version": "1.0.0",
+  "description": "Please describe the basic information.",
+  "main": "index.ets",
+  "author": "",
+  "license": "OpenValley",
+  "dependencies": {}
+}
+

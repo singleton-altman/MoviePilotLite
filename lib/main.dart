@@ -3,7 +3,7 @@ import 'package:altman_downloader_control/controller/downloader_config.dart';
 import 'package:altman_totp/page/totp_manage_page.dart';
 import 'package:get/get.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:liquid_tabbar_minimize/liquid_tabbar_minimize.dart';
+// import 'package:liquid_tabbar_minimize/liquid_tabbar_minimize.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:moviepilot_mobile/modules/index.dart';
 import 'package:moviepilot_mobile/modules/media_detail/controllers/media_detail_service.dart';
@@ -180,7 +180,7 @@ class MyApp extends StatelessWidget {
         initialBinding: AppBinding(),
         initialRoute: '/login',
         navigatorObservers: [
-          LiquidRouteObserver.instance, // required for instant hide
+          // LiquidRouteObserver.instance, // required for instant hide
           // 添加Talker路由观察器
           routeObserver,
         ],

@@ -2,6 +2,7 @@ import 'package:altman_downloader_control/widget/input_dialog.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get/get_navigation/get_navigation.dart';
 
 /// 提醒工具类，基于 Get 的 snackbar
 class ToastUtil {
