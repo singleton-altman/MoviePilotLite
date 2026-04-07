@@ -143,6 +143,7 @@ Future<void> main() async {
   // 注册 vue 模式插件适配器
   PluginFormAdapterRegistry.register(
     'TrashClean',
+
     ({required formMode}) => TrashCleanFormController(formMode: formMode),
   );
   PluginFormAdapterRegistry.register(

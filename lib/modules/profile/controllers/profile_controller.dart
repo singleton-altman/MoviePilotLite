@@ -11,7 +11,7 @@ import 'package:moviepilot_mobile/services/realm_service.dart';
 /// Profile 控制器：负责当前登录用户 / 登录档案的展示与后续扩展
 class ProfileController extends GetxController {
   final _appService = Get.find<AppService>();
-  final _realmService = Get.find<RealmService>();
+  final _realmService = Get.find<RealmService>().realm.value;
   final _authRepository = Get.find<AuthRepository>();
   final _iosSharedSessionService = Get.find<IosSharedSessionService>();
   final _talker = Get.find<AppLog>();
@@ -42,7 +42,9 @@ class ProfileController extends GetxController {
   void loadCurrentProfile() {
     try {
       isLoading.value = true;
-      final profiles = _realmService.realm.all<LoginProfile>().toList();
+      final realm = _realmService;
+      if (realm == null) return;
+      final profiles = realm.all<LoginProfile>().toList();
       if (profiles.isEmpty) {
         currentProfile.value = null;
         return;
@@ -57,7 +59,9 @@ class ProfileController extends GetxController {
   /// 获取当前用户的最新信息（优先从接口拉取）
   Future<void> loadCurrentUserInfo() async {
     // 根据最近使用的登录档案获取用户信息
-    final profiles = _realmService.realm.all<LoginProfile>().toList();
+    final realm = _realmService;
+    if (realm == null) return;
+    final profiles = realm.all<LoginProfile>().toList();
     if (profiles.isEmpty) {
       currentUserInfo.value = null;
       return;

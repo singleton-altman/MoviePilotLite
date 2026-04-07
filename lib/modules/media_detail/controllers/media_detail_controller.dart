@@ -25,7 +25,7 @@ class MediaDetailController extends GetxController {
   final _authRepository = Get.find<AuthRepository>();
   final _appService = Get.find<AppService>();
   final _log = Get.find<AppLog>();
-  final _realmService = Get.find<RealmService>();
+  final _realmService = Get.find<RealmService>().realm.value;
   final _mediaDetailService = Get.find<MediaDetailService>();
   final _subscribeService = Get.put(SubscribeService());
   final subscribeLoadingState = false.obs;
@@ -140,7 +140,7 @@ class MediaDetailController extends GetxController {
   void _loadCachedDetailIfValid() {
     final cacheKey = _cacheKey(_args);
     if (cacheKey.isEmpty) return;
-    final cache = _realmService.realm.find<MediaDetailCache>(cacheKey);
+    final cache = _realmService?.find<MediaDetailCache>(cacheKey);
     if (cache == null) return;
     final now = DateTime.now();
     if (now.difference(cache.updatedAt) > _cacheValidDuration) {
@@ -175,8 +175,8 @@ class MediaDetailController extends GetxController {
         typeName: _args.typeName,
         session: _args.session,
       );
-      _realmService.realm.write(() {
-        _realmService.realm.add(cache, update: true);
+      _realmService?.write(() {
+        _realmService?.add(cache, update: true);
       });
     } catch (e, st) {
       _log.handle(e, stackTrace: st, message: '写入详情缓存失败');

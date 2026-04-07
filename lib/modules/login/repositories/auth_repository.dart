@@ -15,7 +15,7 @@ import '../models/login_response.dart';
 
 class AuthRepository extends GetxService {
   final _talker = Get.find<AppLog>();
-  final _realm = Get.find<RealmService>().realm;
+  final _realm = Get.find<RealmService>().realm.value;
   final _api = Get.find<ApiClient>();
   final _appService = Get.find<AppService>();
   final _iosSharedSessionService = Get.find<IosSharedSessionService>();
@@ -270,7 +270,7 @@ class AuthRepository extends GetxService {
   }
 
   List<LoginProfile> getProfiles() {
-    final list = _realm.all<LoginProfile>().toList();
+    final list = _realm?.all<LoginProfile>().toList() ?? [];
     list.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     return list;
   }
@@ -291,7 +291,7 @@ class AuthRepository extends GetxService {
     final id = '${server.trim()}|${username.trim()}';
     final permissionsJson = jsonEncode(login.permissions);
 
-    _realm.write(() {
+    _realm?.write(() {
       _realm.add(
         LoginProfile(
           id,

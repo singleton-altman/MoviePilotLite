@@ -10,7 +10,7 @@ import 'package:moviepilot_mobile/utils/image_cache_manager.dart';
 import 'package:palette_generator/palette_generator.dart';
 
 class PluginPaletteCache extends GetxController {
-  final _realm = Get.find<RealmService>().realm;
+  final _realm = Get.find<RealmService>().realm.value;
 
   /// 缓存：iconUrl -> 主题色
   final RxMap<String, Color> _cache = <String, Color>{}.obs;
@@ -98,14 +98,18 @@ class PluginPaletteCache extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    for (final entry in _realm.all<PluginPaletteCacheEntry>()) {
+    final realm = _realm;
+    if (realm == null) return;
+    for (final entry in realm.all<PluginPaletteCacheEntry>()) {
       _cache[entry.url] = Color(entry.colorValue);
     }
   }
 
   void _saveToRealm(String url, Color color) {
-    _realm.write(() {
-      _realm.add(PluginPaletteCacheEntry(url, color.value), update: true);
+    final realm = _realm;
+    if (realm == null) return;
+    realm.write(() {
+      realm.add(PluginPaletteCacheEntry(url, color.value), update: true);
     });
   }
 }

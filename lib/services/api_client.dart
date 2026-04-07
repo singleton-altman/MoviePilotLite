@@ -41,7 +41,7 @@ class ApiHttpException implements Exception {
 class ApiClient extends g.GetxController {
   final _appService = g.Get.find<AppService>();
   final _iosSharedSessionService = g.Get.find<IosSharedSessionService>();
-  final _realmService = g.Get.find<RealmService>();
+  final _realmService = g.Get.find<RealmService>().realm.value;
   final _log = g.Get.find<AppLog>();
   late final Dio _dio;
   late final CookieJar _cookieJar;
@@ -505,11 +505,13 @@ class ApiClient extends g.GetxController {
         await _cookieJar.deleteAll();
       } catch (_) {}
       try {
-        final profiles = _realmService.realm.all<LoginProfile>().toList();
+        final realm = _realmService;
+        if (realm == null) return;
+        final profiles = realm.all<LoginProfile>().toList();
         if (profiles.isNotEmpty) {
           profiles.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
           final latest = profiles.first;
-          _realmService.realm.write(() {
+          realm.write(() {
             latest.accessToken = '';
           });
         }

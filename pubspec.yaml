@@ -47,15 +47,21 @@ dependencies:
   modal_bottom_sheet:
     path: ./vendor/modal_bottom_sheet
   skeletonizer: ^2.1.2
-  url_launcher: ^6.3.2
+  url_launcher: 
+    git:
+      url: https://gitcode.com/openharmony-tpc/flutter_packages.git
+      ref: br_url_launcher-v6.3.2_ohos
+      path: packages/url_launcher/url_launcher
   liquid_tabbar_minimize: 
     git:
       url: https://github.com/singleton-altman/liquid_tabbar_minimize.git
       ref: main
   palette_generator: ^0.3.3+7
-  webview_flutter: ^4.4.2
-  webview_flutter_android: ^3.12.0
-  webview_flutter_wkwebview: ^3.9.4
+  webview_flutter:
+    git:
+      url: https://gitcode.com/openharmony-tpc/flutter_packages.git
+      ref: br_webview_flutter-v4.13.1_ohos
+      path: packages/webview_flutter/webview_flutter
   soft_edge_blur: ^0.1.3
   image_picker: 
     git:

@@ -10,7 +10,7 @@ import 'package:moviepilot_mobile/utils/image_util.dart';
 class PluginController extends GetxController {
   final _apiClient = Get.find<ApiClient>();
   final _log = Get.find<AppLog>();
-  final _realm = Get.find<RealmService>();
+  final _realm = Get.find<RealmService>().realm.value;
   final items = <PluginItem>[].obs;
   final keyword = ''.obs;
   final isLoading = false.obs;
@@ -52,7 +52,9 @@ class PluginController extends GetxController {
   }
 
   Future<void> loadFromCache() async {
-    final cache = _realm.realm.all<InstalledPluginModelCache>();
+    final realm = _realm;
+    if (realm == null) return;
+    final cache = realm.all<InstalledPluginModelCache>();
     if (cache.isEmpty) return;
     final locals = cache
         .map(
@@ -110,9 +112,11 @@ class PluginController extends GetxController {
       );
       list.add(cache);
     }
-    _realm.realm.write(() {
-      _realm.realm.deleteAll<InstalledPluginModelCache>();
-      _realm.realm.addAll(list, update: true);
+    final realm = _realm;
+    if (realm == null) return;
+    realm.write(() {
+      realm.deleteAll<InstalledPluginModelCache>();
+      realm.addAll(list, update: true);
     });
   }
 

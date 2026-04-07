@@ -15,7 +15,7 @@ import 'package:moviepilot_mobile/services/realm_service.dart';
 class ServerLogController extends GetxController {
   final _apiClient = Get.find<ApiClient>();
   final _log = Get.find<AppLog>();
-  final _realmService = Get.find<RealmService>();
+  final _realmService = Get.find<RealmService>().realm.value;
   final _authRepository = Get.find<AuthRepository>();
   String logFile = 'moviepilot.log';
   String title = '服务器';
@@ -151,10 +151,13 @@ class ServerLogController extends GetxController {
 
   Future<bool> _refreshToken() async {
     try {
-      final profiles = _realmService.realm.all<LoginProfile>().toList();
+      final realm = _realmService;
+      if (realm == null) return false;
+      final profiles = realm.all<LoginProfile>();
       if (profiles.isEmpty) return false;
-      profiles.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-      final latest = profiles.first;
+      final sortedProfiles = profiles.toList()
+        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      final latest = sortedProfiles.first;
       await _authRepository.login(
         server: latest.server,
         username: latest.username,

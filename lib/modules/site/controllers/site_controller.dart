@@ -11,7 +11,7 @@ import 'package:moviepilot_mobile/services/realm_service.dart';
 
 class SiteController extends GetxController {
   final _apiClient = Get.find<ApiClient>();
-  final _realm = Get.find<RealmService>();
+  final _realm = Get.find<RealmService>().realm.value;
   final _log = Get.find<AppLog>();
 
   final items = <SiteItem>[].obs;
@@ -161,11 +161,7 @@ class SiteController extends GetxController {
           } catch (e, st) {
             final id = item['id'];
             final name = item['name'];
-            _log.handle(
-              e,
-              stackTrace: st,
-              message: '解析站点失败 id=$id name=$name',
-            );
+            _log.handle(e, stackTrace: st, message: '解析站点失败 id=$id name=$name');
           }
         }
       }
@@ -177,10 +173,14 @@ class SiteController extends GetxController {
       return;
     } finally {
       if (sites.isNotEmpty) {
-        final baseMerged = sites
-            .map((site) => SiteItem(site: site, userData: null, iconBytes: null))
-            .toList()
-          ..sort((a, b) => a.site.pri.compareTo(b.site.pri));
+        final baseMerged =
+            sites
+                .map(
+                  (site) =>
+                      SiteItem(site: site, userData: null, iconBytes: null),
+                )
+                .toList()
+              ..sort((a, b) => a.site.pri.compareTo(b.site.pri));
         items.assignAll(baseMerged);
       }
     }
@@ -211,7 +211,9 @@ class SiteController extends GetxController {
     }
 
     try {
-      final results = await Future.wait(sites.map((site) => _fetchIconBytes(site)));
+      final results = await Future.wait(
+        sites.map((site) => _fetchIconBytes(site)),
+      );
       for (var i = 0; i < sites.length; i++) {
         final bytes = results[i];
         if (bytes != null && bytes.isNotEmpty) {
@@ -235,10 +237,12 @@ class SiteController extends GetxController {
   }
 
   void loadFromCache() {
-    final siteCaches = _realm.realm.all<SiteModelCache>();
+    final realm = _realm;
+    if (realm == null) return;
+    final siteCaches = realm.all<SiteModelCache>();
     if (siteCaches.isEmpty) return;
 
-    final userDataCaches = _realm.realm.all<SiteUserDataCache>();
+    final userDataCaches = realm.all<SiteUserDataCache>();
     final userDataByDomain = <String, SiteUserDataModel>{};
     for (final c in userDataCaches) {
       userDataByDomain[c.domain] = SiteUserDataModel(
@@ -264,7 +268,7 @@ class SiteController extends GetxController {
       );
     }
 
-    final iconCaches = _realm.realm.all<SiteIconCache>();
+    final iconCaches = realm.all<SiteIconCache>();
     final iconBytesByUrl = <String, List<int>>{};
     for (final c in iconCaches) {
       if (c.iconBase64.isEmpty) continue;
@@ -359,12 +363,13 @@ class SiteController extends GetxController {
       );
     }
     final userDataCaches = userDataByDomain.values.toList();
-
-    _realm.realm.write(() {
-      _realm.realm.deleteAll<SiteModelCache>();
-      _realm.realm.deleteAll<SiteUserDataCache>();
-      _realm.realm.addAll(siteCaches, update: true);
-      _realm.realm.addAll(userDataCaches, update: true);
+    final realm = _realm;
+    if (realm == null) return;
+    realm.write(() {
+      realm.deleteAll<SiteModelCache>();
+      realm.deleteAll<SiteUserDataCache>();
+      realm.addAll(siteCaches, update: true);
+      realm.addAll(userDataCaches, update: true);
     });
   }
 
@@ -373,7 +378,9 @@ class SiteController extends GetxController {
     final url = site.url;
     if (url.isEmpty) return _fetchIconBytesFromApi(site.id, url);
 
-    final cached = _realm.realm.find<SiteIconCache>(url);
+    final realm = _realm;
+    if (realm == null) return null;
+    final cached = realm.find<SiteIconCache>(url);
     if (cached != null && cached.iconBase64.isNotEmpty) {
       return _decodeBase64ToBytes(cached.iconBase64);
     }
@@ -421,8 +428,10 @@ class SiteController extends GetxController {
       if (bytes.isEmpty) return null;
 
       if (siteUrl.isNotEmpty) {
-        _realm.realm.write(() {
-          _realm.realm.add(SiteIconCache(siteUrl, base64), update: true);
+        final realm = _realm;
+        if (realm == null) return null;
+        realm.write(() {
+          realm.add(SiteIconCache(siteUrl, base64), update: true);
         });
       }
 

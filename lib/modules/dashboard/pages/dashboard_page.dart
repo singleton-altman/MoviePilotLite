@@ -17,13 +17,14 @@ import 'package:moviepilot_mobile/modules/system_message/controllers/system_mess
 import 'package:moviepilot_mobile/services/realm_service.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/modules/login/models/login_profile.dart';
+import 'package:realm/realm.dart';
 
 import '../controllers/dashboard_controller.dart';
 import '../widgets/dashboard_widgets.dart';
 
 class DashboardPage extends GetView<DashboardController> {
   const DashboardPage({super.key});
-  RealmService get _realmService => Get.find<RealmService>();
+  Realm? get _realmService => Get.find<RealmService>().realm.value;
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +121,9 @@ class DashboardPage extends GetView<DashboardController> {
   /// 获取最新的登录配置文件
   LoginProfile? _getLatestLoginProfile() {
     try {
-      final profiles = _realmService.realm.all<LoginProfile>();
+      final realm = _realmService;
+      if (realm == null) return null;
+      final profiles = realm.all<LoginProfile>();
       if (profiles.isEmpty) {
         return null;
       }

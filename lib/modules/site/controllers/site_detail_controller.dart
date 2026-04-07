@@ -8,7 +8,7 @@ import 'package:moviepilot_mobile/services/realm_service.dart';
 
 class SiteDetailController extends GetxController {
   final _apiClient = Get.find<ApiClient>();
-  final _realm = Get.find<RealmService>();
+  final _realm = Get.find<RealmService>().realm.value;
   final _log = Get.find<AppLog>();
 
   int? siteId;
@@ -83,7 +83,9 @@ class SiteDetailController extends GetxController {
     if (id == null) return;
 
     if (siteUrl.isNotEmpty) {
-      final cached = _realm.realm.find<SiteIconCache>(siteUrl);
+      final realm = _realm;
+      if (realm == null) return;
+      final cached = realm.find<SiteIconCache>(siteUrl);
       if (cached != null && cached.iconBase64.isNotEmpty) {
         String base64 = cached.iconBase64.trim();
         if (base64.contains(',')) {
@@ -113,8 +115,10 @@ class SiteDetailController extends GetxController {
       if (base64.isEmpty || iconBase64.value == base64) return;
       iconBase64.value = base64;
       if (siteUrl.isNotEmpty) {
-        _realm.realm.write(() {
-          _realm.realm.add(SiteIconCache(siteUrl, base64), update: true);
+        final realm = _realm;
+        if (realm == null) return;
+        realm.write(() {
+          realm.add(SiteIconCache(siteUrl, base64), update: true);
         });
       }
     } catch (_) {}
@@ -286,6 +290,10 @@ class SiteDetailController extends GetxController {
 
   /// 下拉刷新：同时刷新用户数据历史与资源列表
   Future<void> refreshAll() async {
-    await Future.wait([loadSiteDetail(), loadUserdataHistory(), loadResources()]);
+    await Future.wait([
+      loadSiteDetail(),
+      loadUserdataHistory(),
+      loadResources(),
+    ]);
   }
 }
