@@ -5,7 +5,6 @@ import 'package:moviepilot_mobile/modules/plugin/models/plugin_palette_cache_ent
 import 'package:moviepilot_mobile/modules/site/models/site_icon_cache.dart';
 import 'package:moviepilot_mobile/modules/site/models/site_model_cache.dart';
 import 'package:moviepilot_mobile/modules/site/models/site_userdata_cache.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:realm/realm.dart';
 
 import '../modules/login/models/login_profile.dart';
@@ -21,8 +20,6 @@ class RealmService extends GetxService {
 
   final realm = Rxn<Realm>();
   Future<void> initDatabase() async {
-    final dir = await getApplicationSupportDirectory();
-    final path = '${dir.path}/moviepilot.realm';
     final config = Configuration.local(
       [
         LoginProfile.schema,
@@ -45,10 +42,10 @@ class RealmService extends GetxService {
         if (oldSchemaVersion < 5) {}
         if (oldSchemaVersion < 6) {}
       },
-      path: path,
     );
     try {
       realm.value = Realm(config);
+      print('初始化 Realm 成功');
     } catch (e) {
       print('初始化 Realm 失败: $e');
       realm.value = null;
