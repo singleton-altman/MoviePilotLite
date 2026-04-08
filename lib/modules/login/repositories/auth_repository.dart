@@ -8,6 +8,9 @@ import 'package:moviepilot_mobile/modules/profile/models/user_global_config.dart
 import 'package:moviepilot_mobile/modules/system_message/controllers/system_message_controller.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/services/ios_shared_session_service.dart';
+import 'package:moviepilot_mobile/utils/prefs_keys.dart';
+import 'package:realm/realm.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../services/api_client.dart';
 import '../../../services/realm_service.dart';
 import '../models/login_profile.dart';
@@ -15,7 +18,7 @@ import '../models/login_response.dart';
 
 class AuthRepository extends GetxService {
   final _talker = Get.find<AppLog>();
-  final _realm = Get.find<RealmService>().realm.value;
+  Realm? get _realm => Get.find<RealmService>().realm.value;
   final _api = Get.find<ApiClient>();
   final _appService = Get.find<AppService>();
   final _iosSharedSessionService = Get.find<IosSharedSessionService>();
@@ -41,7 +44,7 @@ class AuthRepository extends GetxService {
     _api.setToken(login.accessToken);
 
     // 保存当前账号配置，包含 server、token 以及用户信息
-    _saveProfile(normalizedServer, username, password, login);
+    await _saveProfile(normalizedServer, username, password, login);
     await _iosSharedSessionService.syncSession(
       server: normalizedServer,
       accessToken: login.accessToken,
@@ -269,10 +272,14 @@ class AuthRepository extends GetxService {
     }
   }
 
-  List<LoginProfile> getProfiles() {
-    final list = _realm?.all<LoginProfile>().toList() ?? [];
-    list.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-    return list;
+  Future<List<LoginProfile>> getProfiles() async {
+    final realm = _realm;
+    if (realm != null) {
+      final list = realm.all<LoginProfile>().toList();
+      list.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      return list;
+    }
+    return _getProfilesFromPrefs();
   }
 
   String _normalizeServer(String server) {
@@ -281,18 +288,47 @@ class AuthRepository extends GetxService {
     return s;
   }
 
-  void _saveProfile(
+  Future<void> _saveProfile(
     String server,
     String username,
     String password,
     LoginResponse login,
-  ) {
+  ) async {
     _appService.saveProfile(server, login);
     final id = '${server.trim()}|${username.trim()}';
     final permissionsJson = jsonEncode(login.permissions);
 
-    _realm?.write(() {
-      _realm.add(
+    final now = DateTime.now();
+
+    final realm = _realm;
+    try {
+      realm?.write(() {
+        realm.add(
+          LoginProfile(
+            id,
+            server,
+            username,
+            password,
+            login.accessToken,
+            login.tokenType,
+            login.superUser ?? false,
+            login.userId,
+            login.userName,
+            login.level,
+            permissionsJson,
+            login.wizard ?? false,
+            now,
+            avatar: login.avatar ?? '',
+          ),
+          update: true,
+        );
+      });
+    } catch (e) {
+      _talker.warning('保存登录信息到 Realm 失败: $e');
+    }
+
+    try {
+      await _upsertProfileToPrefs(
         LoginProfile(
           id,
           server,
@@ -306,11 +342,140 @@ class AuthRepository extends GetxService {
           login.level,
           permissionsJson,
           login.wizard ?? false,
-          DateTime.now(),
+          now,
           avatar: login.avatar ?? '',
         ),
-        update: true,
       );
+    } catch (e) {
+      _talker.warning('保存登录信息到 SharedPreferences 失败: $e');
+    }
+  }
+
+  Future<void> _upsertProfileToPrefs(LoginProfile profile) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(kLoginProfilesKey);
+    final decoded = (raw == null || raw.isEmpty) ? null : jsonDecode(raw);
+
+    final list = <Map<String, dynamic>>[];
+    if (decoded is List) {
+      for (final item in decoded) {
+        if (item is Map) {
+          list.add(item.map((k, v) => MapEntry(k.toString(), v)));
+        }
+      }
+    }
+
+    final encoded = _encodeProfile(profile);
+    var replaced = false;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i]['id'] == profile.id) {
+        list[i] = encoded;
+        replaced = true;
+        break;
+      }
+    }
+    if (!replaced) {
+      list.add(encoded);
+    }
+
+    list.sort((a, b) {
+      final ta =
+          DateTime.tryParse(a['updatedAt']?.toString() ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0);
+      final tb =
+          DateTime.tryParse(b['updatedAt']?.toString() ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0);
+      return tb.compareTo(ta);
     });
+
+    await prefs.setString(kLoginProfilesKey, jsonEncode(list));
+  }
+
+  Future<List<LoginProfile>> _getProfilesFromPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(kLoginProfilesKey);
+      if (raw == null || raw.isEmpty) return [];
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return [];
+
+      final list = <LoginProfile>[];
+      for (final item in decoded) {
+        if (item is! Map) continue;
+        final map = item.map((k, v) => MapEntry(k.toString(), v));
+        final p = _decodeProfile(map);
+        if (p != null) list.add(p);
+      }
+      list.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      return list;
+    } catch (e) {
+      _talker.warning('从 SharedPreferences 读取登录信息失败: $e');
+      return [];
+    }
+  }
+
+  Map<String, dynamic> _encodeProfile(LoginProfile p) {
+    return <String, dynamic>{
+      'id': p.id,
+      'server': p.server,
+      'username': p.username,
+      'password': p.password,
+      'accessToken': p.accessToken,
+      'tokenType': p.tokenType,
+      'superUser': p.superUser,
+      'userId': p.userId,
+      'userName': p.userName,
+      'avatar': p.avatar ?? '',
+      'level': p.level,
+      'permissionsJson': p.permissionsJson,
+      'wizard': p.wizard,
+      'updatedAt': p.updatedAt.toIso8601String(),
+    };
+  }
+
+  LoginProfile? _decodeProfile(Map<String, dynamic> m) {
+    try {
+      final id = (m['id'] ?? '').toString();
+      final server = (m['server'] ?? '').toString();
+      final username = (m['username'] ?? '').toString();
+      final password = (m['password'] ?? '').toString();
+      final accessToken = (m['accessToken'] ?? '').toString();
+      final tokenType = (m['tokenType'] ?? '').toString();
+      final superUser = (m['superUser'] == true);
+      final userId = (m['userId'] is int)
+          ? (m['userId'] as int)
+          : int.tryParse(m['userId']?.toString() ?? '') ?? 0;
+      final userName = (m['userName'] ?? '').toString();
+      final avatar = (m['avatar'] ?? '').toString();
+      final level = (m['level'] is int)
+          ? (m['level'] as int)
+          : int.tryParse(m['level']?.toString() ?? '') ?? 0;
+      final permissionsJson = (m['permissionsJson'] ?? '').toString();
+      final wizard = (m['wizard'] == true);
+      final updatedAt =
+          DateTime.tryParse(m['updatedAt']?.toString() ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0);
+
+      if (id.isEmpty || server.isEmpty || username.isEmpty) return null;
+
+      return LoginProfile(
+        id,
+        server,
+        username,
+        password,
+        accessToken,
+        tokenType,
+        superUser,
+        userId,
+        userName,
+        level,
+        permissionsJson,
+        wizard,
+        updatedAt,
+        avatar: avatar.isEmpty ? null : avatar,
+      );
+    } catch (_) {
+      return null;
+    }
   }
 }

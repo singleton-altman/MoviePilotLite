@@ -11,6 +11,8 @@ PODS:
     - Flutter
     - JCore (>= 5.2.0)
     - JPush (= 6.0.0)
+  - liquid_tabbar_minimize (1.0.9):
+    - Flutter
   - mobile_scanner (7.0.0):
     - Flutter
     - FlutterMacOS
@@ -40,6 +42,7 @@ DEPENDENCIES:
   - flutter_keyboard_visibility (from `.symlinks/plugins/flutter_keyboard_visibility/ios`)
   - image_picker_ios (from `.symlinks/plugins/image_picker_ios/ios`)
   - jpush_flutter (from `.symlinks/plugins/jpush_flutter/ios`)
+  - liquid_tabbar_minimize (from `.symlinks/plugins/liquid_tabbar_minimize/ios`)
   - mobile_scanner (from `.symlinks/plugins/mobile_scanner/darwin`)
   - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
@@ -64,6 +67,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/image_picker_ios/ios"
   jpush_flutter:
     :path: ".symlinks/plugins/jpush_flutter/ios"
+  liquid_tabbar_minimize:
+    :path: ".symlinks/plugins/liquid_tabbar_minimize/ios"
   mobile_scanner:
     :path: ".symlinks/plugins/mobile_scanner/darwin"
   package_info_plus:
@@ -90,6 +95,7 @@ SPEC CHECKSUMS:
   JCore: 3814e38743361bcff5ee86b9f2e417a4b4cbf8ed
   JPush: 17d6da90e9354860ab7ef9f104e0cd4331ecec95
   jpush_flutter: 7a240725df5c4d1d432d4420cce7cf6c99b0b416
+  liquid_tabbar_minimize: 2623640cda6c1e01948a1af43af041420956d5db
   mobile_scanner: 9157936403f5a0644ca3779a38ff8404c5434a93
   package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
   path_provider_foundation: bb55f6dbba17d0dccd6737fe6f7f34fbd0376880

@@ -47,13 +47,31 @@ class AppSettingController extends GetxController {
     backgroundImageServerUrl.value = service.backgroundImageServerUrl.value;
 
     // 监听变化
-    ever(service.backgroundImageEnabled, (v) => backgroundImageEnabled.value = v);
-    ever(service.backgroundImageOpacity, (v) => backgroundImageOpacity.value = v);
-    ever(service.backgroundImageGradientTop, (v) => backgroundImageGradientTop.value = v);
-    ever(service.backgroundImageGradientBottom, (v) => backgroundImageGradientBottom.value = v);
+    ever(
+      service.backgroundImageEnabled,
+      (v) => backgroundImageEnabled.value = v,
+    );
+    ever(
+      service.backgroundImageOpacity,
+      (v) => backgroundImageOpacity.value = v,
+    );
+    ever(
+      service.backgroundImageGradientTop,
+      (v) => backgroundImageGradientTop.value = v,
+    );
+    ever(
+      service.backgroundImageGradientBottom,
+      (v) => backgroundImageGradientBottom.value = v,
+    );
     ever(service.backgroundImageBytes, (v) => backgroundImageBytes.value = v);
-    ever(service.backgroundImageUseServer, (v) => backgroundImageUseServer.value = v);
-    ever(service.backgroundImageServerUrl, (v) => backgroundImageServerUrl.value = v);
+    ever(
+      service.backgroundImageUseServer,
+      (v) => backgroundImageUseServer.value = v,
+    );
+    ever(
+      service.backgroundImageServerUrl,
+      (v) => backgroundImageServerUrl.value = v,
+    );
 
     loadAppVersion();
   }

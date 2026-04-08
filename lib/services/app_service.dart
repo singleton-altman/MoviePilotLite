@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
+import 'package:altman_downloader_control/utils/toast_utils.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -46,7 +48,9 @@ class AppService extends GetxService {
         prefs.getBool('enableDownloaderManager') ?? false;
     enableSpecialDownload.value =
         prefs.getBool('enableSpecialDownload') ?? false;
-    useExternalBrowser.value = prefs.getBool('useExternalBrowser') ?? false;
+    useExternalBrowser.value = isHarmonyOs
+        ? true
+        : prefs.getBool('useExternalBrowser') ?? false;
     enableFetchMediaserverLibraryStatus.value =
         prefs.getBool('enableFetchMediaserverLibraryStatus') ?? false;
 
@@ -119,6 +123,10 @@ class AppService extends GetxService {
   }
 
   Future<void> updateUseExternalBrowser(bool value) async {
+    if (isHarmonyOs) {
+      ToastUtil.error('不支持在鸿蒙系统中使用外部浏览器');
+      return;
+    }
     final prefs = await SharedPreferences.getInstance();
     useExternalBrowser.value = value;
     await prefs.setBool('useExternalBrowser', value);
@@ -200,10 +208,7 @@ class AppService extends GetxService {
           connectTimeout: const Duration(seconds: 20),
           receiveTimeout: const Duration(seconds: 20),
           responseType: ResponseType.bytes,
-          headers: const {
-            'cache-control': 'no-cache',
-            'pragma': 'no-cache',
-          },
+          headers: const {'cache-control': 'no-cache', 'pragma': 'no-cache'},
         ),
       );
       final resp = await dio.get<List<int>>(_cacheBustingUrl(raw));
@@ -290,4 +295,8 @@ class AppService extends GetxService {
   LoginResponse? get latestLoginProfile => _loginResponse;
 
   String? get latestLoginProfileAccessToken => _loginResponse?.accessToken;
+
+  bool get isHarmonyOs =>
+      Platform.operatingSystem == 'ohos' ||
+      Platform.operatingSystem == 'harmonyos';
 }
