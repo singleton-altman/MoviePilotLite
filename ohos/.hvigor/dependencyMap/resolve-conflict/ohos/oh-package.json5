@@ -1,0 +1,14 @@
+{
+  "name": "jpush_flutter",
+  "version": "1.0.0",
+  "description": "Please describe the basic information.",
+  "main": "index.ets",
+  "author": "",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@jg/push": "1.4.0",
+    "@ohos/flutter_ohos": "file:../../../../../fvm/versions/custom_3.35.7_ohos/bin/cache/artifacts/engine/ohos-arm64/flutter_embedding_debug.har"
+  },
+  "devDependencies": {},
+  "dynamicDependencies": {}
+}

@@ -1,0 +1,232 @@
+{
+  "version": 1,
+  "ohos-module-entry": {
+    "SELECT_TARGET": "default",
+    "MODULE_BUILD_DIR": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/build",
+    "TARGETS": {
+      "default": {
+        "SOURCE_ROOT": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/src/main",
+        "RESOURCES_PATH": [
+          "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/src/main/resources"
+        ],
+        "BUILD_PATH": {
+          "OUTPUT_PATH": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/build/default/outputs/default",
+          "INTERMEDIA_PATH": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/build/default/intermediates",
+          "JS_ASSETS_PATH": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/build/default/intermediates/loader_out/default",
+          "JS_LITE_ASSETS_PATH": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/build/default/intermediates/loader_out_lite/default",
+          "RES_PATH": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/build/default/intermediates/res/default",
+          "RES_PROFILE_PATH": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/build/default/intermediates/res/default/resources/base/profile",
+          "ETS_SUPER_VISUAL_PATH": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/build/default/cache/default/default@CompileArkTS/esmodule",
+          "JS_SUPER_VISUAL_PATH": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/build/default/cache/default/default@CompileJS/jsbundle",
+          "WORKER_LOADER": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/build/default/intermediates/loader/default/loader.json",
+          "MANIFEST_JSON": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/build/default/intermediates/manifest/default",
+          "OUTPUT_METADATA_JSON": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/build/default/intermediates/hap_metadata/default/output_metadata.json",
+          "SOURCE_MAP_DIR": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/build/default/intermediates/source_map/default"
+        },
+        "BUILD_OPTION": {
+          "debuggable": true
+        }
+      },
+      "ohosTest": {
+        "SOURCE_ROOT": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/src/ohosTest",
+        "RESOURCES_PATH": [
+          "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/src/ohosTest/resources"
+        ],
+        "BUILD_PATH": {
+          "OUTPUT_PATH": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/build/default/outputs/ohosTest",
+          "INTERMEDIA_PATH": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/build/default/intermediates",
+          "JS_ASSETS_PATH": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/build/default/intermediates/loader_out/ohosTest",
+          "JS_LITE_ASSETS_PATH": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/build/default/intermediates/loader_out_lite/ohosTest",
+          "RES_PATH": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/build/default/intermediates/res/ohosTest",
+          "RES_PROFILE_PATH": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/build/default/intermediates/res/ohosTest/resources/base/profile",
+          "ETS_SUPER_VISUAL_PATH": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/build/default/cache/ohosTest/ohosTest@OhosTestCompileArkTS/esmodule",
+          "JS_SUPER_VISUAL_PATH": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/build/default/cache/ohosTest/ohosTest@OhosTestCompileJS/jsbundle",
+          "WORKER_LOADER": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/build/default/intermediates/loader/ohosTest/loader.json",
+          "MANIFEST_JSON": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/build/default/intermediates/manifest/ohosTest",
+          "OUTPUT_METADATA_JSON": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/build/default/intermediates/hap_metadata/ohosTest/output_metadata.json",
+          "SOURCE_MAP_DIR": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry/build/default/intermediates/source_map/ohosTest"
+        },
+        "BUILD_OPTION": {
+          "debuggable": true
+        }
+      }
+    },
+    "BUILD_OPTION": {
+      "default-default": {
+        "debuggable": true,
+        "copyFrom": "default",
+        "strictMode": {
+          "caseSensitiveCheck": true,
+          "useNormalizedOHMUrl": true
+        }
+      }
+    },
+    "BUILD_PROFILE_OPT": {
+      "apiType": "stageMode",
+      "buildOption": {},
+      "targets": [
+        {
+          "name": "default",
+          "runtimeOS": "HarmonyOS"
+        },
+        {
+          "name": "ohosTest",
+          "runtimeOS": "HarmonyOS"
+        }
+      ]
+    },
+    "BUILD_CACHE_DIR": ""
+  },
+  "ohos-module-jpush_flutter": {
+    "SELECT_TARGET": "default",
+    "MODULE_BUILD_DIR": "/Users/junchen/.pub-cache/hosted/pub.dev/jpush_flutter-3.4.6/ohos/build",
+    "TARGETS": {
+      "default": {
+        "SOURCE_ROOT": "/Users/junchen/.pub-cache/hosted/pub.dev/jpush_flutter-3.4.6/ohos/src/main",
+        "RESOURCES_PATH": [
+          "/Users/junchen/.pub-cache/hosted/pub.dev/jpush_flutter-3.4.6/ohos/src/main/resources"
+        ],
+        "BUILD_PATH": {
+          "OUTPUT_PATH": "/Users/junchen/.pub-cache/hosted/pub.dev/jpush_flutter-3.4.6/ohos/build/default/outputs/default",
+          "INTERMEDIA_PATH": "/Users/junchen/.pub-cache/hosted/pub.dev/jpush_flutter-3.4.6/ohos/build/default/intermediates",
+          "JS_ASSETS_PATH": "/Users/junchen/.pub-cache/hosted/pub.dev/jpush_flutter-3.4.6/ohos/build/default/intermediates/loader_out/default",
+          "JS_LITE_ASSETS_PATH": "/Users/junchen/.pub-cache/hosted/pub.dev/jpush_flutter-3.4.6/ohos/build/default/intermediates/loader_out_lite/default",
+          "RES_PATH": "/Users/junchen/.pub-cache/hosted/pub.dev/jpush_flutter-3.4.6/ohos/build/default/intermediates/res/default",
+          "RES_PROFILE_PATH": "/Users/junchen/.pub-cache/hosted/pub.dev/jpush_flutter-3.4.6/ohos/build/default/intermediates/res/default/resources/base/profile",
+          "ETS_SUPER_VISUAL_PATH": "/Users/junchen/.pub-cache/hosted/pub.dev/jpush_flutter-3.4.6/ohos/build/default/cache/default/default@HarCompileArkTS/esmodule",
+          "JS_SUPER_VISUAL_PATH": "/Users/junchen/.pub-cache/hosted/pub.dev/jpush_flutter-3.4.6/ohos/build/default/cache/default/default@HarCompileJS/jsbundle",
+          "WORKER_LOADER": "/Users/junchen/.pub-cache/hosted/pub.dev/jpush_flutter-3.4.6/ohos/build/default/intermediates/loader/default/loader.json",
+          "MANIFEST_JSON": "/Users/junchen/.pub-cache/hosted/pub.dev/jpush_flutter-3.4.6/ohos/build/default/intermediates/manifest/default",
+          "OUTPUT_METADATA_JSON": "/Users/junchen/.pub-cache/hosted/pub.dev/jpush_flutter-3.4.6/ohos/build/default/intermediates/hap_metadata/default/output_metadata.json",
+          "SOURCE_MAP_DIR": "/Users/junchen/.pub-cache/hosted/pub.dev/jpush_flutter-3.4.6/ohos/build/default/intermediates/source_map/default"
+        },
+        "BUILD_OPTION": {
+          "debuggable": true
+        }
+      }
+    },
+    "BUILD_OPTION": {
+      "default-default": {
+        "debuggable": true,
+        "copyFrom": "default",
+        "strictMode": {
+          "caseSensitiveCheck": true,
+          "useNormalizedOHMUrl": true
+        }
+      }
+    },
+    "BUILD_PROFILE_OPT": {
+      "apiType": "stageMode",
+      "buildOption": {},
+      "targets": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    "BUILD_CACHE_DIR": ""
+  },
+  "ohos-project": {
+    "SELECT_PRODUCT_NAME": "default",
+    "MODULE_BUILD_DIR": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/build",
+    "BUNDLE_NAME": "com.altman.movie_pilot_ohos",
+    "VERSION_CODE": 29,
+    "VERSION_NAME": "1.1.8",
+    "BUILD_PATH": {
+      "OUTPUT_PATH": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/build/outputs/default"
+    },
+    "MODULES": [
+      {
+        "name": "entry",
+        "srcPath": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos/entry",
+        "targets": [
+          {
+            "name": "default",
+            "applyToProducts": [
+              "default"
+            ]
+          }
+        ],
+        "belongProjectPath": "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos"
+      },
+      {
+        "name": "jpush_flutter",
+        "srcPath": "/Users/junchen/.pub-cache/hosted/pub.dev/jpush_flutter-3.4.6/ohos",
+        "belongProjectPath": "/Users/junchen/.pub-cache/hosted/pub.dev/jpush_flutter-3.4.6"
+      }
+    ],
+    "PROFILE_OPT": {
+      "app": {
+        "signingConfigs": [
+          {
+            "name": "default",
+            "type": "HarmonyOS",
+            "material": {
+              "certpath": "/Users/junchen/.ohos/config/default_ohos_98HzLyfgSfQiMBpLhMqjAIteAhXMqZtRp1KjmBLYoMM=.cer",
+              "keyAlias": "debugKey",
+              "keyPassword": "0000001B7C90C71DB8ADA4843155A8D5CF7AE316C07F5C401161DAC5A1FDB13CD9D9E670D6CAAF8B8B6042",
+              "profile": "/Users/junchen/.ohos/config/default_ohos_98HzLyfgSfQiMBpLhMqjAIteAhXMqZtRp1KjmBLYoMM=.p7b",
+              "signAlg": "SHA256withECDSA",
+              "storeFile": "/Users/junchen/.ohos/config/default_ohos_98HzLyfgSfQiMBpLhMqjAIteAhXMqZtRp1KjmBLYoMM=.p12",
+              "storePassword": "0000001B966F56B39871D2FA71A67EFB68415F82528BE956555932D20804C179277B2BCD4451DA64E1BF3D"
+            }
+          }
+        ],
+        "products": [
+          {
+            "buildOption": {
+              "strictMode": {
+                "caseSensitiveCheck": true,
+                "useNormalizedOHMUrl": true
+              }
+            },
+            "name": "default",
+            "signingConfig": "default",
+            "compatibleSdkVersion": "5.1.0(18)",
+            "runtimeOS": "HarmonyOS",
+            "targetSdkVersion": "6.0.0(20)"
+          }
+        ],
+        "buildModeSet": [
+          {
+            "name": "debug"
+          },
+          {
+            "name": "profile"
+          },
+          {
+            "name": "release"
+          }
+        ]
+      },
+      "modules": [
+        {
+          "name": "entry",
+          "srcPath": "./entry",
+          "targets": [
+            {
+              "name": "default",
+              "applyToProducts": [
+                "default"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "jpush_flutter",
+          "srcPath": "../../../../.pub-cache/hosted/pub.dev/jpush_flutter-3.4.6/ohos"
+        }
+      ]
+    },
+    "CONFIG_PROPERTIES": {
+      "enableSignTask": true,
+      "skipNativeIncremental": false,
+      "hvigor.keepDependency": true
+    },
+    "OVERALL_PROJECT_PATHS": [
+      "/Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos",
+      "/Users/junchen/.pub-cache/hosted/pub.dev/jpush_flutter-3.4.6"
+    ],
+    "BUILD_CACHE_DIR": ""
+  }
+}

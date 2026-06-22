@@ -1,0 +1,1130 @@
+{
+  "ohos-module-entry": [
+    {
+      "TASK_NAME": "assembleHap",
+      "GROUP": "Hook",
+      "DESCRIPTION": "Assemble the task for the packaged HAP file.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "buildPreviewerResource",
+      "GROUP": "Hook",
+      "DESCRIPTION": "Build the preview resources.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "HotReloadBuild",
+      "GROUP": "Hook",
+      "DESCRIPTION": "Build in hot reload mode.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "GenerateBuildProfile",
+      "GROUP": "Hook",
+      "DESCRIPTION": "Create build profile hook task.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "assembleDevHqf",
+      "GROUP": "Hook",
+      "DESCRIPTION": "Assemble the task for the packaged HQF file.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "compileNative",
+      "GROUP": "Hook",
+      "DESCRIPTION": "Compile the hook task for native resources.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "PreviewBuild",
+      "GROUP": "Hook",
+      "DESCRIPTION": "Build preview in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "UnitTestBuild",
+      "GROUP": "Hook",
+      "DESCRIPTION": "Build a unit test.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "test",
+      "GROUP": "Hook",
+      "DESCRIPTION": "Build a unit test without DevEco Studio",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "buildHotReloadResource",
+      "GROUP": "Hook",
+      "DESCRIPTION": "Build the hot reload resources.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "clean",
+      "GROUP": "Other",
+      "DESCRIPTION": "Clear the cache information.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "onDeviceTest",
+      "GROUP": "Hook",
+      "DESCRIPTION": "Build a device test without DevEco Studio",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "buildInfo",
+      "GROUP": "Help",
+      "DESCRIPTION": "Displays the build information of the Project or Module.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@SyscapTransform",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Transform SysCap in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@CreateModuleInfo",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Create the ModuleInfo.ts file for the hap/hsp package.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@MakePackInfo",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Generate module pack.info in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@GenerateMetadata",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Generate metadata in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@PackageHqf",
+      "GROUP": "Package",
+      "DESCRIPTION": "Preform quickfix hqf packaging.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@SignHqf",
+      "GROUP": "Sign",
+      "DESCRIPTION": "Signing for quickfix hqf package.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@PackingCheck",
+      "GROUP": "Verification",
+      "DESCRIPTION": "Check package product",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@PackageHap",
+      "GROUP": "Package",
+      "DESCRIPTION": "Build the HAP package in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@SignHap",
+      "GROUP": "Sign",
+      "DESCRIPTION": "Sign the HAP package.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@CompileArkTS",
+      "GROUP": "ArkTS",
+      "DESCRIPTION": "Compile ArkTS or JS components for large-system devices in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@CompileJS",
+      "GROUP": "ArkTS",
+      "DESCRIPTION": "Compile ArkTS or JS components for large-system devices in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@BuildArkTS",
+      "GROUP": "ArkTS",
+      "DESCRIPTION": "Compile ArkTS or JS components using Node.js for large-system devices in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@BuildJS",
+      "GROUP": "ArkTS",
+      "DESCRIPTION": "Compile ArkTS or JS components using Node.js for large-system devices in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@HotReloadArkTS",
+      "GROUP": "ArkTS",
+      "DESCRIPTION": "Compile ArkTS components during hot loading in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ColdReloadArkTS",
+      "GROUP": "ArkTS",
+      "DESCRIPTION": "Compile ArkTS components during cold loading in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@PreviewArkTS",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Compile ArkTS components on preview in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@OhosTestCompileArkTS",
+      "GROUP": "ArkTS",
+      "DESCRIPTION": "Compile ArkTS or JS components using Node.js for large-system devices in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@OhosTestCompileJS",
+      "GROUP": "ArkTS",
+      "DESCRIPTION": "Compile ArkTS or JS components using Node.js for large-system devices in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@OhosTestBuildArkTS",
+      "GROUP": "ArkTS",
+      "DESCRIPTION": "Compile ArkTS or JS components using Node.js for large-system devices in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@OhosTestBuildJS",
+      "GROUP": "ArkTS",
+      "DESCRIPTION": "Compile ArkTS or JS components using Node.js for large-system devices in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@UnitTestArkTS",
+      "GROUP": "ArkTS",
+      "DESCRIPTION": "Compile ArkTS components at unit test time in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ProcessResource",
+      "GROUP": "Resources",
+      "DESCRIPTION": "Process resources in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@CompileResource",
+      "GROUP": "Resources",
+      "DESCRIPTION": "Compile project resources in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@PreviewProcessResource",
+      "GROUP": "Resources",
+      "DESCRIPTION": "Process preview resources incrementally in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@BuildNativeWithNinja",
+      "GROUP": "Native",
+      "DESCRIPTION": "Compile CPP source with Ninja in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@BuildNativeWithCmake",
+      "GROUP": "Native",
+      "DESCRIPTION": "Compile CPP source with CMake in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ProcessLibs",
+      "GROUP": "Resources",
+      "DESCRIPTION": "Process .so files in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@DoNativeBinxo",
+      "GROUP": "Resources",
+      "DESCRIPTION": "Binxo .so files to check file.",
+      "SOURCE_PLUGIN_ID": ""
+    },
+    {
+      "TASK_NAME": "default@PrepareQuickfix",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Prepare changed assets for quickfix.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@DoNativeStrip",
+      "GROUP": "Native",
+      "DESCRIPTION": "Strip .so files to decrease size.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@CacheNativeLibs",
+      "GROUP": "Native",
+      "DESCRIPTION": "cache native strip .so fileInfo",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ConfigureCmake",
+      "GROUP": "Native",
+      "DESCRIPTION": "cache native strip .so fileInfo",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@PreBuild",
+      "GROUP": "Verification",
+      "DESCRIPTION": "Pre-build in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@GenerateLoaderJson",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Generate loader.json in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ProcessProfile",
+      "GROUP": "Config",
+      "DESCRIPTION": "Process app config manifest files in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@MergeProfile",
+      "GROUP": "Config",
+      "DESCRIPTION": "Merge app config manifest files in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@PreviewHookCompileResource",
+      "GROUP": "Hook",
+      "DESCRIPTION": "Add a hook task for compiling preview resources.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@CreateBuildProfile",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Create the BuildProfile.ets file for the HAP/HSP package.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@PreviewUpdateAssets",
+      "GROUP": "Config",
+      "DESCRIPTION": "Update main_pages.json and module.json before PreviewBuild.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@BuildUnitTestHook",
+      "GROUP": "Hook",
+      "DESCRIPTION": "Build a unit test hook.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ReplaceSourceMapInCoverageMode",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Replace sourcemap in coverage mode.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ReplaceUnitTestIndexFile",
+      "GROUP": "Other",
+      "DESCRIPTION": "Replace the index file in unit tests.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@UnitTestProcessProfile",
+      "GROUP": "Config",
+      "DESCRIPTION": "Add the entry TestAbility to the profile file during unit test building.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ReplacePreviewerPage",
+      "GROUP": "Other",
+      "DESCRIPTION": "Accept previewer arguments, then use them to replace the ones in the page file.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@CopyPreviewProfile",
+      "GROUP": "Other",
+      "DESCRIPTION": "Copy preview profile.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@PreviewCompileResource",
+      "GROUP": "Resources",
+      "DESCRIPTION": "Use Preview to compile project resources in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@OhosTestCopyMockConfigJson",
+      "GROUP": "Other",
+      "DESCRIPTION": "Ohos test copy mock config json to hap resources.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@UnitTestCopyMockConfigJson",
+      "GROUP": "Other",
+      "DESCRIPTION": "Unit test copy mock config json to hap resources.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@SignProjectRemoteHsp",
+      "GROUP": "Sign",
+      "DESCRIPTION": "Sign the project-level remote HSP package.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@SignModuleRemoteHsp",
+      "GROUP": "Sign",
+      "DESCRIPTION": "Sign the module-level remote HSP package.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@PreCheckSyscap",
+      "GROUP": "Verification",
+      "DESCRIPTION": "Pre-check SysCap.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@GenerateUnitTestTemplate",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Building a unit test template without DevEco Studio",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@GenerateOhosTestTemplate",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Building a ohosTest template without DevEco Studio",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@GenerateUnitTestResult",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Building a unit test result without DevEco Studio",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ProcessRouterMap",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Process router map configuration.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ProcessShareConfig",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Process share config configuration.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ProcessStartupConfig",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Process startup configuration.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@GenerateDeviceCoverage",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Generate ohos test coverage report.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@BeforeGenerateDeviceCoverage",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Generate ohos test coverage report prerequisites.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@GeneratePkgContextInfo",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Generate pkgContextInfo.json to ets-loader.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@GeneratePkgSdkInfo",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Generate pkgSdkInfo.json.",
+      "SOURCE_PLUGIN_ID": ""
+    },
+    {
+      "TASK_NAME": "default@ProcessIntegratedHsp",
+      "GROUP": "Sign",
+      "DESCRIPTION": "Use package tool process integrated hsp.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@GeneratePkgModuleJson",
+      "GROUP": "Package",
+      "DESCRIPTION": "Generate the module.json in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ProcessCompiledResources",
+      "GROUP": "Resources",
+      "DESCRIPTION": "Process compiled resources in stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@CollectDebugSymbol",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Collect debug symbols to output dir.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ProcessModulePrivacyProfile",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Process module pac.json5 in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "tasks",
+      "GROUP": "Help",
+      "DESCRIPTION": "Displays the tasks of the HvigorCoreNode.",
+      "SOURCE_PLUGIN_ID": "hvigor"
+    },
+    {
+      "TASK_NAME": "taskTree",
+      "GROUP": "Help",
+      "DESCRIPTION": "Displays the task dag tree of the HvigorCoreNode.",
+      "SOURCE_PLUGIN_ID": "hvigor"
+    },
+    {
+      "TASK_NAME": "init",
+      "GROUP": "Sync",
+      "DESCRIPTION": "Sync and refresh project",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@FlutterTask",
+      "GROUP": "Customize",
+      "DESCRIPTION": "",
+      "SOURCE_PLUGIN_ID": "custom-plugin"
+    }
+  ],
+  "ohos-module-jpush_flutter": [
+    {
+      "TASK_NAME": "assembleHar",
+      "GROUP": "Hook",
+      "DESCRIPTION": "Assemble the task for the packaged HAR file.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "buildPreviewerResource",
+      "GROUP": "Hook",
+      "DESCRIPTION": "Build the preview resources.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "GenerateBuildProfile",
+      "GROUP": "Hook",
+      "DESCRIPTION": "Create build profile hook task.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "compileNative",
+      "GROUP": "Hook",
+      "DESCRIPTION": "Compile the hook task for native resources.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "PreviewBuild",
+      "GROUP": "Hook",
+      "DESCRIPTION": "Build preview in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "UnitTestBuild",
+      "GROUP": "Hook",
+      "DESCRIPTION": "Build a unit test.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "test",
+      "GROUP": "Hook",
+      "DESCRIPTION": "Build a unit test without DevEco Studio",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "buildHotReloadResource",
+      "GROUP": "Hook",
+      "DESCRIPTION": "Build the hot reload resources.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "clean",
+      "GROUP": "Other",
+      "DESCRIPTION": "Clear the cache information.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "onDeviceTest",
+      "GROUP": "Hook",
+      "DESCRIPTION": "Build a device test without DevEco Studio",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "buildInfo",
+      "GROUP": "Help",
+      "DESCRIPTION": "Displays the build information of the Project or Module.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "genOnDeviceTestHap",
+      "GROUP": "Hook",
+      "DESCRIPTION": "Assemble the task for the packaged HAP file in HSP or HAR.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ProcessHarArtifacts",
+      "GROUP": "Package",
+      "DESCRIPTION": "process the HAR build artifacts in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@PackageHar",
+      "GROUP": "Package",
+      "DESCRIPTION": "Build the HAR package in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@PackageSignHar",
+      "GROUP": "Sign",
+      "DESCRIPTION": "Package and sign the HAR package.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@LintArkTS",
+      "GROUP": "",
+      "DESCRIPTION": "",
+      "SOURCE_PLUGIN_ID": ""
+    },
+    {
+      "TASK_NAME": "default@ProcessObfuscationFiles",
+      "GROUP": "",
+      "DESCRIPTION": "",
+      "SOURCE_PLUGIN_ID": ""
+    },
+    {
+      "TASK_NAME": "default@ProcessOHPackageJson",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Process HAR package.json in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ProcessPackageJson",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Process HAR package.json in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@CreateHarBuildProfile",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Create the BuildProfile.ets file for the HAR package.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@CreateHarModuleInfo",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Create the ModuleInfo.ts file for the byte code HAR package.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@SyscapTransform",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Transform SysCap in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@MakePackInfo",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Generate module pack.info in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@GenerateMetadata",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Generate metadata in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@PackageHap",
+      "GROUP": "Package",
+      "DESCRIPTION": "Build the HAP package in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@SignHap",
+      "GROUP": "Sign",
+      "DESCRIPTION": "Sign the HAP package.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@PackingCheckHar",
+      "GROUP": "Verification",
+      "DESCRIPTION": "Check package product for HAR",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@HarCompileArkTS",
+      "GROUP": "ArkTS",
+      "DESCRIPTION": "Compile ArkTS components for packaged HAR files in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@HarBuildArkTS",
+      "GROUP": "ArkTS",
+      "DESCRIPTION": "Build ArkTS components for packaged HAR files in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@CompileArkTS",
+      "GROUP": "ArkTS",
+      "DESCRIPTION": "Compile ArkTS or JS components for large-system devices in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@BuildArkTS",
+      "GROUP": "ArkTS",
+      "DESCRIPTION": "Compile ArkTS or JS components using Node.js for large-system devices in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@BuildJS",
+      "GROUP": "ArkTS",
+      "DESCRIPTION": "Compile ArkTS or JS components using Node.js for large-system devices in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@HotReloadArkTS",
+      "GROUP": "ArkTS",
+      "DESCRIPTION": "Compile ArkTS components during hot loading in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ColdReloadArkTS",
+      "GROUP": "ArkTS",
+      "DESCRIPTION": "Compile ArkTS components during cold loading in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@PreviewArkTS",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Compile ArkTS components on preview in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@OhosTestCompileArkTS",
+      "GROUP": "ArkTS",
+      "DESCRIPTION": "Compile ArkTS or JS components using Node.js for large-system devices in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@OhosTestCompileJS",
+      "GROUP": "ArkTS",
+      "DESCRIPTION": "Compile ArkTS or JS components using Node.js for large-system devices in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@OhosTestBuildArkTS",
+      "GROUP": "ArkTS",
+      "DESCRIPTION": "Compile ArkTS or JS components using Node.js for large-system devices in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@OhosTestBuildJS",
+      "GROUP": "ArkTS",
+      "DESCRIPTION": "Compile ArkTS or JS components using Node.js for large-system devices in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@UnitTestArkTS",
+      "GROUP": "ArkTS",
+      "DESCRIPTION": "Compile ArkTS components at unit test time in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ProcessResource",
+      "GROUP": "Resources",
+      "DESCRIPTION": "Process resources in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@CompileResource",
+      "GROUP": "Resources",
+      "DESCRIPTION": "Compile project resources in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@PreviewProcessResource",
+      "GROUP": "Resources",
+      "DESCRIPTION": "Process preview resources incrementally in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@BuildNativeWithNinja",
+      "GROUP": "Native",
+      "DESCRIPTION": "Compile CPP source with Ninja in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@BuildNativeWithCmake",
+      "GROUP": "Native",
+      "DESCRIPTION": "Compile CPP source with CMake in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ProcessLibs",
+      "GROUP": "Resources",
+      "DESCRIPTION": "Process .so files in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@DoNativeBinxo",
+      "GROUP": "Resources",
+      "DESCRIPTION": "Binxo .so files to check file.",
+      "SOURCE_PLUGIN_ID": ""
+    },
+    {
+      "TASK_NAME": "default@PrepareQuickfix",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Prepare changed assets for quickfix.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@DoNativeStrip",
+      "GROUP": "Native",
+      "DESCRIPTION": "Strip .so files to decrease size.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@CacheNativeLibs",
+      "GROUP": "Native",
+      "DESCRIPTION": "cache native strip .so fileInfo",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ConfigureCmake",
+      "GROUP": "Native",
+      "DESCRIPTION": "cache native strip .so fileInfo",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@PreBuild",
+      "GROUP": "Verification",
+      "DESCRIPTION": "Pre-build in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@GenerateLoaderJson",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Generate loader.json in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ProcessProfile",
+      "GROUP": "Config",
+      "DESCRIPTION": "Process app config manifest files in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@MergeProfile",
+      "GROUP": "Config",
+      "DESCRIPTION": "Merge app config manifest files in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@PreviewHookCompileResource",
+      "GROUP": "Hook",
+      "DESCRIPTION": "Add a hook task for compiling preview resources.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@CreateBuildProfile",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Create the BuildProfile.ets file for the HAP/HSP package.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@PreviewUpdateAssets",
+      "GROUP": "Config",
+      "DESCRIPTION": "Update main_pages.json and module.json before PreviewBuild.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@BuildUnitTestHook",
+      "GROUP": "Hook",
+      "DESCRIPTION": "Build a unit test hook.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ReplaceSourceMapInCoverageMode",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Replace sourcemap in coverage mode.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ReplaceUnitTestIndexFile",
+      "GROUP": "Other",
+      "DESCRIPTION": "Replace the index file in unit tests.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@UnitTestProcessProfile",
+      "GROUP": "Config",
+      "DESCRIPTION": "Add the entry TestAbility to the profile file during unit test building.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ReplacePreviewerPage",
+      "GROUP": "Other",
+      "DESCRIPTION": "Accept previewer arguments, then use them to replace the ones in the page file.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@CopyPreviewProfile",
+      "GROUP": "Other",
+      "DESCRIPTION": "Copy preview profile.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@PreviewCompileResource",
+      "GROUP": "Resources",
+      "DESCRIPTION": "Use Preview to compile project resources in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@OhosTestCopyMockConfigJson",
+      "GROUP": "Other",
+      "DESCRIPTION": "Ohos test copy mock config json to hap resources.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@UnitTestCopyMockConfigJson",
+      "GROUP": "Other",
+      "DESCRIPTION": "Unit test copy mock config json to hap resources.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@SignProjectRemoteHsp",
+      "GROUP": "Sign",
+      "DESCRIPTION": "Sign the project-level remote HSP package.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@SignModuleRemoteHsp",
+      "GROUP": "Sign",
+      "DESCRIPTION": "Sign the module-level remote HSP package.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@PreCheckSyscap",
+      "GROUP": "Verification",
+      "DESCRIPTION": "Pre-check SysCap.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@GenerateUnitTestTemplate",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Building a unit test template without DevEco Studio",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@GenerateOhosTestTemplate",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Building a ohosTest template without DevEco Studio",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@GenerateUnitTestResult",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Building a unit test result without DevEco Studio",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ProcessRouterMap",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Process router map configuration.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ProcessShareConfig",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Process share config configuration.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ProcessStartupConfig",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Process startup configuration.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@GenerateDeviceCoverage",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Generate ohos test coverage report.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@BeforeGenerateDeviceCoverage",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Generate ohos test coverage report prerequisites.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@GeneratePkgContextInfo",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Generate pkgContextInfo.json to ets-loader.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@GeneratePkgSdkInfo",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Generate pkgSdkInfo.json.",
+      "SOURCE_PLUGIN_ID": ""
+    },
+    {
+      "TASK_NAME": "default@ProcessIntegratedHsp",
+      "GROUP": "Sign",
+      "DESCRIPTION": "Use package tool process integrated hsp.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@GeneratePkgModuleJson",
+      "GROUP": "Package",
+      "DESCRIPTION": "Generate the module.json in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ProcessCompiledResources",
+      "GROUP": "Resources",
+      "DESCRIPTION": "Process compiled resources in stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@CollectDebugSymbol",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Collect debug symbols to output dir.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "default@ProcessModulePrivacyProfile",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Process module pac.json5 in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "tasks",
+      "GROUP": "Help",
+      "DESCRIPTION": "Displays the tasks of the HvigorCoreNode.",
+      "SOURCE_PLUGIN_ID": "hvigor"
+    },
+    {
+      "TASK_NAME": "taskTree",
+      "GROUP": "Help",
+      "DESCRIPTION": "Displays the task dag tree of the HvigorCoreNode.",
+      "SOURCE_PLUGIN_ID": "hvigor"
+    },
+    {
+      "TASK_NAME": "init",
+      "GROUP": "Sync",
+      "DESCRIPTION": "Sync and refresh project",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    }
+  ],
+  "ohos-project": [
+    {
+      "TASK_NAME": "tasks",
+      "GROUP": "Help",
+      "DESCRIPTION": "Displays the tasks of the HvigorCoreNode.",
+      "SOURCE_PLUGIN_ID": "hvigor"
+    },
+    {
+      "TASK_NAME": "taskTree",
+      "GROUP": "Help",
+      "DESCRIPTION": "Displays the task dag tree of the HvigorCoreNode.",
+      "SOURCE_PLUGIN_ID": "hvigor"
+    },
+    {
+      "TASK_NAME": "prune",
+      "GROUP": "Other",
+      "DESCRIPTION": "Clean up old hvigor cache files and remove unreferenced packages from store.",
+      "SOURCE_PLUGIN_ID": "hvigor"
+    },
+    {
+      "TASK_NAME": "assembleApp",
+      "GROUP": "Hook",
+      "DESCRIPTION": "Assemble the task for the packaged app.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "clean",
+      "GROUP": "Other",
+      "DESCRIPTION": "Clear the cache information.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "collectCoverage",
+      "GROUP": "Other",
+      "DESCRIPTION": "Generate coverage statistics reports based on instrumentation dotting data.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "init",
+      "GROUP": "Sync",
+      "DESCRIPTION": "Sync and refresh project",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "SignApp",
+      "GROUP": "Sign",
+      "DESCRIPTION": "Sign the app package.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "PackageApp",
+      "GROUP": "Package",
+      "DESCRIPTION": "Build the app package in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "SignPackagesFromApp",
+      "GROUP": "Package",
+      "DESCRIPTION": "Build all unsigned app package in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "ProcessProjectPrivacyProfile",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Process project pac.json5 in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "GeneratePackRes",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Build the pack.res file in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "PreBuildApp",
+      "GROUP": "Verification",
+      "DESCRIPTION": "Prepare before building the app.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "DuplicateDependencyCheck",
+      "GROUP": "Verification",
+      "DESCRIPTION": "Check duplicated dependencies when building app.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "MakeProjectPackInfo",
+      "GROUP": "Generate",
+      "DESCRIPTION": "Generate project pack.info in the stage model.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    },
+    {
+      "TASK_NAME": "buildInfo",
+      "GROUP": "Help",
+      "DESCRIPTION": "Displays the build information of the Project or Module.",
+      "SOURCE_PLUGIN_ID": "hvigor-ohos-plugin"
+    }
+  ]
+}

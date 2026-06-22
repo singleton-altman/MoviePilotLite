@@ -1,0 +1,100 @@
+{
+  "HVIGOR_OHOS_PLUGIN": {
+    "MODULES": [
+      {
+        "MODULE_NAME": "923fe53966c6cd9343e11af776cd4b05be315ea4b200b02e4d5dfb0f929b73bf",
+        "API_TYPE": "stageMode",
+        "INCLUDE_IN_BUILD": true,
+        "IS_COMMAND_LINE_ENTRY_MODULE": true,
+        "MODULE_TYPE": "entry",
+        "INCREMENTAL_TASKS": {
+          "COMPILE_ARKTS": true
+        },
+        "IS_INCREMENTAL_MODULE": true
+      },
+      {
+        "MODULE_NAME": "e3dcef4662d14c48e1e5fcc2d8656219d672228e4026e8ade978971fbdbd61a4",
+        "API_TYPE": "stageMode",
+        "INCLUDE_IN_BUILD": true,
+        "IS_COMMAND_LINE_ENTRY_MODULE": false,
+        "MODULE_TYPE": "har",
+        "IS_BYTE_CODE_HAR": true,
+        "IS_INCREMENTAL_MODULE": true
+      }
+    ],
+    "NATIVE_COMPILER": "Default",
+    "IS_FULL_BUILD": false,
+    "BUILD_MODE": "debug",
+    "USE_NORMALIZED_OHMURL": true
+  },
+  "HVIGOR": {
+    "IS_INCREMENTAL": true,
+    "IS_DAEMON": true,
+    "IS_PARALLEL": true,
+    "IS_HVIGORFILE_TYPE_CHECK": false,
+    "TASK_TIME": {
+      "923fe53966c6cd9343e11af776cd4b05be315ea4b200b02e4d5dfb0f929b73bf": {
+        "PreBuild": 3467958,
+        "CreateModuleInfo": 586208,
+        "PreCheckSyscap": 110875,
+        "GeneratePkgSdkInfo": 524959,
+        "ProcessIntegratedHsp": 258625,
+        "SyscapTransform": 849042,
+        "ProcessRouterMap": 1011792,
+        "ProcessShareConfig": 684708,
+        "ProcessStartupConfig": 967334,
+        "GenerateLoaderJson": 4573584,
+        "ConfigureCmake": 60084,
+        "BuildNativeWithCmake": 45958,
+        "CompileResource": 386379084,
+        "BuildNativeWithNinja": 165000,
+        "BuildJS": 575500,
+        "CompileArkTS": 410310709,
+        "GeneratePkgModuleJson": 1533667,
+        "ProcessCompiledResources": 297958,
+        "PackageHap": 380707583,
+        "PackingCheck": 2052792,
+        "SignHap": 233742584,
+        "CollectDebugSymbol": 246209,
+        "assembleHap": 60458
+      },
+      "e3dcef4662d14c48e1e5fcc2d8656219d672228e4026e8ade978971fbdbd61a4": {
+        "PreBuild": 20964958,
+        "ConfigureCmake": 64708,
+        "BuildNativeWithCmake": 78916,
+        "BuildNativeWithNinja": 316958
+      }
+    },
+    "APIS": [
+      "getHvigorConfig",
+      "includeNode",
+      "getContext",
+      "getCurrentProduct",
+      "getProductName",
+      "getParameter",
+      "getExtParam",
+      "getBuildMode",
+      "afterNodeEvaluate",
+      "subNodes",
+      "getNodeName",
+      "getAppJsonOpt",
+      "setAppJsonOpt",
+      "getOverrides",
+      "setOverrides",
+      "targets",
+      "getTargetName",
+      "registerTask",
+      "getDependenciesOpt",
+      "setDependenciesOpt",
+      "getNodePath",
+      "getProperty"
+    ],
+    "CONFIG_EXPERIMENT": {
+      "ENABLE_MODULE_SKIP": false,
+      "ENABLE_CPP_FUNCTION_LEVEL_INCREMENTAL": false
+    },
+    "CONFIG_PROPERTIES": {},
+    "TOTAL_TIME": 5138700958,
+    "BUILD_ID": "202606221903199540"
+  }
+}

@@ -32,6 +32,7 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+build/
 
 # Symbolication related
 app.*.symbols
@@ -46,3 +47,8 @@ app.*.map.json
 
 # FVM Version Cache
 .fvm/
+
+#ohos
+oh_modules/
+node_modules/
+.hvigor

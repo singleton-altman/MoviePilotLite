@@ -1,0 +1,16 @@
+{
+  "name": "entry",
+  "version": "1.0.0",
+  "description": "Please describe the basic information.",
+  "main": "",
+  "author": "",
+  "license": "",
+  "dependencies": {
+    "@ohos/flutter_ohos": "/Users/junchen/fvm/versions/custom_3.35.7_ohos/bin/cache/artifacts/engine/ohos-arm64/flutter_embedding_debug.har",
+    "flutter_native_arm64_v8a": "/Users/junchen/fvm/versions/custom_3.35.7_ohos/bin/cache/artifacts/engine/ohos-arm64/arm64_v8a_debug.har",
+    "flutter_native_x86_64": "/Users/junchen/fvm/versions/custom_3.35.7_ohos/bin/cache/artifacts/engine/ohos-x64/x86_64_debug.har",
+    "jpush_flutter": "/Users/junchen/.pub-cache/hosted/pub.dev/jpush_flutter-3.4.6/ohos"
+  },
+  "devDependencies": {},
+  "dynamicDependencies": {}
+}

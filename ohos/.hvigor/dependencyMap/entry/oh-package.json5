@@ -1,0 +1,1 @@
+{"name":"entry","version":"1.0.0","description":"Please describe the basic information.","main":"","author":"","license":"","dependencies":{"@ohos/flutter_ohos":"","flutter_native_arm64_v8a":"","flutter_native_x86_64":"","jpush_flutter":""}}

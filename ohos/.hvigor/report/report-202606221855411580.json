@@ -1,0 +1,286 @@
+{
+  "version": "2.0",
+  "ppid": 64339,
+  "events": [
+    {
+      "head": {
+        "id": "bb52c753-5fd4-4182-b20c-a190c8d3e50a",
+        "name": "hvigor build process will be closed.",
+        "description": "",
+        "type": "log"
+      },
+      "body": {
+        "pid": 64493,
+        "tid": "Main Thread",
+        "startTime": 2941687765892791
+      },
+      "additional": {
+        "logType": "debug",
+        "children": []
+      }
+    },
+    {
+      "head": {
+        "id": "e03f23b6-3a73-4817-a79e-7d6a6055fc73",
+        "name": "java daemon socket close code:1000 reason:close by user",
+        "description": "",
+        "type": "log"
+      },
+      "body": {
+        "pid": 64493,
+        "tid": "Main Thread",
+        "startTime": 2941687766162166
+      },
+      "additional": {
+        "logType": "debug",
+        "children": []
+      }
+    },
+    {
+      "head": {
+        "id": "2cc22442-0675-48f0-beb3-451e83264b63",
+        "name": "watch worker: worker id should be larger than 0. Nothing will be sent to any worker thread.",
+        "description": "",
+        "type": "log"
+      },
+      "body": {
+        "pid": 64493,
+        "tid": "Main Thread",
+        "startTime": 2941687769041875
+      },
+      "additional": {
+        "logType": "debug",
+        "children": []
+      }
+    },
+    {
+      "head": {
+        "id": "13359a7d-db3d-41ed-825a-6c8c3fcbf4a8",
+        "name": "watch worker: worker id should be larger than 0. Nothing will be sent to any worker thread.",
+        "description": "",
+        "type": "log"
+      },
+      "body": {
+        "pid": 64493,
+        "tid": "Main Thread",
+        "startTime": 2941687769106166
+      },
+      "additional": {
+        "logType": "debug",
+        "children": []
+      }
+    },
+    {
+      "head": {
+        "id": "2b5292dd-920c-4562-bb1e-1e97a5fa0269",
+        "name": "worker[16] exits with exit code 1.",
+        "description": "",
+        "type": "log"
+      },
+      "body": {
+        "pid": 64493,
+        "tid": "Main Thread",
+        "startTime": 2941687770693875
+      },
+      "additional": {
+        "logType": "debug",
+        "children": []
+      }
+    },
+    {
+      "head": {
+        "id": "cecaf57f-bbe2-497a-b3a2-b016e437f109",
+        "name": "watch worker: worker id should be larger than 0. Nothing will be sent to any worker thread.",
+        "description": "",
+        "type": "log"
+      },
+      "body": {
+        "pid": 64493,
+        "tid": "Main Thread",
+        "startTime": 2946831246118375
+      },
+      "additional": {
+        "logType": "debug",
+        "children": []
+      }
+    },
+    {
+      "head": {
+        "id": "e0cfa04c-3304-4a04-96f7-b490d6753304",
+        "name": "Workers' log level updated to INFO",
+        "description": "",
+        "type": "log"
+      },
+      "body": {
+        "pid": 64493,
+        "tid": "Main Thread",
+        "startTime": 2946831281304625
+      },
+      "additional": {
+        "logType": "debug",
+        "children": []
+      }
+    },
+    {
+      "head": {
+        "id": "5954fbdc-f098-4ea6-b990-e60011e14cf4",
+        "name": "hvigor build process will be closed with an error.",
+        "description": "",
+        "type": "log"
+      },
+      "body": {
+        "pid": 64493,
+        "tid": "Main Thread",
+        "startTime": 2946831302289875
+      },
+      "additional": {
+        "logType": "debug",
+        "children": []
+      }
+    },
+    {
+      "head": {
+        "id": "06faa825-02cf-4122-9c9e-6c823689311a",
+        "name": "\u001b[31m00304035 Not Found\nError Message: Cannot find project build file build-profile.json5 under folder: /Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos.\n\n* Try the following:\n  > Make sure that the project has build-profile.json5 file.\n\u001b[39m\n\n\u001b[31m* Try:\n> Run with --stacktrace option to get the stack trace.\n> Run with --debug option to get more log output.\n",
+        "description": "",
+        "type": "log"
+      },
+      "body": {
+        "pid": 64493,
+        "tid": "Main Thread",
+        "startTime": 2946831327206166
+      },
+      "additional": {
+        "logType": "error",
+        "children": []
+      }
+    },
+    {
+      "head": {
+        "id": "1e57473a-492c-4684-9f2c-05977da4c540",
+        "name": "ERROR: stacktrace = AdaptorError: \u001b[31m00304035 Not Found\nError Message: Cannot find project build file build-profile.json5 under folder: /Users/junchen/Desktop/AltmanTech/moviepilot_mobile/ohos.\n\n* Try the following:\n  > Make sure that the project has build-profile.json5 file.\n\u001b[39m\n    at HvigorLogger.printErrorExit (/Applications/DevEco-Studio.app/Contents/tools/hvigor/hvigor/src/base/log/hvigor-log.js:1:5087)\n    at initEnvConfigProps (/Applications/DevEco-Studio.app/Contents/tools/hvigor/hvigor/src/base/boot/hooks/init-env-config-props.js:1:946)\n    at boot (/Applications/DevEco-Studio.app/Contents/tools/hvigor/hvigor/src/base/boot/index.js:1:1618)\n    at Worker.<anonymous> (/Applications/DevEco-Studio.app/Contents/tools/hvigor/hvigor/src/base/daemon/cluster/worker-process-lifecycle.js:1:3747)\n    at Worker.emit (node:events:529:35)\n    at process.<anonymous> (node:internal/cluster/worker:35:12)\n    at process.emit (node:events:529:35)\n    at emit (node:internal/child_process:944:14)\n    at process.processTicksAndRejections (node:internal/process/task_queues:83:21)",
+        "description": "",
+        "type": "log"
+      },
+      "body": {
+        "pid": 64493,
+        "tid": "Main Thread",
+        "startTime": 2946831327294875
+      },
+      "additional": {
+        "logType": "debug",
+        "children": []
+      }
+    },
+    {
+      "head": {
+        "id": "5d3e93e1-9e3f-48c9-9baa-7d643941568e",
+        "name": "\"buildFinished\" hook function",
+        "description": "",
+        "type": "duration"
+      },
+      "body": {
+        "pid": 64493,
+        "tid": "Main Thread",
+        "startTime": 2946831330716375,
+        "endTime": 2946831332371250
+      },
+      "additional": {
+        "children": [],
+        "state": "success",
+        "targetName": "",
+        "moduleName": "",
+        "category": "",
+        "taskRunReasons": [],
+        "parent": "999c6283-d4ca-4454-aa74-f2ac4046f77f",
+        "logId": "e2356146-62f8-4ff0-9637-1d103ff44984"
+      },
+      "log": {
+        "_logger": {
+          "category": "DurationEvent",
+          "context": {},
+          "callStackSkipIndex": 0
+        },
+        "_filelogger": {
+          "category": "debug-file",
+          "context": {},
+          "callStackSkipIndex": 0
+        },
+        "anonymizeFileLogger": {
+          "fileLogger": {
+            "category": "debug-file",
+            "context": {},
+            "callStackSkipIndex": 0
+          }
+        }
+      }
+    },
+    {
+      "head": {
+        "id": "e2356146-62f8-4ff0-9637-1d103ff44984",
+        "name": "\"buildFinished\" hook function",
+        "description": "",
+        "type": "log"
+      },
+      "body": {
+        "pid": 64493,
+        "tid": "Main Thread",
+        "startTime": 2946831330716375,
+        "endTime": 2946831332371250
+      },
+      "additional": {
+        "logType": "info",
+        "children": [],
+        "durationId": "5d3e93e1-9e3f-48c9-9baa-7d643941568e"
+      }
+    },
+    {
+      "head": {
+        "id": "618ee844-83a6-49ac-ba1a-a0fec4aca5c9",
+        "name": "assembleHap,--analyze=normal",
+        "description": "",
+        "type": "mark"
+      },
+      "body": {
+        "pid": 64493,
+        "tid": "Main Thread",
+        "startTime": 2941679613954833,
+        "endTime": 2946831335790125
+      },
+      "additional": {
+        "time": {
+          "year": 2026,
+          "month": 6,
+          "day": 22,
+          "hour": 18,
+          "minute": 55,
+          "second": 41
+        },
+        "completeCommand": "{\"mode\":\"module\",\"completeCommand\":\"--mode module -p module=entry@default -p product=default -p requiredDeviceType=phone assembleHap --analyze=normal --parallel --incremental --daemon\",\"parallel\":true,\"prop\":[\"module=entry@default\",\"product=default\",\"requiredDeviceType=phone\"],\"incremental\":true,\"_\":[\"assembleHap\",\"--analyze=normal\"],\"daemon\":true};--mode module -p module=entry@default -p product=default -p requiredDeviceType=phone assembleHap --analyze=normal --parallel --incremental --daemon",
+        "hvigorVersion": "6.23.4",
+        "markType": "history",
+        "nodeVersion": "v18.20.1",
+        "category": "build",
+        "state": "failed"
+      }
+    },
+    {
+      "head": {
+        "id": "e19ae874-39f6-464b-8de9-835132b60c18",
+        "name": "BUILD FAILED in 1 h 25 min 51 s 720 ms ",
+        "description": "",
+        "type": "log"
+      },
+      "body": {
+        "pid": 64493,
+        "tid": "Main Thread",
+        "startTime": 2946831336549250
+      },
+      "additional": {
+        "logType": "error",
+        "children": []
+      }
+    }
+  ],
+  "workLog": []
+}
