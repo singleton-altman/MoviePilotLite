@@ -1,4 +1,5 @@
 import 'package:altman_downloader_control/controller/downloader_config.dart';
+import 'package:flutter/material.dart';
 import 'package:moviepilot_mobile/utils/downloader_controller_adaptor.dart';
 import 'package:altman_totp/page/totp_manage_page.dart';
 import 'package:get/get.dart';
@@ -137,38 +138,41 @@ List<GetMiddleware> permissionGuards([String? permissionRoute]) => [
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  Get.put(AppLog());
-  await Get.put(IosWidgetNavigationService()).init();
-  await Get.put(JPushService()).init();
-  Get.put(AppService());
-  await Get.putAsync<DatabaseService>(
-    () async {
+  try {
+    Get.put(AppLog());
+    Get.put(IosWidgetNavigationService(), permanent: true);
+    Get.put(JPushService(), permanent: true);
+    Get.put(AppService());
+    Get.put(ApiClient());
+    Get.putAsync<DatabaseService>(() async {
       final s = DatabaseService();
       await s.onInit();
       return s;
-    },
-    permanent: true,
-  );
-  Get.put(IosSharedSessionService());
-  Get.put(ApiClient());
-  Get.put(MediaDetailService());
-  Get.put(ImageUtil());
-  // 注册 vue 模式插件适配器
-  PluginFormAdapterRegistry.register(
-    'TrashClean',
-    ({required formMode}) => TrashCleanFormController(formMode: formMode),
-  );
-  PluginFormAdapterRegistry.register(
-    'P115StrmHelper',
-    ({required formMode}) => P115StrmHelperFormController(formMode: formMode),
-  );
-  PluginFormAdapterRegistry.register(
-    'ProxmoxVEBackup',
-    ({required formMode}) => ProxmoxVEBackupFormController(formMode: formMode),
-  );
+    }, permanent: true);
+    Get.put(IosSharedSessionService());
+    Get.put(MediaDetailService());
+    Get.put(ImageUtil());
+    // 注册 vue 模式插件适配器
+    PluginFormAdapterRegistry.register(
+      'TrashClean',
+      ({required formMode}) => TrashCleanFormController(formMode: formMode),
+    );
+    PluginFormAdapterRegistry.register(
+      'P115StrmHelper',
+      ({required formMode}) => P115StrmHelperFormController(formMode: formMode),
+    );
+    PluginFormAdapterRegistry.register(
+      'ProxmoxVEBackup',
+      ({required formMode}) =>
+          ProxmoxVEBackupFormController(formMode: formMode),
+    );
 
-  registerProxmoxVeBackupRenderer();
-  registerAppLitePushRenderer();
+    registerProxmoxVeBackupRenderer();
+    registerAppLitePushRenderer();
+  } catch (e, stack) {
+    print('初始化失败: $e ');
+    print('初始化失败堆栈: $stack');
+  }
   runApp(const MyApp());
 }
 

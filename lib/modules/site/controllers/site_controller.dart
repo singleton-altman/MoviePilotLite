@@ -19,7 +19,9 @@ import 'package:moviepilot_mobile/services/ios_shared_session_service.dart';
 class SiteController extends GetxController {
   final _apiClient = Get.find<ApiClient>();
   final _iosSharedSessionService = Get.find<IosSharedSessionService>();
-  final _db = Get.find<DatabaseService>();
+  final _db = Get.isRegistered<DatabaseService>()
+      ? Get.find<DatabaseService>()
+      : null;
   final _log = Get.find<AppLog>();
 
   final items = <SiteItem>[].obs;
@@ -254,7 +256,9 @@ class SiteController extends GetxController {
 
   Future<void> loadFromCache() async {
     if (kIsWeb) return;
-    final dao = _db.db.siteCacheDao;
+    final db = _db;
+    if (db == null) return;
+    final dao = db.db.siteCacheDao;
     final siteRows = await dao.getAllSiteModels();
     if (siteRows.isEmpty) return;
 
@@ -433,7 +437,9 @@ class SiteController extends GetxController {
 
   Future<void> _saveToCache() async {
     if (kIsWeb) return;
-    final dao = _db.db.siteCacheDao;
+    final db = _db;
+    if (db == null) return;
+    final dao = db.db.siteCacheDao;
     final siteRows = items.map((item) {
       final s = item.site;
       return SiteModelCachesCompanion(
@@ -500,9 +506,12 @@ class SiteController extends GetxController {
       return _fetchIconBytesFromApi(site.id, url);
     }
 
-    final cached = await _db.db.siteCacheDao.findIconByUrl(url);
-    if (cached != null && cached.iconBase64.isNotEmpty) {
-      return _decodeBase64ToBytes(cached.iconBase64);
+    final db = _db;
+    if (db != null) {
+      final cached = await db.db.siteCacheDao.findIconByUrl(url);
+      if (cached != null && cached.iconBase64.isNotEmpty) {
+        return _decodeBase64ToBytes(cached.iconBase64);
+      }
     }
 
     return _fetchIconBytesFromApi(site.id, url);
@@ -548,12 +557,15 @@ class SiteController extends GetxController {
       if (bytes.isEmpty) return null;
 
       if (!kIsWeb && siteUrl.isNotEmpty) {
-        await _db.db.siteCacheDao.upsertIcon(
-          SiteIconCachesCompanion(
-            url: drift.Value(siteUrl),
-            iconBase64: drift.Value(base64),
-          ),
-        );
+        final db = _db;
+        if (db != null) {
+          await db.db.siteCacheDao.upsertIcon(
+            SiteIconCachesCompanion(
+              url: drift.Value(siteUrl),
+              iconBase64: drift.Value(base64),
+            ),
+          );
+        }
       }
 
       return bytes;

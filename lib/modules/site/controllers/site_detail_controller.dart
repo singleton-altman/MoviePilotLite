@@ -12,7 +12,9 @@ import 'package:moviepilot_mobile/services/database_service.dart';
 
 class SiteDetailController extends GetxController {
   final _apiClient = Get.find<ApiClient>();
-  final _db = Get.find<DatabaseService>();
+  final _db = Get.isRegistered<DatabaseService>()
+      ? Get.find<DatabaseService>()
+      : null;
   final _log = Get.find<AppLog>();
 
   int? siteId;
@@ -87,16 +89,19 @@ class SiteDetailController extends GetxController {
     if (id == null) return;
 
     if (!kIsWeb && siteUrl.isNotEmpty) {
-      final cached = await _db.db.siteCacheDao.findIconByUrl(siteUrl);
-      if (cached != null && cached.iconBase64.isNotEmpty) {
-        String base64 = cached.iconBase64.trim();
-        if (base64.contains(',')) {
-          final comma = base64.indexOf(',');
-          base64 = base64.substring(comma + 1).trim();
-        }
-        if (base64.isNotEmpty) {
-          iconBase64.value = base64;
-          return;
+      final db = _db;
+      if (db != null) {
+        final cached = await db.db.siteCacheDao.findIconByUrl(siteUrl);
+        if (cached != null && cached.iconBase64.isNotEmpty) {
+          String base64 = cached.iconBase64.trim();
+          if (base64.contains(',')) {
+            final comma = base64.indexOf(',');
+            base64 = base64.substring(comma + 1).trim();
+          }
+          if (base64.isNotEmpty) {
+            iconBase64.value = base64;
+            return;
+          }
         }
       }
     }
@@ -117,12 +122,15 @@ class SiteDetailController extends GetxController {
       if (base64.isEmpty || iconBase64.value == base64) return;
       iconBase64.value = base64;
       if (!kIsWeb && siteUrl.isNotEmpty) {
-        await _db.db.siteCacheDao.upsertIcon(
-          SiteIconCachesCompanion(
-            url: drift.Value(siteUrl),
-            iconBase64: drift.Value(base64),
-          ),
-        );
+        final db = _db;
+        if (db != null) {
+          await db.db.siteCacheDao.upsertIcon(
+            SiteIconCachesCompanion(
+              url: drift.Value(siteUrl),
+              iconBase64: drift.Value(base64),
+            ),
+          );
+        }
       }
     } catch (_) {}
   }

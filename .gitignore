@@ -51,4 +51,5 @@ app.*.map.json
 #ohos
 oh_modules/
 node_modules/
-.hvigor
+.hvigor/
+ohos/.hvigor/cache/

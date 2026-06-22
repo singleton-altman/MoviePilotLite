@@ -34,35 +34,35 @@
     "IS_HVIGORFILE_TYPE_CHECK": false,
     "TASK_TIME": {
       "923fe53966c6cd9343e11af776cd4b05be315ea4b200b02e4d5dfb0f929b73bf": {
-        "PreBuild": 3467958,
-        "CreateModuleInfo": 586208,
-        "PreCheckSyscap": 110875,
-        "GeneratePkgSdkInfo": 524959,
-        "ProcessIntegratedHsp": 258625,
-        "SyscapTransform": 849042,
-        "ProcessRouterMap": 1011792,
-        "ProcessShareConfig": 684708,
-        "ProcessStartupConfig": 967334,
-        "GenerateLoaderJson": 4573584,
-        "ConfigureCmake": 60084,
-        "BuildNativeWithCmake": 45958,
-        "CompileResource": 386379084,
-        "BuildNativeWithNinja": 165000,
-        "BuildJS": 575500,
-        "CompileArkTS": 410310709,
-        "GeneratePkgModuleJson": 1533667,
-        "ProcessCompiledResources": 297958,
-        "PackageHap": 380707583,
-        "PackingCheck": 2052792,
-        "SignHap": 233742584,
-        "CollectDebugSymbol": 246209,
-        "assembleHap": 60458
+        "PreBuild": 2773333,
+        "CreateModuleInfo": 165833,
+        "PreCheckSyscap": 64917,
+        "GeneratePkgSdkInfo": 288625,
+        "ProcessIntegratedHsp": 112792,
+        "SyscapTransform": 663458,
+        "ProcessRouterMap": 559291,
+        "ProcessShareConfig": 415375,
+        "ProcessStartupConfig": 558667,
+        "GenerateLoaderJson": 3271583,
+        "ConfigureCmake": 54750,
+        "BuildNativeWithCmake": 45375,
+        "CompileResource": 400961958,
+        "BuildNativeWithNinja": 136875,
+        "BuildJS": 380000,
+        "CompileArkTS": 618469417,
+        "GeneratePkgModuleJson": 735292,
+        "ProcessCompiledResources": 137959,
+        "PackageHap": 429968708,
+        "PackingCheck": 2071542,
+        "SignHap": 308562333,
+        "CollectDebugSymbol": 259041,
+        "assembleHap": 50583
       },
       "e3dcef4662d14c48e1e5fcc2d8656219d672228e4026e8ade978971fbdbd61a4": {
-        "PreBuild": 20964958,
-        "ConfigureCmake": 64708,
-        "BuildNativeWithCmake": 78916,
-        "BuildNativeWithNinja": 316958
+        "PreBuild": 12341291,
+        "ConfigureCmake": 52542,
+        "BuildNativeWithCmake": 58333,
+        "BuildNativeWithNinja": 147792
       }
     },
     "APIS": [
@@ -94,7 +94,7 @@
       "ENABLE_CPP_FUNCTION_LEVEL_INCREMENTAL": false
     },
     "CONFIG_PROPERTIES": {},
-    "TOTAL_TIME": 5138700958,
-    "BUILD_ID": "202606221903199540"
+    "TOTAL_TIME": 5846635334,
+    "BUILD_ID": "202606222005141800"
   }
 }

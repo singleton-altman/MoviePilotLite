@@ -20,7 +20,8 @@ class PluginListController extends GetxController {
   final _apiClient = Get.find<ApiClient>();
   final _log = Get.find<AppLog>();
 
-  AppDatabase get _db => Get.find<DatabaseService>().db;
+  AppDatabase? get _db =>
+      Get.isRegistered<DatabaseService>() ? Get.find<DatabaseService>().db : null;
   final _appService = Get.find<AppService>();
   final _authRepository = Get.find<AuthRepository>();
   static const int _pageSize = 40;
@@ -48,9 +49,11 @@ class PluginListController extends GetxController {
 
   Future<void> _clearLocalCache() async {
     if (kIsWeb) return;
+    final db = _db;
+    if (db == null) return;
     final scopeKey = _appService.pluginCacheScopeKey;
     if (scopeKey.isEmpty) return;
-    await _db.pluginCacheDao.deletePluginModelsByScope(
+    await db.pluginCacheDao.deletePluginModelsByScope(
       (id) => matchesPluginMarketScope(id, scopeKey),
     );
   }
@@ -196,7 +199,14 @@ class PluginListController extends GetxController {
       _invalidateComputedCache();
       return;
     }
-    final cache = await _db.pluginCacheDao.getPluginModelsByScope(
+    final db = _db;
+    if (db == null) {
+      items.clear();
+      _displayedLimit = _pageSize;
+      _invalidateComputedCache();
+      return;
+    }
+    final cache = await db.pluginCacheDao.getPluginModelsByScope(
       (id) => matchesPluginMarketScope(id, scopeKey),
     );
     if (cache.isEmpty) return;
@@ -261,7 +271,9 @@ class PluginListController extends GetxController {
         ),
       );
     }
-    await _db.pluginCacheDao.replacePluginModelsByScope(
+    final db = _db;
+    if (db == null) return;
+    await db.pluginCacheDao.replacePluginModelsByScope(
       (id) => matchesPluginMarketScope(id, scopeKey),
       list,
     );

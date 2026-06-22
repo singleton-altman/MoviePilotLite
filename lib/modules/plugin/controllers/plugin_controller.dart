@@ -17,7 +17,9 @@ class PluginController extends GetxController {
   final _apiClient = Get.find<ApiClient>();
   final _log = Get.find<AppLog>();
   final _appService = Get.find<AppService>();
-  final _db = Get.find<DatabaseService>();
+  final _db = Get.isRegistered<DatabaseService>()
+      ? Get.find<DatabaseService>()
+      : null;
   final items = <PluginItem>[].obs;
   final keyword = ''.obs;
   final isLoading = false.obs;
@@ -30,9 +32,11 @@ class PluginController extends GetxController {
 
   Future<void> _clearLocalCache() async {
     if (kIsWeb) return;
+    final db = _db;
+    if (db == null) return;
     final scopeKey = _appService.pluginCacheScopeKey;
     if (scopeKey.isEmpty) return;
-    await _db.db.pluginCacheDao.deleteInstalledPluginsByScope(
+    await db.db.pluginCacheDao.deleteInstalledPluginsByScope(
       (id) => matchesInstalledPluginScope(id, scopeKey),
     );
   }
@@ -107,7 +111,13 @@ class PluginController extends GetxController {
       _visibleCacheDirty = true;
       return;
     }
-    final cache = await _db.db.pluginCacheDao.getInstalledPluginsByScope(
+    final db = _db;
+    if (db == null) {
+      items.clear();
+      _visibleCacheDirty = true;
+      return;
+    }
+    final cache = await db.db.pluginCacheDao.getInstalledPluginsByScope(
       (id) => matchesInstalledPluginScope(id, scopeKey),
     );
     if (cache.isEmpty) return;
@@ -142,6 +152,8 @@ class PluginController extends GetxController {
 
   Future<void> _saveToCache() async {
     if (kIsWeb) return;
+    final db = _db;
+    if (db == null) return;
     final scopeKey = _appService.pluginCacheScopeKey;
     if (scopeKey.isEmpty) return;
     final list = <InstalledPluginModelCachesCompanion>[];
@@ -171,7 +183,7 @@ class PluginController extends GetxController {
         ),
       );
     }
-    await _db.db.pluginCacheDao.replaceInstalledPluginsByScope(
+    await db.db.pluginCacheDao.replaceInstalledPluginsByScope(
       (id) => matchesInstalledPluginScope(id, scopeKey),
       list,
     );

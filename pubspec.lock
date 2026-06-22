@@ -888,10 +888,9 @@ packages:
   modal_bottom_sheet:
     dependency: "direct main"
     description:
-      name: modal_bottom_sheet
-      sha256: eac66ef8cb0461bf069a38c5eb0fa728cee525a531a8304bd3f7b2185407c67e
-      url: "https://pub.dev"
-    source: hosted
+      path: "third_party/modal_bottom_sheet"
+      relative: true
+    source: path
     version: "3.0.0"
   octo_image:
     dependency: transitive
@@ -942,7 +941,7 @@ packages:
     source: hosted
     version: "0.3.3+7"
   path:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: path
       sha256: "75cca69d1490965be98c73ceaea117e8a04dd21217b37b292c9ddbec0d955bc5"

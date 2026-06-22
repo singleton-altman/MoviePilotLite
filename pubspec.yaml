@@ -21,7 +21,6 @@ dependencies:
   drift_flutter: ^0.2.4
   sqlite3_flutter_libs: ^0.5.32
   sqlite3: ^2.4.8
-  path: ^1.9.0
   cached_network_image: ^3.4.1
   flutter_cache_manager: ^3.4.1
   flutter_svg: ^2.0.10+1
@@ -49,6 +48,9 @@ dependencies:
     git: https://github.com/singleton-altman/altman_downloader_control.git
   altman_totp:
     path: ./altman_totp
+dependency_overrides:
+  modal_bottom_sheet:
+    path: ./third_party/modal_bottom_sheet
 dev_dependencies:
   flutter_test:
     sdk: flutter

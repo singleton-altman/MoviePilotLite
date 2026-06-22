@@ -27,7 +27,9 @@ class MediaDetailController extends GetxController {
   final _authRepository = Get.find<AuthRepository>();
   final _appService = Get.find<AppService>();
   final _log = Get.find<AppLog>();
-  final _dbService = Get.find<DatabaseService>();
+  final _dbService = Get.isRegistered<DatabaseService>()
+      ? Get.find<DatabaseService>()
+      : null;
   final _mediaDetailService = Get.find<MediaDetailService>();
   final _subscribeService = Get.put(SubscribeService());
   final subscribeLoadingState = false.obs;
@@ -141,9 +143,11 @@ class MediaDetailController extends GetxController {
 
   Future<void> _loadCachedDetailIfValid() async {
     if (kIsWeb) return;
+    final db = _dbService;
+    if (db == null) return;
     final cacheKey = _cacheKey(_args);
     if (cacheKey.isEmpty) return;
-    final cache = await _dbService.db.mediaDetailCacheDao.findByPk(cacheKey);
+    final cache = await db.db.mediaDetailCacheDao.findByPk(cacheKey);
     if (cache == null) return;
     final now = DateTime.now();
     if (now.difference(cache.updatedAt) > _cacheValidDuration) {
@@ -163,12 +167,14 @@ class MediaDetailController extends GetxController {
 
   Future<void> _cacheDetail(MediaDetail detail) async {
     if (kIsWeb) return;
+    final db = _dbService;
+    if (db == null) return;
     final cacheKey = _cacheKey(_args);
     if (cacheKey.isEmpty) return;
     try {
       final payload = jsonEncode(detail.toJson());
       final server = (_appService.baseUrl ?? _apiClient.baseUrl ?? '').trim();
-      await _dbService.db.mediaDetailCacheDao.upsert(
+      await db.db.mediaDetailCacheDao.upsert(
         MediaDetailCachesCompanion(
           id: drift.Value(cacheKey),
           server: drift.Value(server),

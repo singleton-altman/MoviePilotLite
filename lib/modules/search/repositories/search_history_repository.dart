@@ -15,11 +15,14 @@ class SearchHistoryRepository extends GetxService {
 
   final int _maxEntries;
 
-  AppDatabase get _db => Get.find<DatabaseService>().db;
+  AppDatabase? get _db =>
+      Get.isRegistered<DatabaseService>() ? Get.find<DatabaseService>().db : null;
 
   Future<List<SearchHistoryEntry>> load({int limit = defaultFetchLimit}) async {
     try {
-      final rows = await _db.searchHistoryDao.getAll();
+      final db = _db;
+      if (db == null) return [];
+      final rows = await db.searchHistoryDao.getAll();
       final records = rows
           .map(
             (r) => SearchHistoryEntry(
@@ -48,11 +51,13 @@ class SearchHistoryRepository extends GetxService {
     final now = DateTime.now();
 
     try {
-      final existing = await _db.searchHistoryDao.findByPk(normalized);
+      final db = _db;
+      if (db == null) return;
+      final existing = await db.searchHistoryDao.findByPk(normalized);
       final createdAt = existing?.createdAt ?? now;
       final display = existing?.keyword ?? trimmed;
 
-      await _db.searchHistoryDao.upsert(
+      await db.searchHistoryDao.upsert(
         SearchHistoryEntriesCompanion(
           id: drift.Value(normalized),
           keyword: drift.Value(trimmed.isEmpty ? display : trimmed),
@@ -60,7 +65,7 @@ class SearchHistoryRepository extends GetxService {
           updatedAt: drift.Value(now),
         ),
       );
-      await _trimOverflow();
+      await _trimOverflow(db);
     } catch (_) {}
   }
 
@@ -68,18 +73,22 @@ class SearchHistoryRepository extends GetxService {
     final normalized = _normalize(keyword);
     if (normalized.isEmpty) return;
     try {
-      await _db.searchHistoryDao.deleteByPk(normalized);
+      final db = _db;
+      if (db == null) return;
+      await db.searchHistoryDao.deleteByPk(normalized);
     } catch (_) {}
   }
 
   Future<void> clearAll() async {
     try {
-      await _db.searchHistoryDao.deleteAll();
+      final db = _db;
+      if (db == null) return;
+      await db.searchHistoryDao.deleteAll();
     } catch (_) {}
   }
 
-  Future<void> _trimOverflow() async {
-    final rows = await _db.searchHistoryDao.getAll();
+  Future<void> _trimOverflow(AppDatabase db) async {
+    final rows = await db.searchHistoryDao.getAll();
     if (rows.length <= _maxEntries) return;
 
     final sorted = rows.toList()
@@ -88,7 +97,7 @@ class SearchHistoryRepository extends GetxService {
     if (overflow.isEmpty) return;
 
     for (final item in overflow) {
-      await _db.searchHistoryDao.deleteByPk(item.id);
+      await db.searchHistoryDao.deleteByPk(item.id);
     }
   }
 

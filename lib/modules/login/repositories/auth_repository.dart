@@ -28,7 +28,8 @@ class AuthRepository extends GetxService {
   final _appService = Get.find<AppService>();
   final _iosSharedSessionService = Get.find<IosSharedSessionService>();
 
-  AppDatabase get _db => Get.find<DatabaseService>().db;
+  AppDatabase? get _db =>
+      Get.isRegistered<DatabaseService>() ? Get.find<DatabaseService>().db : null;
 
   void _syncSystemMessagePolling() {
     if (_appService.isSuperuser) {
@@ -323,7 +324,9 @@ class AuthRepository extends GetxService {
 
   Future<List<LoginProfile>> getProfilesAsync() async {
     try {
-      final rows = await _db.loginProfileDao.getAll();
+      final db = _db;
+      if (db == null) return [];
+      final rows = await db.loginProfileDao.getAll();
       final profiles = rows
           .map(
             (r) => LoginProfile(
@@ -352,7 +355,9 @@ class AuthRepository extends GetxService {
   }
 
   Future<void> deleteProfile(String id) async {
-    await _db.loginProfileDao.deleteByPk(id);
+    final db = _db;
+    if (db == null) return;
+    await db.loginProfileDao.deleteByPk(id);
     _appService.invalidateProfilesCache();
   }
 
@@ -373,7 +378,9 @@ class AuthRepository extends GetxService {
     final permissionsJson = jsonEncode(login.permissions);
 
     try {
-      await _db.loginProfileDao.upsert(
+      final db = _db;
+      if (db == null) return;
+      await db.loginProfileDao.upsert(
         LoginProfilesCompanion(
           id: drift.Value(id),
           server: drift.Value(server),

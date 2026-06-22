@@ -13,7 +13,8 @@ import 'package:moviepilot_mobile/utils/image_cache_manager.dart';
 import 'palette_extract.dart';
 
 class PluginPaletteCache extends GetxController {
-  AppDatabase get _db => Get.find<DatabaseService>().db;
+  AppDatabase? get _db =>
+      Get.isRegistered<DatabaseService>() ? Get.find<DatabaseService>().db : null;
 
   /// Cache: iconUrl -> palette color
   final RxMap<String, Color> _cache = <String, Color>{}.obs;
@@ -96,7 +97,9 @@ class PluginPaletteCache extends GetxController {
     super.onInit();
     if (kIsWeb) return;
     try {
-      final entries = await _db.pluginPaletteDao.getAll();
+      final db = _db;
+      if (db == null) return;
+      final entries = await db.pluginPaletteDao.getAll();
       for (final entry in entries) {
         _cache[entry.url] = Color(entry.colorValue);
       }
@@ -106,7 +109,9 @@ class PluginPaletteCache extends GetxController {
   Future<void> _saveToDb(String url, Color color) async {
     if (kIsWeb) return;
     try {
-      await _db.pluginPaletteDao.upsert(
+      final db = _db;
+      if (db == null) return;
+      await db.pluginPaletteDao.upsert(
         PluginPaletteEntriesCompanion(
           url: drift.Value(url),
           colorValue: drift.Value(color.value),
