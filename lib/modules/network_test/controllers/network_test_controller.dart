@@ -12,6 +12,7 @@ enum NetworkTestStatus { idle, testing, ok, error }
 class NetworkTestItem {
   NetworkTestItem({
     required this.id,
+    required this.targetId,
     required this.title,
     required this.url,
     required this.icon,
@@ -25,6 +26,7 @@ class NetworkTestItem {
   });
 
   final String id;
+  final String targetId;
   final String title;
   final String url;
   final Widget icon;
@@ -111,6 +113,7 @@ class NetworkTestController extends GetxController {
         queryParameters: {
           'url': item.url,
           'proxy': item.proxy ? 'true' : 'false',
+          'target_id': item.targetId,
         },
       );
 
@@ -217,7 +220,8 @@ class NetworkTestController extends GetxController {
   List<NetworkTestItem> _buildDefaultTargets() {
     return [
       NetworkTestItem(
-        id: 'tmdb-api',
+        id: 'tmdb_api',
+        targetId: 'tmdb_api',
         title: 'api.themoviedb.org',
         url: _normalizeUrl(
           'https://api.themoviedb.org/3/movie/550?api_key={TMDBAPIKEY}',
@@ -226,7 +230,8 @@ class NetworkTestController extends GetxController {
         color: const Color(0xFF01B4E4),
       ),
       NetworkTestItem(
-        id: 'tmdb-api-alt',
+        id: 'tmdb_api_alt',
+        targetId: 'tmdb_api_alt',
         title: 'api.tmdb.org',
         url: _normalizeUrl(
           'https://api.tmdb.org/3/movie/550?api_key={TMDBAPIKEY}',
@@ -235,35 +240,40 @@ class NetworkTestController extends GetxController {
         color: const Color(0xFF01B4E4),
       ),
       NetworkTestItem(
-        id: 'tmdb-web',
+        id: 'tmdb_web',
+        targetId: 'tmdb_web',
         title: 'www.themoviedb.org',
         url: _normalizeUrl('www.themoviedb.org'),
         icon: Assets.images.logos.tmdb.image(width: 22, height: 22),
         color: const Color(0xFF01B4E4),
       ),
       NetworkTestItem(
-        id: 'tvdb-api',
+        id: 'tvdb_api',
+        targetId: 'tvdb_api',
         title: 'api.thetvdb.com',
         url: _normalizeUrl('https://api.thetvdb.com/series/81189'),
         icon: Assets.images.logos.thetvdb.image(width: 22, height: 22),
         color: const Color(0xFF1DB954),
       ),
       NetworkTestItem(
-        id: 'fanart-api',
+        id: 'fanart_api',
+        targetId: 'fanart_api',
         title: 'webservice.fanart.tv',
         url: _normalizeUrl('webservice.fanart.tv'),
         icon: Assets.images.logos.fanart.image(width: 22, height: 22),
         color: const Color(0xFF0094FF),
       ),
       NetworkTestItem(
-        id: 'telegram-api',
+        id: 'telegram_api',
+        targetId: 'telegram_api',
         title: 'api.telegram.org',
         url: _normalizeUrl('api.telegram.org'),
         icon: Assets.images.logos.telegram.image(width: 22, height: 22),
         color: const Color(0xFF27A7E7),
       ),
       NetworkTestItem(
-        id: 'wechat-api',
+        id: 'wechat_api',
+        targetId: 'wechat_api',
         title: 'qyapi.weixin.qq.com',
         url: _normalizeUrl('https://qyapi.weixin.qq.com/cgi-bin/gettoken'),
         icon: Assets.images.logos.wechat.image(width: 22, height: 22),
@@ -271,7 +281,8 @@ class NetworkTestController extends GetxController {
         proxy: false,
       ),
       NetworkTestItem(
-        id: 'douban-api',
+        id: 'douban_api',
+        targetId: 'douban_api',
         title: 'frodo.douban.com',
         url: _normalizeUrl('frodo.douban.com'),
         icon: Assets.images.logos.douban.image(width: 22, height: 22),
@@ -279,42 +290,48 @@ class NetworkTestController extends GetxController {
         proxy: false,
       ),
       NetworkTestItem(
-        id: 'slack-web',
+        id: 'slack_api',
+        targetId: 'slack_api',
         title: 'slack.com',
         url: _normalizeUrl('slack.com'),
         icon: Assets.images.logos.slack.image(width: 22, height: 22),
         color: const Color(0xFF4A154B),
       ),
       NetworkTestItem(
-        id: 'pypi-web',
+        id: 'pip_proxy',
+        targetId: 'pip_proxy',
         title: 'pypi.org',
         url: _normalizeUrl('pypi.org'),
         icon: Assets.images.logos.python.image(width: 22, height: 22),
         color: const Color(0xFF3776AB),
       ),
       NetworkTestItem(
-        id: 'github-web',
+        id: 'github_proxy_web',
+        targetId: 'github_proxy_web',
         title: 'github.com',
         url: _normalizeUrl('github.com'),
         icon: Assets.images.logos.github.image(width: 22, height: 22),
         color: const Color(0xFF24292E),
       ),
       NetworkTestItem(
-        id: 'github-codeload',
+        id: 'github_codeload',
+        targetId: 'github_codeload',
         title: 'codeload.github.com',
         url: _normalizeUrl('codeload.github.com'),
         icon: Assets.images.logos.github.image(width: 22, height: 22),
         color: const Color(0xFF24292E),
       ),
       NetworkTestItem(
-        id: 'github-api',
+        id: 'github_api',
+        targetId: 'github_api',
         title: 'api.github.com',
         url: _normalizeUrl('api.github.com'),
         icon: Assets.images.logos.github.image(width: 22, height: 22),
         color: const Color(0xFF24292E),
       ),
       NetworkTestItem(
-        id: 'github-raw',
+        id: 'github_proxy_raw',
+        targetId: 'github_proxy_raw',
         title: 'raw.githubusercontent.com',
         url: _normalizeUrl('raw.githubusercontent.com'),
         icon: Assets.images.logos.github.image(width: 22, height: 22),

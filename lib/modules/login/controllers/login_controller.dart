@@ -6,8 +6,6 @@ import 'package:get/get.dart';
 import 'package:altman_totp/services/totp_service.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
 import '../../../utils/toast_util.dart';
-import '../../system_message/controllers/system_message_controller.dart';
-import '../../../services/ios_widget_navigation_service.dart';
 import '../models/login_profile.dart';
 import '../repositories/auth_repository.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
@@ -19,7 +17,6 @@ class LoginController extends GetxController {
   final _totpService = Get.find<TotpService>();
   final _talker = Get.find<AppLog>();
   final imageUtil = Get.find<ImageUtil>();
-  final _widgetNavigationService = Get.find<IosWidgetNavigationService>();
 
   /// 默认壁纸（无本地缓存时使用，如首次安装）
   static const List<String> defaultWallpapers = [
@@ -61,10 +58,7 @@ class LoginController extends GetxController {
   void onInit() {
     _totpService.load();
     _loadSavedWallpapers();
-    Future.microtask(() async {
-      await _loadProfiles();
-      await _autoLogin();
-    });
+    unawaited(_bootstrapSavedSession());
     serverController.addListener(_autofillTotpIfMatched);
     usernameController.addListener(_autofillTotpIfMatched);
     super.onInit();
@@ -172,64 +166,56 @@ class LoginController extends GetxController {
     _wallpaperTimer = null;
   }
 
-  /// 自动登录
-  Future<void> _autoLogin() async {
-    // 如果没有保存的登录配置文件，则不进行自动登录
+  void resetForLogout() {
+    isAutoLogin.value = false;
+    isLoading.value = false;
+    step.value = 1;
+  }
+
+  Future<void> _bootstrapSavedSession() async {
+    await _loadProfiles();
+    await _restoreLocalSessionIfAvailable();
+  }
+
+  Future<void> _restoreLocalSessionIfAvailable() async {
     if (profiles.isEmpty) return;
 
-    // 获取最新的登录配置文件
     final latestProfile = profiles.first;
     if (latestProfile.accessToken.isEmpty) return;
 
-    // 尝试使用保存的accessToken获取用户信息
-    isLoading.value = true;
-
     isAutoLogin.value = true;
     try {
-      final success = await _repository.autoLogin(
-        server: latestProfile.server,
-        accessToken: latestProfile.accessToken,
-      );
+      _repository.restoreLocalSession(profile: latestProfile);
+      _talker.info('已恢复本地登录态');
 
-      if (success == true) {
-        // 获取用户信息成功，直接跳转到dashboard页面
-        _talker.info('自动登录成功');
-        ToastUtil.success('自动登录成功', snackPosition: SnackPosition.TOP);
-
-        // 自动登录成功后启动消息轮询
-        if (!Get.isRegistered<SystemMessageController>()) {
-          Get.put(SystemMessageController(), permanent: true);
-        }
-
-        final lastIndex = await _loadLastTabIndex();
-        if (lastIndex != null) {
-          Get.offAllNamed('/main', arguments: {'initialIndex': lastIndex});
-        } else {
-          Get.offAllNamed('/main');
-        }
-        imageUtil.loadGlobalCachedConfig();
-        Future.delayed(const Duration(seconds: 1), () {
-          isAutoLogin.value = false;
-        });
+      final lastIndex = await _loadLastTabIndex();
+      if (lastIndex != null) {
+        Get.offAllNamed('/main', arguments: {'initialIndex': lastIndex});
       } else {
-        // 获取用户信息失败，需要用户手动登录
-        _talker.warning('自动登录失败，需要用户手动登录');
-        isAutoLogin.value = false;
+        Get.offAllNamed('/main');
       }
+      imageUtil.loadGlobalCachedConfig();
+      Future.delayed(const Duration(seconds: 1), () {
+        isAutoLogin.value = false;
+      });
     } catch (e) {
-      // 获取用户信息失败，需要用户手动登录
-      _talker.warning('自动登录失败，需要用户手动登录: $e');
+      _talker.warning('恢复本地登录态失败: $e');
       isAutoLogin.value = false;
-    } finally {
-      isLoading.value = false;
     }
   }
 
   Future<void> _loadProfiles() async {
-    profiles.assignAll(await _repository.getProfiles());
-    if (profiles.isEmpty) return;
+    final list = await _repository.getProfilesAsync();
+    _applyProfilesList(list);
+  }
 
-    // 尽量保持上次选中的账号；否则默认选择最新的一个。
+  void _applyProfilesList(List<LoginProfile> list) {
+    profiles.assignAll(list);
+    if (profiles.isEmpty) {
+      selectedProfile.value = null;
+      return;
+    }
+
     final currentId = selectedProfile.value?.id;
     LoginProfile? match;
     if (currentId != null) {
@@ -241,6 +227,52 @@ class LoginController extends GetxController {
       }
     }
     fillFromProfile(match ?? profiles.first);
+  }
+
+  Future<void> deleteProfile(LoginProfile profile) async {
+    final id = profile.id;
+    final username = profile.username;
+    final server = profile.server;
+    final password = profile.password;
+    final wasSelected = selectedProfile.value?.id == id;
+    final formStillMatches =
+        serverController.text.trim() == server.trim() &&
+        usernameController.text.trim() == username.trim() &&
+        passwordController.text == password;
+
+    try {
+      await _repository.deleteProfile(id);
+      final remaining = await _repository.getProfilesAsync();
+      profiles.assignAll(remaining);
+
+      if (wasSelected) {
+        selectedProfile.value = null;
+        if (formStillMatches) {
+          otpController.clear();
+          passwordController.clear();
+          usernameController.clear();
+          serverController.clear();
+          step.value = 1;
+        }
+      } else {
+        final selectedId = selectedProfile.value?.id;
+        if (selectedId != null) {
+          LoginProfile? refreshedSelection;
+          for (final item in remaining) {
+            if (item.id == selectedId) {
+              refreshedSelection = item;
+              break;
+            }
+          }
+          selectedProfile.value = refreshedSelection;
+        }
+      }
+
+      ToastUtil.success('已删除账号 $username');
+    } catch (e) {
+      _talker.warning('删除登录账号失败: $e');
+      ToastUtil.error('删除账号失败，请稍后重试');
+    }
   }
 
   void fillFromProfile(LoginProfile profile) {

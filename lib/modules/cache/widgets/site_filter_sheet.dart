@@ -44,15 +44,6 @@ class _SiteFilterSheetState extends State<SiteFilterSheet> {
     setState(() => _query = next);
   }
 
-  void _setMode(bool useCustom) {
-    setState(() {
-      _useCustom = useCustom;
-      if (!useCustom) {
-        _selected.clear();
-      }
-    });
-  }
-
   void _toggleSite(String site) {
     setState(() {
       if (!_useCustom) {
@@ -260,21 +251,56 @@ class _SiteFilterSheetState extends State<SiteFilterSheet> {
     final borderColor = baseColor.withOpacity(selected ? 0.5 : 0.3);
     final textColor = selected ? Colors.white : baseColor.withOpacity(0.85);
 
-    return GestureDetector(
-      onTap: () => _toggleSite(label),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: borderColor),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: textColor,
-            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _toggleSite(label),
+        borderRadius: BorderRadius.circular(999),
+        splashColor: baseColor.withOpacity(0.15),
+        highlightColor: baseColor.withOpacity(0.08),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOut,
+          constraints: const BoxConstraints(minHeight: 34),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: borderColor),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: baseColor.withOpacity(0.18),
+                      blurRadius: 14,
+                      offset: const Offset(0, 6),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (selected) ...[
+                const Icon(
+                  CupertinoIcons.check_mark_circled_solid,
+                  size: 16,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 6),
+              ],
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: textColor,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -296,26 +322,6 @@ class _SiteFilterSheetState extends State<SiteFilterSheet> {
     return CupertinoDynamicColor.resolve(
       palette[hash % palette.length],
       context,
-    );
-  }
-
-  Widget _buildFooter(BuildContext context) {
-    final label = _useCustom
-        ? (_selected.isEmpty ? '未选择站点，将显示全部' : '已选择 ${_selected.length} 个站点')
-        : '当前显示全部站点';
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: CupertinoColors.systemGrey,
-          ),
-        ),
-      ),
     );
   }
 }

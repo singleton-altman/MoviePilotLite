@@ -6,10 +6,10 @@ import 'package:moviepilot_mobile/modules/plugin/services/plugin_palette_cache.d
 import 'package:moviepilot_mobile/modules/recommend/controllers/recommend_controller.dart';
 import 'package:moviepilot_mobile/modules/recommend/models/recommend_api_item.dart';
 import 'package:moviepilot_mobile/modules/recommend/widgets/ios_style/recommend_ios_banner_card.dart';
-import 'package:moviepilot_mobile/modules/recommend/widgets/ios_style/recommend_ios_grid_item.dart';
 import 'package:moviepilot_mobile/modules/recommend/widgets/recommend_item_card.dart';
 import 'package:moviepilot_mobile/modules/recommend/widgets/recommend_category_item_card.dart';
 import 'package:moviepilot_mobile/modules/recommend/widgets/recommend_item_horizontal_card.dart';
+import 'package:moviepilot_mobile/modules/recommend/widgets/recommend_now_playing_card.dart';
 import 'package:moviepilot_mobile/modules/recommend/widgets/recommend_item_rank_card.dart';
 import 'package:moviepilot_mobile/modules/recommend/widgets/recommend_item_simple_card.dart';
 import 'package:moviepilot_mobile/modules/recommend/widgets/recommond_category_group_edit_pannel.dart';
@@ -290,6 +290,14 @@ class RecommendPage extends GetView<RecommendController> {
     String? title,
     List<RecommendApiItem>? items,
   }) {
+    if (title == '正在热映') {
+      return _buildNowPlayingSection(
+        context,
+        title: title ?? '',
+        items: items ?? const [],
+      );
+    }
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -324,6 +332,45 @@ class RecommendPage extends GetView<RecommendController> {
           ),
         ),
         SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildNowPlayingSection(
+    BuildContext context, {
+    required String title,
+    required List<RecommendApiItem> items,
+  }) {
+    final key = controller.keyForSubCategory(title);
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader(
+          context,
+          subCategory: title,
+          onTapMore: () => _openCategoryList(key: key ?? '', title: title),
+        ),
+        SizedBox(
+          height: 180,
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: items.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (context, index) {
+              final item = items[index];
+              return RecommendNowPlayingCard(
+                key: ValueKey(_itemKey(item)),
+                item: item,
+                onTap: () => _openDetail(item),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 16),
       ],
     );
   }
@@ -475,7 +522,7 @@ class RecommendPage extends GetView<RecommendController> {
           context,
           subCategory: subCategory,
           onTapMore: () =>
-              _openCategoryList(key: key ?? '', title: subCategory ?? ''),
+              _openCategoryList(key: key ?? '', title: subCategory),
         ),
         _buildPosterRail(context, subCategory),
         SizedBox(height: 16),
@@ -552,9 +599,10 @@ class RecommendPage extends GetView<RecommendController> {
     final params = <String, String>{
       'key': key,
       'title': title,
-      if (themeColor != null) 'themeColor': themeColor.value.toRadixString(16),
+      if (themeColor != null)
+        'themeColor': themeColor.toARGB32().toRadixString(16),
       if (secondaryColor != null)
-        'secondaryColor': secondaryColor.value.toRadixString(16),
+        'secondaryColor': secondaryColor.toARGB32().toRadixString(16),
     };
     Get.toNamed('/recommend-category-list', parameters: params);
   }
@@ -677,6 +725,7 @@ class RecommendPage extends GetView<RecommendController> {
             return Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: horizontalPadding,
+                vertical: 8,
               ),
               child: Row(
                 children: [
@@ -724,7 +773,7 @@ class RecommendPage extends GetView<RecommendController> {
                 children: [
                   SizedBox(width: 16),
                   Expanded(
-                    child: items.length > 0
+                    child: items.isNotEmpty
                         ? RecommendItemRankCard(
                             item: items[0],
                             rank: 1,

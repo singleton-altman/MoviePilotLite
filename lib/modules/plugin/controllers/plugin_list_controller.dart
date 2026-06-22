@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
@@ -10,11 +11,13 @@ import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/services/realm_service.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
+import 'package:realm/realm.dart';
 
 class PluginListController extends GetxController {
   final _apiClient = Get.find<ApiClient>();
   final _log = Get.find<AppLog>();
-  final _realm = Get.find<RealmService>().realm.value;
+
+  Realm get _realm => Get.find<RealmService>().realm;
   final _appService = Get.find<AppService>();
   final _authRepository = Get.find<AuthRepository>();
   static const int _pageSize = 40;
@@ -28,12 +31,34 @@ class PluginListController extends GetxController {
 
   int _displayedLimit = _pageSize;
 
+  List<PluginItem> _cachedFilteredSorted = const <PluginItem>[];
+  bool _cacheDirty = true;
+
   final sortKey = PluginListSortKey.defaultSort.obs;
   final sortAscending = false.obs;
 
   final selectedAuthors = <String>[].obs;
   final selectedLabels = <String>[].obs;
   final selectedRepos = <String>[].obs;
+
+  bool get _canAccessPlugins => _appService.canManage;
+
+  void _clearLocalCache() {
+    if (kIsWeb) return;
+    final scopeKey = _appService.pluginCacheScopeKey;
+    if (scopeKey.isEmpty) return;
+    final stale = _realm
+        .all<PluginModelCache>()
+        .where((item) => matchesPluginMarketScope(item.id, scopeKey))
+        .toList();
+    _realm.write(() {
+      _realm.deleteMany(stale);
+    });
+  }
+
+  void _invalidateComputedCache() {
+    _cacheDirty = true;
+  }
 
   @override
   void onReady() {
@@ -59,11 +84,14 @@ class PluginListController extends GetxController {
   }
 
   bool get hasMore {
-    final all = _computeFilteredAndSorted();
+    final all = _getFilteredAndSorted();
     return _displayedLimit < all.length;
   }
 
   Future<Map<String, dynamic>> loadInstallCount() async {
+    if (!_canAccessPlugins) {
+      return {};
+    }
     final response = await _apiClient.get<dynamic>('/api/v1/plugin/statistic');
     final status = response.statusCode ?? 0;
     if (status >= 400) {
@@ -73,6 +101,9 @@ class PluginListController extends GetxController {
   }
 
   Future<void> _refreshUserCookie() async {
+    if (!_canAccessPlugins) {
+      return;
+    }
     final server = _appService.baseUrl ?? _apiClient.baseUrl;
     final token =
         _appService.loginResponse?.accessToken ??
@@ -92,11 +123,20 @@ class PluginListController extends GetxController {
   }
 
   Future<void> load({bool force = false}) async {
+    if (!_canAccessPlugins) {
+      _clearLocalCache();
+      errorText.value = '当前帐号无管理权限';
+      items.clear();
+      _displayedLimit = _pageSize;
+      _invalidateComputedCache();
+      isLoading.value = false;
+      return;
+    }
     isLoading.value = true;
     errorText.value = null;
     await _refreshUserCookie();
     if (!force) {
-      loadFromCache();
+      await loadFromCache();
     }
 
     final installCount = await loadInstallCount();
@@ -129,7 +169,8 @@ class PluginListController extends GetxController {
       }
       items.assignAll(parsed);
       _displayedLimit = _pageSize;
-      _preloadPalettes();
+      _invalidateComputedCache();
+      _preloadPalettes(limit: 12);
       _saveToCache();
     } catch (e, st) {
       _log.handle(e, stackTrace: st, message: '获取插件列表失败');
@@ -141,14 +182,28 @@ class PluginListController extends GetxController {
   }
 
   Future<void> loadFromCache() async {
-    final realm = _realm;
-    if (realm == null) return;
-    final cache = realm.all<PluginModelCache>();
+    if (!_canAccessPlugins) {
+      _clearLocalCache();
+      items.clear();
+      _displayedLimit = _pageSize;
+      _invalidateComputedCache();
+      return;
+    }
+    if (kIsWeb) return;
+    final scopeKey = _appService.pluginCacheScopeKey;
+    if (scopeKey.isEmpty) {
+      items.clear();
+      _displayedLimit = _pageSize;
+      _invalidateComputedCache();
+      return;
+    }
+    final cache = _realm.all<PluginModelCache>();
     if (cache.isEmpty) return;
     final locals = cache
+        .where((e) => matchesPluginMarketScope(e.id, scopeKey))
         .map(
           (e) => PluginItem(
-            id: e.id,
+            id: extractPluginMarketPluginId(e.id),
             pluginName: e.pluginName,
             pluginDesc: e.pluginDesc,
             pluginIcon: e.pluginIcon,
@@ -172,13 +227,17 @@ class PluginListController extends GetxController {
         )
         .toList();
     items.assignAll(locals);
+    _invalidateComputedCache();
   }
 
   void _saveToCache() {
+    if (kIsWeb) return;
+    final scopeKey = _appService.pluginCacheScopeKey;
+    if (scopeKey.isEmpty) return;
     late final List<PluginModelCache> list = [];
     for (final item in items) {
       final cache = PluginModelCache(
-        item.id,
+        buildPluginMarketCacheId(scopeKey, item.id),
         item.pluginName,
         item.pluginDesc ?? '',
         item.pluginIcon ?? '',
@@ -201,29 +260,33 @@ class PluginListController extends GetxController {
       );
       list.add(cache);
     }
-    final realm = _realm;
-    if (realm == null) return;
-    realm.write(() {
-      realm.deleteAll<PluginModelCache>();
-      realm.addAll(list, update: true);
+    final stale = _realm
+        .all<PluginModelCache>()
+        .where((item) => matchesPluginMarketScope(item.id, scopeKey))
+        .toList();
+    _realm.write(() {
+      _realm.deleteMany(stale);
+      _realm.addAll(list, update: true);
     });
   }
 
   void loadMore() {
     if (isLoadingMore.value || !hasMore) return;
     isLoadingMore.value = true;
-    final all = _computeFilteredAndSorted();
+    final all = _getFilteredAndSorted();
     _displayedLimit = (_displayedLimit + _pageSize).clamp(0, all.length);
     isLoadingMore.value = false;
-    _preloadPalettes();
+    _preloadPalettes(limit: 8);
   }
 
-  void _preloadPalettes() {
+  void _preloadPalettes({int limit = 12}) {
     try {
       final cache = Get.isRegistered<PluginPaletteCache>()
           ? Get.find<PluginPaletteCache>()
           : Get.put(PluginPaletteCache(), permanent: true);
-      final urls = visibleItems
+      final all = visibleItems;
+      final slice = all.length <= limit ? all : all.take(limit);
+      final urls = slice
           .map(
             (e) => e.pluginIcon != null && e.pluginIcon!.isNotEmpty
                 ? ImageUtil.convertPluginIconUrl(e.pluginIcon!)
@@ -237,14 +300,19 @@ class PluginListController extends GetxController {
   void updateKeyword(String value) {
     keyword.value = value.trim();
     _displayedLimit = _pageSize;
+    _invalidateComputedCache();
   }
 
   void updateSortKey(PluginListSortKey key) {
     sortKey.value = key;
     _displayedLimit = _pageSize;
+    _invalidateComputedCache();
   }
 
-  void toggleSortDirection() => sortAscending.value = !sortAscending.value;
+  void toggleSortDirection() {
+    sortAscending.value = !sortAscending.value;
+    _invalidateComputedCache();
+  }
 
   void toggleFilter(PluginListFilterType type, String value) {
     final target = _filterList(type);
@@ -255,6 +323,8 @@ class PluginListController extends GetxController {
       next.add(value);
     }
     _assignFilter(type, next);
+    _displayedLimit = _pageSize;
+    _invalidateComputedCache();
   }
 
   void clearFilters() {
@@ -262,6 +332,7 @@ class PluginListController extends GetxController {
     selectedLabels.clear();
     selectedRepos.clear();
     _displayedLimit = _pageSize;
+    _invalidateComputedCache();
   }
 
   bool get hasActiveFilters =>
@@ -277,12 +348,13 @@ class PluginListController extends GetxController {
       _uniqueOptions(items.map((e) => _repoLabel(e.repoUrl)));
 
   List<PluginItem> get visibleItems {
-    final all = _computeFilteredAndSorted();
+    final all = _getFilteredAndSorted();
     final end = _displayedLimit.clamp(0, all.length);
     return all.sublist(0, end);
   }
 
-  List<PluginItem> _computeFilteredAndSorted() {
+  List<PluginItem> _getFilteredAndSorted() {
+    if (!_cacheDirty) return _cachedFilteredSorted;
     final key = keyword.value.trim().toLowerCase();
     final authors = selectedAuthors.toSet();
     final labels = selectedLabels.toSet();
@@ -309,7 +381,9 @@ class PluginListController extends GetxController {
       return true;
     }).toList();
 
-    return _sortResults(results);
+    _cachedFilteredSorted = _sortResults(results);
+    _cacheDirty = false;
+    return _cachedFilteredSorted;
   }
 
   List<String> _uniqueOptions(Iterable<String?> values) {

@@ -3,12 +3,16 @@ import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
+import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/system_message.dart';
 
 class SystemMessageController extends GetxController {
   final _apiClient = Get.find<ApiClient>();
+  final _appService = Get.find<AppService>();
   final _log = Get.find<AppLog>();
+
+  bool get _canAccessMessages => _appService.isSuperuser;
 
   static const String _lastReadMessageIdKey = 'last_read_message_id';
   // MP的 message sse 似乎有问题，此处改为轮询
@@ -40,8 +44,9 @@ class SystemMessageController extends GetxController {
   void onInit() {
     super.onInit();
     _loadLastReadMessageId();
-    // 只在有数据时启动轮询，数据加载交给页面首次构建时执行
-    _startPolling();
+    if (_canAccessMessages) {
+      _startPolling();
+    }
   }
 
   @override
@@ -102,6 +107,7 @@ class SystemMessageController extends GetxController {
 
   /// 定时获取最新消息列表并与当前列表 diff 对比插入数据
   Future<void> _fetchLatestMessages() async {
+    if (!_canAccessMessages) return;
     if (isLoading.value) return;
 
     try {
@@ -188,6 +194,7 @@ class SystemMessageController extends GetxController {
   }
 
   Future<void> loadInitial() async {
+    if (!_canAccessMessages) return;
     isLoading.value = true;
     _page = 1;
     hasMore.value = true;
@@ -312,6 +319,7 @@ class SystemMessageController extends GetxController {
   }
 
   Future<void> sendMessage() async {
+    if (!_canAccessMessages) return;
     final text = inputController.text.trim();
     if (text.isEmpty) return;
     isSending.value = true;

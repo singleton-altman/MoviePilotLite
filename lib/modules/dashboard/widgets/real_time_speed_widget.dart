@@ -1,17 +1,19 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_section.dart';
+import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_widget_styles.dart';
 import 'package:moviepilot_mobile/utils/size_formatter.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import '../controllers/dashboard_controller.dart';
 
 /// 实时速率组件
 class RealTimeSpeedWidget extends StatelessWidget {
-  const RealTimeSpeedWidget({super.key});
+  const RealTimeSpeedWidget({super.key, this.compact = false});
+
+  final bool compact;
 
   Widget _buildInfo(BuildContext context) {
     final controller = Get.find<DashboardController>();
+    final palette = DashboardPalette.of(context);
     return Obx(() {
       final downloaderData = controller.downloaderData;
       final downloadSpeed = downloaderData['download_speed'] ?? 0.0;
@@ -23,74 +25,57 @@ class RealTimeSpeedWidget extends StatelessWidget {
       return Skeletonizer(
         enabled: downloaderData.isEmpty,
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 第一行：上传/下载速度
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 Expanded(
-                  child: _buildDataCard(
-                    '下载速度',
-                    '${SizeFormatter.formatSize(downloadSpeed)}/s',
-                    CupertinoIcons.arrow_down,
-                    CupertinoColors.activeGreen,
+                  child: DashboardMetricTile(
+                    label: '下载',
+                    value: '${SizeFormatter.formatSize(downloadSpeed)}/s',
+                    icon: CupertinoIcons.arrow_down,
+                    accentColor: palette.coolAccent,
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: _buildDataCard(
-                    '上传速度',
-                    '${SizeFormatter.formatSize(uploadSpeed)}/s',
-                    CupertinoIcons.arrow_up,
-                    Theme.of(context).colorScheme.primary,
+                  child: DashboardMetricTile(
+                    label: '上传',
+                    value: '${SizeFormatter.formatSize(uploadSpeed)}/s',
+                    icon: CupertinoIcons.arrow_up,
+                    accentColor: palette.primary,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            // 第二行：上传量
+            const SizedBox(height: 12),
             Row(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Expanded(
-                  child: _buildDataRow(
-                    '上传总量',
-                    SizeFormatter.formatSize(uploadSize),
-                    CupertinoIcons.cloud_upload,
-                    CupertinoColors.systemIndigo,
+                  child: _buildDetailCard(
+                    label: '上传总量',
+                    value: SizeFormatter.formatSize(uploadSize),
+                    icon: CupertinoIcons.cloud_upload,
+                    color: palette.primary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildDetailCard(
+                    label: '下载总量',
+                    value: SizeFormatter.formatSize(downloadSize),
+                    icon: CupertinoIcons.cloud_download,
+                    color: palette.warningAccent,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            // 第三行：下载量
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: _buildDataRow(
-                    '下载总量',
-                    SizeFormatter.formatSize(downloadSize),
-                    CupertinoIcons.cloud_download,
-                    CupertinoColors.systemPurple,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // 第四行：可用空间量
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: _buildDataRow(
-                    '可用空间',
-                    SizeFormatter.formatSize(freeSpace),
-                    CupertinoIcons.folder,
-                    CupertinoColors.systemOrange,
-                  ),
-                ),
-              ],
+            const SizedBox(height: 12),
+            _buildDetailCard(
+              label: '可用空间',
+              value: SizeFormatter.formatSize(freeSpace),
+              icon: CupertinoIcons.folder,
+              color: palette.successAccent,
             ),
           ],
         ),
@@ -100,49 +85,147 @@ class RealTimeSpeedWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DashboardSection(
-      title: '实时速率',
-      icon: CupertinoIcons.speedometer,
-      onTapMore: () {
-        Get.toNamed('/downloader-config');
-      },
-      child: _buildInfo(context),
-    );
+    return compact ? _buildCompact(context) : _buildInfo(context);
   }
 
-  Widget _buildDataRow(String label, String value, IconData icon, Color color) {
+  Widget _buildCompact(BuildContext context) {
+    final controller = Get.find<DashboardController>();
+    final palette = DashboardPalette.of(context);
+    return Obx(() {
+      final downloaderData = controller.downloaderData;
+      final downloadSpeed = downloaderData['download_speed'] ?? 0.0;
+      final uploadSpeed = downloaderData['upload_speed'] ?? 0.0;
+
+      return Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: palette.tileSurface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: palette.tileBorder),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  CupertinoIcons.speedometer,
+                  size: 16,
+                  color: palette.mutedText,
+                ),
+                const Spacer(),
+                Text(
+                  '网络',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.2,
+                    color: palette.faintText,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            _buildCompactRow(
+              context: context,
+              value: SizeFormatter.formatSize(uploadSpeed),
+              unit: '/s',
+              icon: CupertinoIcons.arrow_up,
+              color: palette.primary,
+            ),
+            const SizedBox(height: 8),
+            _buildCompactRow(
+              context: context,
+              value: SizeFormatter.formatSize(downloadSpeed),
+              unit: '/s',
+              icon: CupertinoIcons.arrow_down,
+              color: palette.coolAccent,
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildCompactRow({
+    required BuildContext? context,
+    required String value,
+    required String unit,
+    required IconData icon,
+    required Color color,
+  }) {
+    final palette = DashboardPalette.of(context!);
     return Row(
       children: [
-        Icon(icon, size: 30, color: color),
-        const SizedBox(width: 12),
-        Text('$label: $value', style: const TextStyle(fontSize: 14)),
+        Icon(icon, size: 14, color: color),
+        const SizedBox(width: 8),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: palette.titleText,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(unit, style: TextStyle(fontSize: 11, color: palette.faintText)),
       ],
     );
   }
 
-  Widget _buildDataCard(
-    String label,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(icon, size: 28, color: color),
-        const SizedBox(height: 12),
-        Text(
-          value,
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(fontSize: 12, color: CupertinoColors.systemGrey),
-          textAlign: TextAlign.center,
-        ),
-      ],
+  Widget _buildDetailCard({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
+    final palette = DashboardPalette.of(Get.context!);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      decoration: BoxDecoration(
+        color: palette.tileSurface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: palette.tileBorder),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, size: 18, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.0,
+                    color: palette.faintText,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: palette.titleText,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

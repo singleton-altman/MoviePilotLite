@@ -1,8 +1,9 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 import 'package:moviepilot_mobile/modules/discover/controllers/discover_controller.dart';
 import 'package:moviepilot_mobile/modules/discover/defines/discover_filter_defines.dart';
+import 'package:moviepilot_mobile/modules/discover/models/discover_dynamic_source.dart';
 import 'package:moviepilot_mobile/modules/discover/models/discover_filters.dart';
 import 'package:moviepilot_mobile/theme/app_theme.dart';
 import 'package:moviepilot_mobile/theme/section.dart';
@@ -13,21 +14,27 @@ class DiscoverFilterSelection {
   const DiscoverFilterSelection({
     required this.selectedSource,
     required this.filtersBySource,
+    required this.dynamicFiltersBySource,
   });
 
-  final DiscoverSource selectedSource;
-  final Map<DiscoverSource, DiscoverFilters> filtersBySource;
+  final DiscoverSourceEntry selectedSource;
+  final Map<String, DiscoverFilters> filtersBySource;
+  final Map<String, DiscoverDynamicFilters> dynamicFiltersBySource;
 }
 
 class DiscoverFilterSheet extends StatefulWidget {
   const DiscoverFilterSheet({
     super.key,
     required this.initialSource,
+    required this.sources,
     required this.filtersBySource,
+    required this.dynamicFiltersBySource,
   });
 
-  final DiscoverSource initialSource;
-  final Map<DiscoverSource, DiscoverFilters> filtersBySource;
+  final DiscoverSourceEntry initialSource;
+  final List<DiscoverSourceEntry> sources;
+  final Map<String, DiscoverFilters> filtersBySource;
+  final Map<String, DiscoverDynamicFilters> dynamicFiltersBySource;
 
   @override
   State<DiscoverFilterSheet> createState() => _DiscoverFilterSheetState();
@@ -44,19 +51,33 @@ class _DiscoverFilterSheetState extends State<DiscoverFilterSheet> {
   static const Color _categoryColor = Color(0xFF00B4D8);
   static const Color _yearColor = Color(0xFFEF476F);
 
-  late DiscoverSource _source;
-  late Map<DiscoverSource, DiscoverFilters> _draftBySource;
+  late DiscoverSourceEntry _source;
+  late List<DiscoverSourceEntry> _sources;
+  late Map<String, DiscoverFilters> _draftBySource;
+  late Map<String, DiscoverDynamicFilters> _dynamicDraftBySource;
   late final TextEditingController _voteCountController;
+  bool _isRefreshingSources = false;
 
   @override
   void initState() {
     super.initState();
     _source = widget.initialSource;
+    _sources = List<DiscoverSourceEntry>.from(widget.sources);
     _draftBySource = {
-      for (final source in DiscoverSource.values)
-        source: widget.filtersBySource[source] ?? const DiscoverFilters(),
+      for (final source in _sources)
+        if (!source.isDynamic)
+          source.id:
+              widget.filtersBySource[source.id] ?? const DiscoverFilters(),
     };
-    final initialCount = _draftBySource[_source]?.voteCount ?? 10;
+    _dynamicDraftBySource = {
+      for (final source in _sources)
+        if (source.isDynamic)
+          source.id:
+              widget.dynamicFiltersBySource[source.id] ??
+              source.dynamicSource?.defaultFilters() ??
+              const DiscoverDynamicFilters(),
+    };
+    final initialCount = _draftBySource[_source.id]?.voteCount ?? 10;
     _voteCountController = TextEditingController(text: '$initialCount');
   }
 
@@ -67,18 +88,75 @@ class _DiscoverFilterSheetState extends State<DiscoverFilterSheet> {
   }
 
   DiscoverFilters get _filters =>
-      _draftBySource[_source] ?? const DiscoverFilters();
+      _draftBySource[_source.id] ?? const DiscoverFilters();
+
+  DiscoverDynamicFilters get _dynamicFilters =>
+      _dynamicDraftBySource[_source.id] ?? const DiscoverDynamicFilters();
 
   void _setFilters(DiscoverFilters next) {
-    setState(() => _draftBySource[_source] = next);
+    setState(() => _draftBySource[_source.id] = next);
+  }
+
+  void _setDynamicFilters(DiscoverDynamicFilters next) {
+    setState(() => _dynamicDraftBySource[_source.id] = next);
+  }
+
+  Future<void> _refreshSources() async {
+    if (_isRefreshingSources) return;
+    setState(() => _isRefreshingSources = true);
+    try {
+      final controller = Get.find<DiscoverController>();
+      await controller.loadDynamicSources(forceRefresh: true);
+      final refreshedSources = controller.sourceEntries.toList();
+      final refreshedFilters = controller.snapshotFiltersBySource();
+      final refreshedDynamicFilters = controller
+          .snapshotDynamicFiltersBySource();
+      final nextDraft = <String, DiscoverFilters>{};
+      final nextDynamicDraft = <String, DiscoverDynamicFilters>{};
+      for (final source in refreshedSources) {
+        if (source.isDynamic) {
+          nextDynamicDraft[source.id] =
+              _dynamicDraftBySource[source.id] ??
+              refreshedDynamicFilters[source.id] ??
+              source.dynamicSource?.defaultFilters() ??
+              const DiscoverDynamicFilters();
+        } else {
+          nextDraft[source.id] =
+              _draftBySource[source.id] ??
+              refreshedFilters[source.id] ??
+              const DiscoverFilters();
+        }
+      }
+      DiscoverSourceEntry? currentSource;
+      for (final source in refreshedSources) {
+        if (source.id == _source.id) {
+          currentSource = source;
+          break;
+        }
+      }
+      if (!mounted) return;
+      setState(() {
+        _sources = refreshedSources;
+        _draftBySource = nextDraft;
+        _dynamicDraftBySource = nextDynamicDraft;
+        _source =
+            currentSource ??
+            (refreshedSources.isNotEmpty ? refreshedSources.first : _source);
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isRefreshingSources = false);
+      }
+    }
   }
 
   void _apply() {
     Navigator.of(context).pop(
       DiscoverFilterSelection(
         selectedSource: _source,
-        filtersBySource: Map<DiscoverSource, DiscoverFilters>.from(
-          _draftBySource,
+        filtersBySource: Map<String, DiscoverFilters>.from(_draftBySource),
+        dynamicFiltersBySource: Map<String, DiscoverDynamicFilters>.from(
+          _dynamicDraftBySource,
         ),
       ),
     );
@@ -95,7 +173,6 @@ class _DiscoverFilterSheetState extends State<DiscoverFilterSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final height = MediaQuery.of(context).size.height * 0.82;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     final isTmdbTv = _isTvType(_filters.mediaType);
     final tmdbSortOptions = isTmdbTv
@@ -108,13 +185,34 @@ class _DiscoverFilterSheetState extends State<DiscoverFilterSheet> {
     return BottomSheetWidget(
       header: SectionHeader(
         title: '筛选条件',
-        trailing: TextButton(
-          onPressed: _apply,
-          style: TextButton.styleFrom(foregroundColor: _accentColorOf(context)),
-          child: const Text(
-            '应用',
-            style: TextStyle(fontWeight: FontWeight.w600),
-          ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              tooltip: '刷新来源',
+              onPressed: _isRefreshingSources ? null : _refreshSources,
+              icon: _isRefreshingSources
+                  ? SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: _accentColorOf(context),
+                      ),
+                    )
+                  : const Icon(Icons.refresh_rounded),
+            ),
+            TextButton(
+              onPressed: _apply,
+              style: TextButton.styleFrom(
+                foregroundColor: _accentColorOf(context),
+              ),
+              child: const Text(
+                '应用',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
         ),
       ),
       builder: (context, scrollController) => ListView(
@@ -123,7 +221,7 @@ class _DiscoverFilterSheetState extends State<DiscoverFilterSheet> {
         children: [
           _buildSourceSegmented(),
           const SizedBox(height: 16),
-          if (_source == DiscoverSource.tmdb) ...[
+          if (_source.localSource == DiscoverSource.tmdb) ...[
             _buildSectionBlock(
               context,
               title: '类型',
@@ -192,7 +290,7 @@ class _DiscoverFilterSheetState extends State<DiscoverFilterSheet> {
               child: _buildRatingControl(context),
             ),
           ],
-          if (_source == DiscoverSource.douban) ...[
+          if (_source.localSource == DiscoverSource.douban) ...[
             _buildSectionBlock(
               context,
               title: '类型',
@@ -267,7 +365,7 @@ class _DiscoverFilterSheetState extends State<DiscoverFilterSheet> {
               ),
             ),
           ],
-          if (_source == DiscoverSource.bangumi) ...[
+          if (_source.localSource == DiscoverSource.bangumi) ...[
             _buildSectionBlock(
               context,
               title: '类别',
@@ -308,6 +406,7 @@ class _DiscoverFilterSheetState extends State<DiscoverFilterSheet> {
               ),
             ),
           ],
+          if (_source.isDynamic) ..._buildDynamicSections(context),
         ],
       ),
     );
@@ -345,6 +444,41 @@ class _DiscoverFilterSheetState extends State<DiscoverFilterSheet> {
         ),
       ),
     );
+  }
+
+  List<Widget> _buildDynamicSections(BuildContext context) {
+    final source = _source.dynamicSource;
+    if (source == null) return const [];
+    final colors = [
+      _typeColor,
+      _sortColor,
+      _genreColor,
+      _regionColor,
+      _decadeColor,
+      _languageColor,
+      _categoryColor,
+      _yearColor,
+      _ratingColor,
+    ];
+    final groups = source.visibleGroups(_dynamicFilters).toList();
+    return [
+      for (var i = 0; i < groups.length; i++)
+        _buildSectionBlock(
+          context,
+          title: groups[i].title,
+          color: colors[i % colors.length],
+          child: _buildSingleSelectChips(
+            options: groups[i].options,
+            selected: _dynamicFilters.values[groups[i].model] ?? '',
+            color: colors[i % colors.length],
+            allowEmpty: !source.isFirstGroup(groups[i].model),
+            subtle: i > 1,
+            onSelect: (value) => _setDynamicFilters(
+              source.selectValue(_dynamicFilters, groups[i].model, value),
+            ),
+          ),
+        ),
+    ];
   }
 
   Widget _buildSingleSelectChips({
@@ -415,9 +549,9 @@ class _DiscoverFilterSheetState extends State<DiscoverFilterSheet> {
         SliderTheme(
           data: SliderTheme.of(context).copyWith(
             activeTrackColor: _ratingColor,
-            inactiveTrackColor: _ratingColor.withOpacity(0.18),
+            inactiveTrackColor: _ratingColor.withValues(alpha: 0.18),
             thumbColor: _ratingColor,
-            overlayColor: _ratingColor.withOpacity(0.12),
+            overlayColor: _ratingColor.withValues(alpha: 0.12),
           ),
           child: Slider(
             min: 0,
@@ -454,7 +588,7 @@ class _DiscoverFilterSheetState extends State<DiscoverFilterSheet> {
             decoration: InputDecoration(
               isDense: true,
               filled: true,
-              fillColor: Theme.of(context).colorScheme.surfaceVariant,
+              fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 8,
                 vertical: 6,
@@ -462,13 +596,13 @@ class _DiscoverFilterSheetState extends State<DiscoverFilterSheet> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide(
-                  color: Theme.of(context).dividerColor.withOpacity(0.4),
+                  color: Theme.of(context).dividerColor.withValues(alpha: 0.4),
                 ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide(
-                  color: Theme.of(context).dividerColor.withOpacity(0.4),
+                  color: Theme.of(context).dividerColor.withValues(alpha: 0.4),
                 ),
               ),
             ),
@@ -546,28 +680,23 @@ class _DiscoverFilterSheetState extends State<DiscoverFilterSheet> {
   }
 
   Widget _buildSourceSegmented() {
-    return CupertinoSlidingSegmentedControl<DiscoverSource>(
-      groupValue: _source,
-      thumbColor: _sourceColorOf(context),
-      onValueChanged: (value) {
-        if (value == null) return;
-        setState(() => _source = value);
-      },
-      children: {
-        for (final source in DiscoverSource.values)
-          source: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            child: Text(
-              source.label,
-              style: TextStyle(
-                color: _source == source
-                    ? Colors.white
-                    : _chipTextColorOf(context),
-                fontWeight: FontWeight.w700,
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        children: [
+          for (final source in _sources)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: _SourceSwitchChip(
+                source: source,
+                selected: _source == source,
+                color: _sourceColorOf(context),
+                onTap: () => setState(() => _source = source),
               ),
             ),
-          ),
-      },
+        ],
+      ),
     );
   }
 
@@ -597,6 +726,89 @@ class _DiscoverFilterSheetState extends State<DiscoverFilterSheet> {
   }
 }
 
+class _SourceSwitchChip extends StatelessWidget {
+  const _SourceSwitchChip({
+    required this.source,
+    required this.selected,
+    required this.color,
+    required this.onTap,
+  });
+
+  final DiscoverSourceEntry source;
+  final bool selected;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final textColor = selected
+        ? color
+        : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.78) ??
+              scheme.onSurface.withValues(alpha: 0.78);
+    final iconColor = selected
+        ? color
+        : scheme.onSurface.withValues(alpha: 0.58);
+    final icon = _sourceIconOf(source);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          height: 38,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: selected
+                ? color.withValues(alpha: 0.12)
+                : scheme.surfaceContainerHighest.withValues(alpha: 0.62),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: selected
+                  ? color.withValues(alpha: 0.42)
+                  : theme.dividerColor.withValues(alpha: 0.36),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: iconColor, size: 17),
+              const SizedBox(width: 6),
+              Text(
+                source.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 13,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+IconData _sourceIconOf(DiscoverSourceEntry source) {
+  if (source.isDynamic) return Icons.auto_awesome_rounded;
+  switch (source.localSource) {
+    case DiscoverSource.tmdb:
+      return Icons.local_movies_rounded;
+    case DiscoverSource.douban:
+      return Icons.public_rounded;
+    case DiscoverSource.bangumi:
+      return Icons.animation_rounded;
+    case null:
+      return Icons.storage_rounded;
+  }
+}
+
 class _FilterChipButton extends StatelessWidget {
   const _FilterChipButton({
     required this.label,
@@ -615,10 +827,10 @@ class _FilterChipButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final background = selected
-        ? color.withOpacity(0.14)
+        ? color.withValues(alpha: 0.14)
         : (subtle ? _chipSubtleColorOf(context) : _chipIdleColorOf(context));
     final borderColor = selected
-        ? color.withOpacity(0.45)
+        ? color.withValues(alpha: 0.45)
         : (subtle ? _chipSubtleBorderOf(context) : _chipBorderColorOf(context));
     final textColor = selected
         ? color
@@ -672,12 +884,12 @@ class _SortChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.35)),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -717,7 +929,7 @@ class _StepperButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = Theme.of(context).dividerColor.withOpacity(0.4);
+    final borderColor = Theme.of(context).dividerColor.withValues(alpha: 0.4);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -727,7 +939,7 @@ class _StepperButton extends StatelessWidget {
           width: size,
           height: size,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.12),
+            color: color.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: borderColor),
           ),
@@ -754,7 +966,7 @@ class _PopupMenuIndicator extends StatelessWidget {
         shape: BoxShape.circle,
         color: selected ? color : Colors.transparent,
         border: Border.all(
-          color: selected ? color : color.withOpacity(0.3),
+          color: selected ? color : color.withValues(alpha: 0.3),
           width: 1.5,
         ),
       ),
@@ -768,23 +980,26 @@ Color _accentColorOf(BuildContext context) =>
 Color _sourceColorOf(BuildContext context) => _accentColorOf(context);
 
 Color _chipIdleColorOf(BuildContext context) =>
-    Theme.of(context).colorScheme.surfaceVariant;
+    Theme.of(context).colorScheme.surfaceContainerHighest;
 
 Color _chipTextColorOf(BuildContext context) =>
-    Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7) ??
+    Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7) ??
     Theme.of(context).hintColor;
 
 Color _chipBorderColorOf(BuildContext context) =>
-    Theme.of(context).dividerColor.withOpacity(0.6);
+    Theme.of(context).dividerColor.withValues(alpha: 0.6);
 
 Color _chipSubtleColorOf(BuildContext context) {
   final scheme = Theme.of(context).colorScheme;
-  return Color.alphaBlend(scheme.onSurface.withOpacity(0.04), scheme.surface);
+  return Color.alphaBlend(
+    scheme.onSurface.withValues(alpha: 0.04),
+    scheme.surface,
+  );
 }
 
 Color _chipSubtleBorderOf(BuildContext context) =>
-    Theme.of(context).dividerColor.withOpacity(0.45);
+    Theme.of(context).dividerColor.withValues(alpha: 0.45);
 
 Color _chipSubtleTextOf(BuildContext context) =>
-    Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.55) ??
+    Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.55) ??
     Theme.of(context).hintColor;

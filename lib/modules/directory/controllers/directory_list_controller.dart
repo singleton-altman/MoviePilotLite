@@ -24,7 +24,7 @@ class DirectoryListController extends GetxController {
   }
 
   /// 加载目录设置列表
-  Future<void> loadDirectories() async {
+  Future<void> loadDirectories({bool force = false}) async {
     isLoading.value = true;
     errorText.value = null;
     try {
@@ -35,37 +35,27 @@ class DirectoryListController extends GetxController {
       if (token == null || token.isEmpty) {
         ToastUtil.error('请先登录');
         errorText.value = '请先登录';
-        directories.clear();
+        if (force) {
+          directories.clear();
+        }
         return;
       }
 
-      final response = await _apiClient.get<dynamic>(
-        '/api/v1/system/setting/Directories',
-        token: token,
-      );
-
-      if (response.statusCode == 200) {
-        final data = response.data;
-        if (data is Map<String, dynamic>) {
-          final directoryResponse = DirectorySettingResponse.fromJson(data);
-          if (directoryResponse.success && directoryResponse.data != null) {
-            directories.assignAll(directoryResponse.data!.value);
-          } else {
-            errorText.value = directoryResponse.message ?? '加载目录设置失败';
-            directories.clear();
-          }
-        } else {
-          errorText.value = '数据格式异常';
+      final items = await _fetchDirectories(token);
+      if (items != null) {
+        directories.assignAll(items);
+      } else {
+        errorText.value ??= '数据格式异常';
+        if (force || directories.isEmpty) {
           directories.clear();
         }
-      } else {
-        errorText.value = '请求失败 (HTTP ${response.statusCode ?? 0})';
-        directories.clear();
       }
     } catch (e, st) {
       _log.handle(e, stackTrace: st, message: '加载目录设置失败');
       errorText.value = '请求失败，请稍后重试';
-      directories.clear();
+      if (force || directories.isEmpty) {
+        directories.clear();
+      }
     } finally {
       isLoading.value = false;
     }
@@ -73,9 +63,15 @@ class DirectoryListController extends GetxController {
 
   Future<bool> updateDirectoryAt(int index, DirectorySetting updated) async {
     if (index < 0 || index >= directories.length) return false;
+    final previous = directories[index];
     directories[index] = updated;
     directories.refresh();
-    return saveDirectories();
+    final ok = await saveDirectories();
+    if (!ok) {
+      directories[index] = previous;
+      directories.refresh();
+    }
+    return ok;
   }
 
   Future<bool> saveDirectories() async {
@@ -91,14 +87,23 @@ class DirectoryListController extends GetxController {
         return false;
       }
 
-      final payload = {'value': directories.map((d) => d.toJson()).toList()};
-      final resp = await _apiClient.post<Map<String, dynamic>>(
+      final payload = directories.map((d) => d.toJson()).toList();
+      final resp = await _apiClient.postJson<dynamic>(
         '/api/v1/system/setting/Directories',
-        data: payload,
+        payload,
         token: token,
       );
       final status = resp.statusCode ?? 0;
-      if (status >= 200 && status < 300) return true;
+      if (status >= 200 && status < 300) {
+        final latest = await _fetchDirectories(token);
+        if (latest != null) {
+          directories.assignAll(latest);
+          errorText.value = null;
+          return true;
+        }
+        ToastUtil.error(errorText.value ?? '保存后同步失败');
+        return false;
+      }
       ToastUtil.error('保存失败 (HTTP $status)');
       return false;
     } catch (e, st) {
@@ -115,4 +120,67 @@ class DirectoryListController extends GetxController {
       .map((dir) => dir.downloadPath)
       .where((path) => path.isNotEmpty)
       .toList();
+
+  Future<List<DirectorySetting>?> _fetchDirectories(String token) async {
+    final response = await _apiClient.get<dynamic>(
+      '/api/v1/system/setting/Directories',
+      token: token,
+    );
+    final status = response.statusCode ?? 0;
+    if (status < 200 || status >= 300) {
+      errorText.value = '请求失败 (HTTP $status)';
+      return null;
+    }
+    final parsed = _parseDirectoryList(response.data);
+    errorText.value = parsed == null ? '数据格式异常' : null;
+    return parsed;
+  }
+
+  List<DirectorySetting>? _parseDirectoryList(dynamic data) {
+    if (data is List) {
+      return _decodeDirectoryItems(data);
+    }
+
+    if (data is Map) {
+      final map = Map<String, dynamic>.from(data);
+      final wrappedData = map['data'];
+      if (wrappedData is Map) {
+        final wrappedValue = wrappedData['value'];
+        if (wrappedValue is List) {
+          return _decodeDirectoryItems(wrappedValue);
+        }
+      }
+
+      final directValue = map['value'];
+      if (directValue is List) {
+        return _decodeDirectoryItems(directValue);
+      }
+
+      final parsed = DirectorySettingResponse.fromJson(map);
+      if (parsed.success && parsed.data != null) {
+        return parsed.data!.value;
+      }
+    }
+
+    return null;
+  }
+
+  List<DirectorySetting>? _decodeDirectoryItems(List items) {
+    final directories = <DirectorySetting>[];
+    for (final item in items) {
+      if (item is! Map) {
+        _log.warning('目录设置项格式异常: ${item.runtimeType}');
+        return null;
+      }
+      try {
+        directories.add(
+          DirectorySetting.fromJson(Map<String, dynamic>.from(item)),
+        );
+      } catch (e, st) {
+        _log.handle(e, stackTrace: st, message: '解析目录设置失败');
+        return null;
+      }
+    }
+    return directories;
+  }
 }

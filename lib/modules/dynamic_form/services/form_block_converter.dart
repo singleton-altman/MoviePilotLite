@@ -1,5 +1,7 @@
 import 'package:moviepilot_mobile/modules/dynamic_form/models/dynamic_form_models.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/models/form_block_models.dart';
+import 'package:moviepilot_mobile/modules/dynamic_form/utils/vuetify_component_subset.dart';
+import 'package:moviepilot_mobile/modules/dynamic_form/utils/vuetify_form_parser.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/utils/vuetify_mappings.dart';
 
 /// 将 FormNode 树转换为移动端 FormBlock 列表，去除 Web/Vuetify 无用参数
@@ -22,7 +24,7 @@ class FormBlockConverter {
 
     // 展示页：page（统计卡片、图表、表格、标题行、折叠卡片等）
     for (final pageNode in response.page) {
-      if (pageNode.component == 'style') continue; // 忽略 style 节点
+      if (VuetifyComponentSubset.isStyle(pageNode.component)) continue;
       if (pageNode.component == 'VAlert') {
         final alert = _extractAlert(pageNode);
         if (alert != null) blocks.add(alert);
@@ -32,7 +34,9 @@ class FormBlockConverter {
         final cls = pageNode.props?['class']?.toString() ?? '';
         if (cls.contains('dashboard-stats')) {
           final statCards = _extractStatCardsFromDashboardStats(pageNode);
-          for (final b in statCards) blocks.add(b);
+          for (final b in statCards) {
+            blocks.add(b);
+          }
           continue;
         }
       }
@@ -60,7 +64,9 @@ class FormBlockConverter {
         // VCard > VRow > VCol[] 每列 VIcon + div(数值) + div(标签) 的统计卡片网格
         final statCards = _extractStatCardsFromRow(pageNode);
         if (statCards.isNotEmpty) {
-          for (final b in statCards) blocks.add(b);
+          for (final b in statCards) {
+            blocks.add(b);
+          }
           continue;
         }
         final statCard = _extractStatCard(pageNode);
@@ -96,7 +102,7 @@ class FormBlockConverter {
       }
     }
     for (final pageNode in response.page) {
-      if (pageNode.component == 'style') continue;
+      if (VuetifyComponentSubset.isStyle(pageNode.component)) continue;
       _collectFormFields(pageNode, blocks, null);
     }
     return blocks;
@@ -392,10 +398,14 @@ class FormBlockConverter {
             }
           }
         }
-        for (final c in node.content) visit(c);
+        for (final c in node.content) {
+          visit(c);
+        }
       }
 
-      for (final node in col.content) visit(node);
+      for (final node in col.content) {
+        visit(node);
+      }
       if (value != null || label != null) {
         result.add(
           StatItemData(
@@ -626,26 +636,13 @@ class FormBlockConverter {
     List<FormBlock> blocks,
     Map<String, dynamic>? model,
   ) {
-    if (node.component == 'VSwitch') {
-      final sw = _extractSwitch(node, model);
-      if (sw != null) blocks.add(sw);
-    } else if (node.component == 'VTextField') {
-      final tf = _extractTextField(node, model);
-      if (tf != null) blocks.add(tf);
-    } else if (node.component == 'VTextarea') {
-      final ta = _extractTextArea(node, model);
-      if (ta != null) blocks.add(ta);
-    } else if (node.component == 'cron' ||
-        node.component.toLowerCase().contains('cron')) {
-      final cron = _extractCron(node, model);
-      if (cron != null) blocks.add(cron);
-    } else if (node.component == 'VAlert') {
-      final alert = _extractAlert(node);
-      if (alert != null) blocks.add(alert);
-    } else if (node.component == 'VSelect') {
-      final select = _extractSelect(node, model);
-      if (select != null) blocks.add(select);
-    }
+    final block = _extractGenericFieldBlock(
+      node,
+      model,
+      includeAlert: true,
+      includeSelect: true,
+    );
+    if (block != null) blocks.add(block);
     for (final c in node.content) {
       _collectConfNodes(c, blocks, model);
     }
@@ -656,87 +653,76 @@ class FormBlockConverter {
     List<FormBlock> blocks,
     Map<String, dynamic>? model,
   ) {
-    if (node.component == 'VSwitch') {
-      final sw = _extractSwitch(node, model);
-      if (sw != null) blocks.add(sw);
-    } else if (node.component == 'VTextField') {
-      final tf = _extractTextField(node, model);
-      if (tf != null) blocks.add(tf);
-    } else if (node.component == 'VTextarea') {
-      final ta = _extractTextArea(node, model);
-      if (ta != null) blocks.add(ta);
-    } else if (node.component == 'cron' ||
-        node.component.toLowerCase().contains('cron')) {
-      final cron = _extractCron(node, model);
-      if (cron != null) blocks.add(cron);
-    }
+    final block = _extractGenericFieldBlock(
+      node,
+      model,
+      includeAlert: true,
+      includeSelect: true,
+    );
+    if (block != null) blocks.add(block);
     for (final c in node.content) {
       _collectFormFields(c, blocks, model);
     }
   }
 
+  static FormBlock? _extractGenericFieldBlock(
+    FormNode node,
+    Map<String, dynamic>? model, {
+    required bool includeAlert,
+    required bool includeSelect,
+  }) {
+    final component = node.component;
+    if (component == 'VSwitch') {
+      return _extractSwitch(node, model);
+    }
+    if (component == 'VTextField') {
+      return _extractTextField(node, model);
+    }
+    if (component == 'VTextarea') {
+      return _extractTextArea(node, model);
+    }
+    if (VuetifyComponentSubset.isCronLike(component)) {
+      return _extractCron(node, model);
+    }
+    if (includeAlert && component == 'VAlert') {
+      return _extractAlert(node);
+    }
+    if (includeSelect && component == 'VSelect') {
+      return _extractSelect(node, model);
+    }
+    return null;
+  }
+
   static AlertBlock? _extractAlert(FormNode node) {
-    final props = node.props;
-    if (props == null) return null;
-    final type = props['type']?.toString().trim() ?? 'info';
-    final text = props['text']?.toString().trim() ?? '';
-    if (text.isEmpty) return null;
-    return AlertBlock(type: type, text: text);
-  }
-
-  static bool _boolFromDynamic(dynamic v) {
-    if (v == null) return false;
-    if (v is bool) return v;
-    if (v is String) return v.toLowerCase() == 'true' || v == '1';
-    if (v is num) return v != 0;
-    return false;
-  }
-
-  static dynamic _valueFromModel(
-    Map<String, dynamic>? model,
-    String? key,
-    dynamic fallback,
-  ) {
-    if (key == null || key.isEmpty || model == null) return fallback;
-    return model[key] ?? fallback;
+    final spec = VuetifyFormParser.parseAlert(node);
+    if (spec == null) return null;
+    return AlertBlock(type: spec.type, text: spec.text);
   }
 
   static SwitchFieldBlock? _extractSwitch(
     FormNode node,
     Map<String, dynamic>? model,
   ) {
-    final props = node.props;
-    if (props == null) return null;
-    final label = props['label']?.toString().trim() ?? '';
-    final name = props['model']?.toString() ?? props['name']?.toString();
-    final raw = _valueFromModel(
-      model,
-      name,
-      props['modelValue'] ?? props['value'],
+    final spec = VuetifyFormParser.parseSwitch(node, model: model);
+    if (spec == null) return null;
+    return SwitchFieldBlock(
+      label: spec.label,
+      value: spec.value,
+      name: spec.name,
     );
-    final value = _boolFromDynamic(raw);
-    return SwitchFieldBlock(label: label, value: value, name: name);
   }
 
   static CronFieldBlock? _extractCron(
     FormNode node,
     Map<String, dynamic>? model,
   ) {
-    final props = node.props;
-    if (props == null) return null;
-    final label = props['label']?.toString().trim() ?? '';
-    final name = props['model']?.toString() ?? props['name']?.toString();
-    final value = (_valueFromModel(
-      model,
-      name,
-      props['modelValue'] ?? props['value'] ?? '',
-    )).toString();
-    final hint = props['hint']?.toString();
+    final spec = VuetifyFormParser.parseCron(node, model: model);
+    if (spec == null) return null;
     return CronFieldBlock(
-      label: label,
-      value: value,
-      name: name,
-      hint: hint ?? '0 0 * * *',
+      label: spec.label,
+      value: spec.value,
+      name: spec.name,
+      hint: spec.hint,
     );
   }
 
@@ -744,43 +730,28 @@ class FormBlockConverter {
     FormNode node,
     Map<String, dynamic>? model,
   ) {
-    final props = node.props;
-    if (props == null) return null;
-    final label = props['label']?.toString().trim() ?? '';
-    final name = props['model']?.toString() ?? props['name']?.toString();
-    final value = (_valueFromModel(
-      model,
-      name,
-      props['modelValue'] ?? props['value'] ?? '',
-    )).toString();
-    final hint = props['placeholder']?.toString() ?? props['hint']?.toString();
-    return TextFieldBlock(label: label, value: value, name: name, hint: hint);
+    final spec = VuetifyFormParser.parseTextField(node, model: model);
+    if (spec == null) return null;
+    return TextFieldBlock(
+      label: spec.label,
+      value: spec.value,
+      name: spec.name,
+      hint: spec.hint,
+    );
   }
 
   static TextAreaBlock? _extractTextArea(
     FormNode node,
     Map<String, dynamic>? model,
   ) {
-    final props = node.props;
-    if (props == null) return null;
-    final label = props['label']?.toString().trim() ?? '';
-    final name = props['model']?.toString() ?? props['name']?.toString();
-    final value = (_valueFromModel(
-      model,
-      name,
-      props['modelValue'] ?? props['value'] ?? '',
-    )).toString();
-    final hint = props['placeholder']?.toString() ?? props['hint']?.toString();
-    final rowsRaw = props['rows'];
-    final rows = rowsRaw is int
-        ? rowsRaw
-        : (int.tryParse(rowsRaw?.toString() ?? '') ?? 3);
+    final spec = VuetifyFormParser.parseTextArea(node, model: model);
+    if (spec == null) return null;
     return TextAreaBlock(
-      label: label,
-      value: value,
-      name: name,
-      hint: hint,
-      rows: rows.clamp(2, 10),
+      label: spec.label,
+      value: spec.value,
+      name: spec.name,
+      hint: spec.hint,
+      rows: spec.maxLines,
     );
   }
 
@@ -895,11 +866,15 @@ class FormBlockConverter {
               if (isCaption) caption ??= text;
             }
           }
-          for (final c in node.content) visit(c);
+          for (final c in node.content) {
+            visit(c);
+          }
         }
       }
 
-      for (final node in col.content) visit(node);
+      for (final node in col.content) {
+        visit(node);
+      }
       final c = caption;
       final v = value;
       if (c != null && v != null) {
@@ -953,35 +928,13 @@ class FormBlockConverter {
   }
 
   static ChartBlock? _extractChart(FormNode chart) {
-    final props = chart.props;
-    if (props == null) return null;
-    final options = props['options'];
-    if (options is! Map<String, dynamic>) return null;
-    final chartOpt = options['chart'];
-    final chartType = (chartOpt is Map && chartOpt['type'] != null)
-        ? chartOpt['type'].toString()
-        : 'pie';
-    final title = options['title'] is Map
-        ? (options['title'] as Map)['text']?.toString()
-        : null;
-    final labelsRaw = options['labels'];
-    final labels = labelsRaw is List
-        ? labelsRaw.map((e) => e?.toString() ?? '').toList()
-        : <String>[];
-    final seriesRaw = props['series'];
-    final series = seriesRaw is List
-        ? seriesRaw
-              .map(
-                (e) =>
-                    (e is num) ? e : (num.tryParse(e?.toString() ?? '') ?? 0),
-              )
-              .toList()
-        : <num>[];
+    final spec = VuetifyFormParser.parseChart(chart);
+    if (spec == null) return null;
     return ChartBlock(
-      title: title,
-      labels: labels,
-      series: series,
-      chartType: chartType,
+      title: spec.title,
+      labels: spec.labels,
+      series: spec.series,
+      chartType: spec.chartType,
     );
   }
 
@@ -1067,35 +1020,16 @@ class FormBlockConverter {
     FormNode node,
     Map<String, dynamic>? model,
   ) {
-    final props = node.props;
-    if (props == null) return null;
-    final label = props['label']?.toString().trim() ?? '';
-    final name = props['model']?.toString() ?? props['name']?.toString();
-    final multiple = _boolFromDynamic(props['multiple'] ?? false);
-    final itemsRaw = props['items'];
-    if (itemsRaw is! List) return null;
-    final items = <SelectOption>[];
-    for (final item in itemsRaw) {
-      if (item is Map<String, dynamic>) {
-        final title = item['title']?.toString() ?? '';
-        final value = item['value'];
-        if (title.isNotEmpty) {
-          items.add(SelectOption(title: title, value: value));
-        }
-      }
-    }
-    if (items.isEmpty) return null;
-    final raw = _valueFromModel(
-      model,
-      name,
-      props['modelValue'] ?? props['value'],
-    );
+    final spec = VuetifyFormParser.parseSelect(node, model: model);
+    if (spec == null) return null;
     return SelectFieldBlock(
-      label: label,
-      items: items,
-      value: raw,
-      name: name,
-      multiple: multiple,
+      label: spec.label,
+      items: spec.items
+          .map((item) => SelectOption(title: item.title, value: item.value))
+          .toList(),
+      value: spec.value,
+      name: spec.name,
+      multiple: spec.multiple,
     );
   }
 }

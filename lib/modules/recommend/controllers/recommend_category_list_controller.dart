@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -5,11 +6,15 @@ import 'package:get/get.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:moviepilot_mobile/modules/login/repositories/auth_repository.dart';
 import 'package:moviepilot_mobile/modules/recommend/models/recommend_api_item.dart';
+import 'package:moviepilot_mobile/modules/search_result/controllers/search_result_controller.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// 推荐分类列表控制器，支持分页加载
 class RecommendCategoryListController extends GetxController {
+  static const _viewModePrefKey = 'recommend_category_list_view_mode';
+
   RecommendCategoryListController({
     required String key,
     required String title,
@@ -38,6 +43,29 @@ class RecommendCategoryListController extends GetxController {
   final RxBool hasMore = false.obs;
   final RxInt currentPage = 0.obs;
   final RxnInt totalItems = RxnInt();
+  final Rxn<SearchResultViewMode> preferredViewMode =
+      Rxn<SearchResultViewMode>();
+
+  @override
+  void onInit() {
+    super.onInit();
+    unawaited(_restoreViewModePref());
+  }
+
+  SearchResultViewMode resolvedViewMode({required bool isNarrowScreen}) {
+    return preferredViewMode.value ??
+        (isNarrowScreen
+            ? SearchResultViewMode.list
+            : SearchResultViewMode.grid);
+  }
+
+  void toggleViewMode({required bool isNarrowScreen}) {
+    final current = resolvedViewMode(isNarrowScreen: isNarrowScreen);
+    preferredViewMode.value = current == SearchResultViewMode.list
+        ? SearchResultViewMode.grid
+        : SearchResultViewMode.list;
+    unawaited(_persistViewModePref());
+  }
 
   @override
   void onReady() {
@@ -199,5 +227,25 @@ class RecommendCategoryListController extends GetxController {
       if (lower == 'false' || lower == '0') return false;
     }
     return null;
+  }
+
+  Future<void> _persistViewModePref() async {
+    final prefs = await SharedPreferences.getInstance();
+    final mode = preferredViewMode.value;
+    if (mode == null) {
+      await prefs.remove(_viewModePrefKey);
+      return;
+    }
+    await prefs.setString(_viewModePrefKey, mode.name);
+  }
+
+  Future<void> _restoreViewModePref() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_viewModePrefKey);
+    if (raw == null || raw.isEmpty) return;
+    final matched = SearchResultViewMode.values.where((e) => e.name == raw);
+    if (matched.isNotEmpty) {
+      preferredViewMode.value = matched.first;
+    }
   }
 }

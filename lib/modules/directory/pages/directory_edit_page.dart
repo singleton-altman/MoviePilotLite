@@ -7,7 +7,6 @@ import 'package:moviepilot_mobile/modules/settings/state/settings_field_state.da
 import 'package:moviepilot_mobile/modules/settings/state/settings_form_row_builder.dart';
 import 'package:moviepilot_mobile/theme/section.dart';
 import 'package:moviepilot_mobile/utils/file_storage_utils.dart';
-import 'package:moviepilot_mobile/utils/toast_util.dart';
 import 'package:moviepilot_mobile/widgets/section_header.dart';
 
 class DirectoryEditPage extends GetView<DirectoryEditController> {
@@ -67,7 +66,6 @@ class DirectoryEditPage extends GetView<DirectoryEditController> {
     if (confirmed == true) {
       final ok = await controller.save();
       if (ok && Get.context != null) {
-        ToastUtil.success('已保存');
         Get.back(result: true);
       }
     }
@@ -97,11 +95,13 @@ class DirectoryEditPage extends GetView<DirectoryEditController> {
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         actions: [
-          TextButton(
-            onPressed: controller.isSaving.value ? null : _confirmSave,
-            child: controller.isSaving.value
-                ? const CupertinoActivityIndicator()
-                : const Text('保存'),
+          Obx(
+            () => TextButton(
+              onPressed: controller.isSaving.value ? null : _confirmSave,
+              child: controller.isSaving.value
+                  ? const CupertinoActivityIndicator()
+                  : const Text('保存'),
+            ),
           ),
         ],
       ),
@@ -133,11 +133,7 @@ class DirectoryEditPage extends GetView<DirectoryEditController> {
               _buildSection(
                 context,
                 header: '基础信息',
-                envKeys: [
-                  'name',
-                  'priority',
-                  if (!isNoOrganize) 'notify',
-                ],
+                envKeys: ['name', 'priority', if (!isNoOrganize) 'notify'],
                 rowBuilder: rowBuilder,
               ),
               _buildSection(

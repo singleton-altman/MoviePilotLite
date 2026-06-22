@@ -3,11 +3,20 @@ import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_models.dart';
 import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_submit_resp.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
+import 'package:moviepilot_mobile/services/app_service.dart';
+import 'package:moviepilot_mobile/utils/toast_util.dart';
 
 class SubscribeService extends GetxService {
   final subscribeItems = <String, SubscribeItem?>{}.obs;
   final _apiClient = Get.find<ApiClient>();
+  final _appService = Get.find<AppService>();
   final _log = Get.find<AppLog>();
+
+  bool _ensureCanSubscribe() {
+    if (_appService.canSubscribe) return true;
+    ToastUtil.info('当前帐号无订阅权限');
+    return false;
+  }
 
   Future<SubscribeItem?> fetchAndSaveSubscribeStatus(
     String mediaKey, {
@@ -75,6 +84,7 @@ class SubscribeService extends GetxService {
     String? tmdbid,
     String? subscribeId,
   }) async {
+    if (!_ensureCanSubscribe()) return (false, null);
     if (isSubscribed) {
       if (subscribeId != null) {
         final ok = await deleteSubscribes(subscribeId);
@@ -113,6 +123,9 @@ class SubscribeService extends GetxService {
     String mediaType, {
     required Map<String, dynamic> payload,
   }) async {
+    if (!_ensureCanSubscribe()) {
+      return SubscribeSubmitResp(success: false, message: '当前帐号无订阅权限');
+    }
     try {
       final path = '/api/v1/subscribe/';
       final response = await _apiClient.post(path, data: payload);
@@ -179,6 +192,7 @@ class SubscribeService extends GetxService {
     String mediaKey, {
     String season = '0',
   }) async {
+    if (!_ensureCanSubscribe()) return false;
     final response = await _apiClient.delete(
       '/api/v1/subscribe/media/$mediaKey',
       queryParameters: {'season': season},
@@ -187,6 +201,7 @@ class SubscribeService extends GetxService {
   }
 
   Future<bool> deleteSubscribes(String id) async {
+    if (!_ensureCanSubscribe()) return false;
     final response = await _apiClient.delete('/api/v1/subscribe/$id');
     return response.statusCode == 200 && response.data['success'] == true;
   }

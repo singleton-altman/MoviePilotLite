@@ -494,66 +494,54 @@ class SearchMediaResultPage extends GetView<SearchMediaController> {
 
   Widget _buildSearchAndToolbar(BuildContext context) {
     return Section(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          CupertinoSearchTextField(
-            placeholder: '搜索标题、描述、站点…',
-            onSubmitted: controller.updateKeyword,
-            backgroundColor: Colors.transparent,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(top: 10),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _buildFilterChip(
-                  context,
-                  label: '媒体',
-                  value: controller.mediaSearchKey,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                _buildFilterChip(
-                  context,
-                  label: controller.area == 'title' ? '标题' : 'IMDB',
-                  value: '',
-                  color: const Color(0xFF34C759),
-                  valueOnly: true,
-                ),
-                if (controller.sites.isNotEmpty)
-                  _buildFilterChip(
-                    context,
-                    label: '站点',
-                    value: '${controller.sites.length} 个',
-                    color: const Color(0xFFFF9500),
-                  ),
-                if (controller.year.isNotEmpty)
-                  _buildFilterChip(
-                    context,
-                    label: '年份',
-                    value: controller.year,
-                    color: const Color(0xFFAF52DE),
-                  ),
-                if (controller.season != null && controller.season!.isNotEmpty)
-                  _buildFilterChip(
-                    context,
-                    label: '季',
-                    value: controller.season!,
-                    color: const Color(0xFF5AC8FA),
-                  ),
-                _buildFilterChip(
-                  context,
-                  label: '类型',
-                  value: controller.mtype,
-                  color: const Color(0xFF8E8E93),
-                ),
-              ],
+      child: SizedBox(
+        width: double.infinity,
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _buildFilterChip(
+              context,
+              label: '媒体',
+              value: controller.mediaSearchKey,
+              color: Theme.of(context).colorScheme.primary,
             ),
-          ),
-        ],
+            _buildFilterChip(
+              context,
+              label: controller.area == 'title' ? '标题' : 'IMDB',
+              value: '',
+              color: const Color(0xFF34C759),
+              valueOnly: true,
+            ),
+            if (controller.sites.isNotEmpty)
+              _buildFilterChip(
+                context,
+                label: '站点',
+                value: '${controller.sites.length} 个',
+                color: const Color(0xFFFF9500),
+              ),
+            if (controller.year.isNotEmpty)
+              _buildFilterChip(
+                context,
+                label: '年份',
+                value: controller.year,
+                color: const Color(0xFFAF52DE),
+              ),
+            if (controller.season != null && controller.season!.isNotEmpty)
+              _buildFilterChip(
+                context,
+                label: '季',
+                value: controller.season!,
+                color: const Color(0xFF5AC8FA),
+              ),
+            _buildFilterChip(
+              context,
+              label: '类型',
+              value: controller.mtype,
+              color: const Color(0xFF8E8E93),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -149,7 +149,8 @@ class RecognizeController extends GetxController {
           return RecognizeResponse.fromJson(Map<String, dynamic>.from(decoded));
         }
       }
-    } catch (_) {
+    } catch (e) {
+      print('Error parsing recognize response: $e');
       return null;
     }
     return null;

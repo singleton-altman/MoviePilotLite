@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/utils/vuetify_mappings.dart';
 
 /// Vuetify CSS class 解析工具：将 Vuetify 的 class 字符串转换为 Flutter 样式值
@@ -7,6 +6,17 @@ class VuetifyCss {
   VuetifyCss._();
 
   static const double _unit = 4.0;
+
+  static List<String> classTokens(String? cls) {
+    if (cls == null || cls.trim().isEmpty) return const [];
+    return cls
+        .split(RegExp(r'\s+'))
+        .where((token) => token.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  static bool hasClass(String? cls, String className) =>
+      classTokens(cls).contains(className);
 
   /// 从 props['class'] 解析 EdgeInsets（margin 类：ma-/mt-/mb-/ml-/mr-/mx-/my-）
   static EdgeInsets parseMargin(String? cls) =>
@@ -16,8 +26,24 @@ class VuetifyCss {
   static EdgeInsets parsePadding(String? cls) =>
       _parseSpacing(cls, _paddingPrefixes);
 
-  static final _marginPrefixes = _SpacingPrefixes('ma-', 'mt-', 'mb-', 'ml-', 'mr-', 'mx-', 'my-');
-  static final _paddingPrefixes = _SpacingPrefixes('pa-', 'pt-', 'pb-', 'pl-', 'pr-', 'px-', 'py-');
+  static final _marginPrefixes = _SpacingPrefixes(
+    'ma-',
+    'mt-',
+    'mb-',
+    'ml-',
+    'mr-',
+    'mx-',
+    'my-',
+  );
+  static final _paddingPrefixes = _SpacingPrefixes(
+    'pa-',
+    'pt-',
+    'pb-',
+    'pl-',
+    'pr-',
+    'px-',
+    'py-',
+  );
 
   static EdgeInsets _parseSpacing(String? cls, _SpacingPrefixes p) {
     if (cls == null || cls.isEmpty) return EdgeInsets.zero;
@@ -26,7 +52,12 @@ class VuetifyCss {
       double? val;
       if (token.startsWith(p.all)) {
         val = _spacingValue(token, p.all.length);
-        if (val != null) { top = val; bottom = val; left = val; right = val; }
+        if (val != null) {
+          top = val;
+          bottom = val;
+          left = val;
+          right = val;
+        }
       } else if (token.startsWith(p.top)) {
         val = _spacingValue(token, p.top.length);
         if (val != null) top = val;
@@ -41,10 +72,16 @@ class VuetifyCss {
         if (val != null) right = val;
       } else if (token.startsWith(p.x)) {
         val = _spacingValue(token, p.x.length);
-        if (val != null) { left = val; right = val; }
+        if (val != null) {
+          left = val;
+          right = val;
+        }
       } else if (token.startsWith(p.y)) {
         val = _spacingValue(token, p.y.length);
-        if (val != null) { top = val; bottom = val; }
+        if (val != null) {
+          top = val;
+          bottom = val;
+        }
       }
     }
     return EdgeInsets.fromLTRB(left, top, right, bottom);
@@ -62,65 +99,102 @@ class VuetifyCss {
         color: CupertinoDynamicColor.resolve(CupertinoColors.label, context),
       );
     }
-    final tokens = cls.split(RegExp(r'\s+'));
+    final tokens = classTokens(cls);
     double? fontSize;
     FontWeight? fontWeight;
 
     for (final t in tokens) {
       switch (t) {
-        case 'text-h1': fontSize = 96;
-        case 'text-h2': fontSize = 60;
-        case 'text-h3': fontSize = 48;
-        case 'text-h4': fontSize = 34;
-        case 'text-h5': fontSize = 24;
-        case 'text-h6': fontSize = 20;
-        case 'text-subtitle-1': fontSize = 16;
-        case 'text-subtitle-2': fontSize = 14;
-        case 'text-body-1': fontSize = 16;
-        case 'text-body-2': fontSize = 14;
-        case 'text-caption': fontSize = 12;
-        case 'text-overline': fontSize = 10;
-        case 'font-weight-bold': fontWeight = FontWeight.bold;
-        case 'font-weight-medium': fontWeight = FontWeight.w500;
-        case 'font-weight-regular': fontWeight = FontWeight.w400;
-        case 'font-weight-light': fontWeight = FontWeight.w300;
-        case 'font-weight-thin': fontWeight = FontWeight.w100;
+        case 'text-h1':
+          fontSize = 96;
+        case 'text-h2':
+          fontSize = 60;
+        case 'text-h3':
+          fontSize = 48;
+        case 'text-h4':
+          fontSize = 34;
+        case 'text-h5':
+          fontSize = 24;
+        case 'text-h6':
+          fontSize = 20;
+        case 'text-subtitle-1':
+          fontSize = 16;
+        case 'text-subtitle-2':
+          fontSize = 14;
+        case 'text-body-1':
+          fontSize = 16;
+        case 'text-body-2':
+          fontSize = 14;
+        case 'text-caption':
+          fontSize = 12;
+        case 'text-overline':
+          fontSize = 10;
+        case 'font-weight-bold':
+          fontWeight = FontWeight.bold;
+        case 'font-weight-medium':
+          fontWeight = FontWeight.w500;
+        case 'font-weight-regular':
+          fontWeight = FontWeight.w400;
+        case 'font-weight-light':
+          fontWeight = FontWeight.w300;
+        case 'font-weight-thin':
+          fontWeight = FontWeight.w100;
       }
     }
 
-    Color color = CupertinoDynamicColor.resolve(CupertinoColors.label, context);
-    if (tokens.any((t) => t == 'text-grey' || t.startsWith('text-grey-'))) {
-      color = CupertinoDynamicColor.resolve(
-        CupertinoColors.secondaryLabel,
-        context,
-      );
-    }
-    if (fontSize == 12 || tokens.contains('text-caption')) {
+    final explicitColor = resolveTextColorFromClasses(cls);
+    Color color =
+        explicitColor ??
+        CupertinoDynamicColor.resolve(CupertinoColors.label, context);
+    if (explicitColor == null &&
+        (fontSize == 12 || tokens.contains('text-caption'))) {
       color = CupertinoDynamicColor.resolve(
         CupertinoColors.secondaryLabel,
         context,
       );
     }
 
-    return TextStyle(
-      fontSize: fontSize,
-      fontWeight: fontWeight,
-      color: color,
-    );
+    return TextStyle(fontSize: fontSize, fontWeight: fontWeight, color: color);
   }
 
   /// 是否包含 text-center
-  static bool isTextCenter(String? cls) =>
-      cls != null && cls.split(RegExp(r'\s+')).contains('text-center');
+  static bool isTextCenter(String? cls) => hasClass(cls, 'text-center');
 
   /// 是否 d-flex
-  static bool isDFlex(String? cls) =>
-      cls != null && cls.split(RegExp(r'\s+')).contains('d-flex');
+  static bool isDFlex(String? cls) => hasClass(cls, 'd-flex');
+
+  static bool isDashboardStats(String? cls) => hasClass(cls, 'dashboard-stats');
+
+  static bool isDashboardStatsItem(String? cls) =>
+      hasClass(cls, 'dashboard-stats__item');
+
+  static bool isDashboardStatsTitle(String? cls) =>
+      hasClass(cls, 'dashboard-stats__title');
+
+  static bool isDashboardStatsValue(String? cls) =>
+      hasClass(cls, 'dashboard-stats__value');
+
+  static Color? resolveTextColorFromClasses(String? cls) {
+    for (final token in classTokens(cls)) {
+      if (token.endsWith('--text')) {
+        final color = resolveColor(token.substring(0, token.length - 6));
+        if (color != null) return color;
+      }
+      if (token == 'text-grey' || token.startsWith('text-grey-')) {
+        return resolveColor(token.replaceFirst('text-', ''));
+      }
+      if (token.startsWith('text-')) {
+        final color = resolveColor(token.substring(5));
+        if (color != null) return color;
+      }
+    }
+    return null;
+  }
 
   /// d-flex 时的 MainAxisAlignment
   static MainAxisAlignment parseMainAxisAlignment(String? cls) {
     if (cls == null) return MainAxisAlignment.start;
-    final tokens = cls.split(RegExp(r'\s+'));
+    final tokens = classTokens(cls);
     if (tokens.contains('justify-center')) return MainAxisAlignment.center;
     if (tokens.contains('justify-end')) return MainAxisAlignment.end;
     if (tokens.contains('justify-space-between')) {
@@ -135,7 +209,7 @@ class VuetifyCss {
   /// d-flex 时的 CrossAxisAlignment
   static CrossAxisAlignment parseCrossAxisAlignment(String? cls) {
     if (cls == null) return CrossAxisAlignment.start;
-    final tokens = cls.split(RegExp(r'\s+'));
+    final tokens = classTokens(cls);
     if (tokens.contains('align-center')) return CrossAxisAlignment.center;
     if (tokens.contains('align-end')) return CrossAxisAlignment.end;
     if (tokens.contains('align-start')) return CrossAxisAlignment.start;
@@ -200,7 +274,13 @@ class VuetifyCss {
 
 class _SpacingPrefixes {
   const _SpacingPrefixes(
-    this.all, this.top, this.bottom, this.left, this.right, this.x, this.y,
+    this.all,
+    this.top,
+    this.bottom,
+    this.left,
+    this.right,
+    this.x,
+    this.y,
   );
   final String all, top, bottom, left, right, x, y;
 }

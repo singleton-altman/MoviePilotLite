@@ -21,6 +21,7 @@ import 'package:moviepilot_mobile/utils/media_source_util.dart';
 import 'package:moviepilot_mobile/utils/open_url.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
 import 'package:moviepilot_mobile/widgets/cached_image.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:soft_edge_blur/soft_edge_blur.dart';
 
@@ -370,69 +371,101 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
   }
 
   Widget _buildMetaChip(String? text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Text(
-        text ?? '',
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 24),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(16),
         ),
-      ),
-    );
-  }
-
-  Widget _buildInLibraryChip() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: const Color(0xFF81C784).withOpacity(0.35),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.check_circle_rounded, size: 14, color: Color(0xFF81C784)),
-          SizedBox(width: 4),
-          Text(
-            '已入库',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildScoreChip(double? score) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: const Color(0xFF7C4DFF).withOpacity(0.9),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(CupertinoIcons.star_fill, size: 12, color: Colors.white),
-          const SizedBox(width: 4),
-          Text(
-            score?.toStringAsFixed(1) ?? '',
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          child: Text(
+            text ?? '',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            softWrap: false,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
           ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInLibraryChip() {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 24),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0xFF81C784).withOpacity(0.35),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.check_circle_rounded,
+                size: 14,
+                color: Color(0xFF81C784),
+              ),
+              SizedBox(width: 4),
+              Text(
+                '已入库',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                softWrap: false,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScoreChip(double? score) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 24),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0xFF7C4DFF).withOpacity(0.9),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                CupertinoIcons.star_fill,
+                size: 12,
+                color: Colors.white,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                score?.toStringAsFixed(1) ?? '',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                softWrap: false,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -830,28 +863,87 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
     List<SeasonInfo> seasons,
     MediaDetail detail,
   ) {
+    final viewportFraction = MediaQuery.of(context).size.width > 600
+        ? 0.6
+        : 0.9;
+    final useThreePagePager = seasons.length >= 3;
+    final perPage = useThreePagePager ? (seasons.length / 3).ceil() : 1;
+    final compactItemHeight = 104.0;
+    final dividerBlockHeight = 13.0; // 6 + 1 + 6
+    final threePagerHeight =
+        perPage * compactItemHeight + (perPage - 1) * dividerBlockHeight;
     return Padding(
       padding: const EdgeInsets.only(top: 16.0, bottom: 16.0),
       child: SizedBox(
-        height: 350,
-        child: PageView.builder(
-          padEnds: false,
-          controller: controller.seasonPageCntroller,
-          scrollDirection: Axis.horizontal,
-          itemCount: seasons.length,
-          itemBuilder: (context, index) {
-            final season = seasons[index];
-            return Padding(
-              padding: EdgeInsets.only(left: index == 0 ? 16 : 12),
-              child: _buildSeasonListContent(context, season),
-            );
-          },
-        ),
+        height: useThreePagePager ? threePagerHeight : 350,
+        child: useThreePagePager
+            ? PageView.builder(
+                padEnds: false,
+                controller: PageController(viewportFraction: viewportFraction),
+                scrollDirection: Axis.horizontal,
+                itemCount: 3,
+                itemBuilder: (context, pageIndex) {
+                  final start = pageIndex * perPage;
+                  final endExclusive = (start + perPage) > seasons.length
+                      ? seasons.length
+                      : (start + perPage);
+                  final pageItems = start < seasons.length
+                      ? seasons.sublist(start, endExclusive)
+                      : const <SeasonInfo>[];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    child: Column(
+                      children: [
+                        for (var i = 0; i < perPage; i++) ...[
+                          SizedBox(
+                            height: compactItemHeight,
+                            child: i < pageItems.length
+                                ? _buildSeasonListContent(
+                                    context,
+                                    pageItems[i],
+                                    compact: true,
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
+                          if (i != perPage - 1) ...[
+                            const SizedBox(height: 6),
+                            Divider(
+                              height: 1,
+                              thickness: 1,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.outline.withValues(alpha: 0.08),
+                            ),
+                            const SizedBox(height: 6),
+                          ],
+                        ],
+                      ],
+                    ),
+                  );
+                },
+              )
+            : PageView.builder(
+                padEnds: false,
+                controller: PageController(viewportFraction: viewportFraction),
+                scrollDirection: Axis.horizontal,
+                itemCount: seasons.length,
+                itemBuilder: (context, index) {
+                  final season = seasons[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    child: _buildSeasonListContent(context, season),
+                  );
+                },
+              ),
       ),
     );
   }
 
-  Widget _buildSeasonListContent(BuildContext context, SeasonInfo season) {
+  Widget _buildSeasonListContent(
+    BuildContext context,
+    SeasonInfo season, {
+    bool compact = false,
+  }) {
     return Obx(() {
       final posterUrl = ImageUtil.convertMediaSeasonImageUrl(
         season.poster_path ?? '',
@@ -899,6 +991,7 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
           seasonEpisodeCount: season.episode_count?.toString() ?? '',
           seasonVoteAverage: season.vote_average?.toString() ?? '',
           seasonName: _seasonTitle(season),
+          compact: compact,
         ),
       );
     });
@@ -975,34 +1068,58 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
     }
     final isTv = _isTv(detail);
     return Obx(() {
+      final appService = Get.find<AppService>();
+      final canSubscribe = appService.canSubscribe;
+      final canSearch = appService.canSearch;
       final movieSubscribed = controller.movieSubscribeItem.value != null;
       final seasons = detail.season_info;
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          final search = _buildPrimaryAction(
-            label: '搜索资源',
-            icon: CupertinoIcons.search,
-            onPressed: isLoading ? null : () => _openSearch(context),
-            backgroundColor: Theme.of(context).colorScheme.secondary,
-          );
-          if (isTv && seasons?.isNotEmpty == true) {
-            return Row(children: [Expanded(child: search)]);
-          }
-          final subscribe = _buildSubscribeButton(
-            context,
-            detail,
-            isLoading,
-            movieSubscribed,
-          );
-          return Row(
-            children: [
-              Expanded(child: subscribe),
-              const SizedBox(width: 12),
-              Expanded(child: search),
-            ],
-          );
-        },
-      );
+      if (isTv && seasons?.isNotEmpty == true) {
+        if (!canSearch) return const SizedBox.shrink();
+        return Row(
+          children: [
+            Expanded(
+              child: _buildPrimaryAction(
+                label: '搜索资源',
+                icon: CupertinoIcons.search,
+                onPressed: isLoading ? null : () => _openSearch(context),
+                backgroundColor: Theme.of(context).colorScheme.secondary,
+              ),
+            ),
+          ],
+        );
+      }
+      final actions = <Widget>[];
+      if (canSubscribe) {
+        actions.add(
+          Expanded(
+            child: _buildSubscribeButton(
+              context,
+              detail,
+              isLoading,
+              movieSubscribed,
+            ),
+          ),
+        );
+      }
+      if (canSearch) {
+        if (actions.isNotEmpty) {
+          actions.add(const SizedBox(width: 12));
+        }
+        actions.add(
+          Expanded(
+            child: _buildPrimaryAction(
+              label: '搜索资源',
+              icon: CupertinoIcons.search,
+              onPressed: isLoading ? null : () => _openSearch(context),
+              backgroundColor: Theme.of(context).colorScheme.secondary,
+            ),
+          ),
+        );
+      }
+      if (actions.isEmpty) {
+        return const SizedBox.shrink();
+      }
+      return Row(children: actions);
     });
   }
 
@@ -1308,11 +1425,19 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
   }
 
   void _openSearch(BuildContext context) async {
+    if (!Get.find<AppService>().canSearch) {
+      ToastUtil.info('当前帐号无资源搜索权限');
+      return;
+    }
     final searchKey = controller.args.path;
     final detail = controller.mediaDetail.value;
-    final season = detail?.season_info?.firstOrNull?.season_number;
     final result = await Get.bottomSheet<({String area, List<int> sites})>(
-      SiteSelectSheet(hasSegment: true),
+      SiteSelectSheet(
+        hasSegment: true,
+        seasons: detail == null ? null : _availableSeasons(detail),
+        mediaSearchKey: searchKey,
+      ),
+      isScrollControlled: true,
     );
     if (result == null) return;
     final (area, sites) = (result.area, result.sites);
@@ -1320,6 +1445,7 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
       ToastUtil.info('请至少选择一个站点');
       return;
     }
+    final selectedSeason = await _loadLastSelectedSeason(searchKey);
     var params = <String, String>{
       'mediaSearchKey': searchKey,
       'area': area,
@@ -1330,10 +1456,43 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
       if ((detail?.backdrop_path ?? '').isNotEmpty)
         'backdrop': detail!.backdrop_path!,
     };
-    if (season != null) {
-      params['season'] = season.toString();
+    if (detail != null && _isTv(detail) && selectedSeason > 0) {
+      params['season'] = selectedSeason.toString();
     }
     Get.toNamed('/search-media-result', parameters: params);
+  }
+
+  Future<int> _loadLastSelectedSeason(String mediaSearchKey) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final baseUrl = Get.find<AppService>().baseUrl ?? 'unknown';
+      final userId = Get.find<AppService>().loginResponse?.userId ?? 0;
+      final key = 'media_search_last_season:$baseUrl:$userId:$mediaSearchKey';
+      return prefs.getInt(key) ?? 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  List<int> _availableSeasons(MediaDetail detail) {
+    final set = <int>{};
+    final seasons = detail.season_info;
+    if (seasons != null && seasons.isNotEmpty) {
+      for (final s in seasons) {
+        final n = s.season_number;
+        if (n != null && n > 0) set.add(n);
+      }
+    }
+    if (set.isEmpty) {
+      final n = detail.number_of_seasons ?? 0;
+      if (n > 0) {
+        for (var i = 1; i <= n; i++) {
+          set.add(i);
+        }
+      }
+    }
+    final list = set.toList()..sort();
+    return list;
   }
 
   String? _tmdbUrl(MediaDetail detail) {
@@ -1433,13 +1592,6 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
       return ImageUtil.convertCacheImageUrl(avatar.normal!);
     }
     return null;
-  }
-
-  String? _resolveCreatedByUrl(CreatedBy creator) {
-    if (creator.profile_path == null || creator.profile_path!.trim().isEmpty) {
-      return "https://image.tmdb.org/t/p/w600_and_h900_bestv2/${creator.profile_path}";
-    }
-    return ImageUtil.convertCacheImageUrl(creator.profile_path!);
   }
 
   MediaDetail _skeletonDetail() {

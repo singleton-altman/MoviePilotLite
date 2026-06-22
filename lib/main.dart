@@ -1,9 +1,8 @@
-import 'package:altman_downloader_control/controller/controller_adaptor.dart';
 import 'package:altman_downloader_control/controller/downloader_config.dart';
+import 'package:moviepilot_mobile/utils/downloader_controller_adaptor.dart';
 import 'package:altman_totp/page/totp_manage_page.dart';
 import 'package:get/get.dart';
 import 'package:flutter/cupertino.dart';
-// import 'package:liquid_tabbar_minimize/liquid_tabbar_minimize.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:moviepilot_mobile/modules/index.dart';
 import 'package:moviepilot_mobile/modules/media_detail/controllers/media_detail_service.dart';
@@ -20,6 +19,7 @@ import 'package:moviepilot_mobile/modules/search/pages/media_search_list_page.da
 import 'package:moviepilot_mobile/modules/search/pages/person_detail_page.dart';
 import 'package:moviepilot_mobile/modules/search/pages/person_search_result_page.dart';
 import 'package:moviepilot_mobile/modules/search/pages/search_media_result_page.dart';
+import 'package:moviepilot_mobile/middlewares/route_permission_middleware.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/ios_shared_session_service.dart';
 import 'package:moviepilot_mobile/services/ios_widget_navigation_service.dart';
@@ -86,6 +86,7 @@ import 'modules/dynamic_form/adapters/plugin_form_adapter_registry.dart';
 import 'modules/dynamic_form/adapters/p115_strm_helper_form_controller.dart';
 import 'modules/dynamic_form/adapters/proxmox_ve_backup_form_controller.dart';
 import 'modules/dynamic_form/adapters/trash_clean_form_controller.dart';
+import 'modules/dynamic_form/widgets/VueStyle/applitepush/app_lite_push_widgets.dart';
 import 'modules/dynamic_form/widgets/VueStyle/proxmox_ve/proxmox_ve_backup_widgets.dart';
 import 'modules/dynamic_form/controllers/dynamic_form_controller.dart';
 import 'modules/dynamic_form/pages/dynamic_form_page.dart';
@@ -130,12 +131,17 @@ import 'modules/file_manager/controllers/file_manager_browser_controller.dart';
 import 'modules/file_manager/pages/file_manager_browser_page.dart';
 import 'package:altman_downloader_control/page/torrent_list_page.dart';
 
+List<GetMiddleware> permissionGuards([String? permissionRoute]) => [
+  RoutePermissionMiddleware(permissionRoute: permissionRoute),
+];
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   Get.put(AppLog());
+  await Get.put(IosWidgetNavigationService()).init();
   await Get.put(JPushService()).init();
   Get.put(AppService());
-  Get.put(RealmService());
+  Get.put(RealmService(), permanent: true);
   Get.put(IosSharedSessionService());
   Get.put(ApiClient());
   Get.put(MediaDetailService());
@@ -143,7 +149,6 @@ Future<void> main() async {
   // 注册 vue 模式插件适配器
   PluginFormAdapterRegistry.register(
     'TrashClean',
-
     ({required formMode}) => TrashCleanFormController(formMode: formMode),
   );
   PluginFormAdapterRegistry.register(
@@ -156,7 +161,7 @@ Future<void> main() async {
   );
 
   registerProxmoxVeBackupRenderer();
-  await Get.put(IosWidgetNavigationService()).init();
+  registerAppLitePushRenderer();
   runApp(const MyApp());
 }
 
@@ -181,7 +186,6 @@ class MyApp extends StatelessWidget {
         initialBinding: AppBinding(),
         initialRoute: '/login',
         navigatorObservers: [
-          // LiquidRouteObserver.instance, // required for instant hide
           // 添加Talker路由观察器
           routeObserver,
         ],
@@ -212,6 +216,7 @@ class MyApp extends StatelessWidget {
             binding: BindingsBuilder(() {
               Get.lazyPut(() => DashboardController());
             }),
+            middlewares: permissionGuards('/background-task-list'),
           ),
           GetPage(
             name: '/profile',
@@ -247,6 +252,7 @@ class MyApp extends StatelessWidget {
             binding: BindingsBuilder(() {
               Get.lazyPut(() => SystemMessageController());
             }),
+            middlewares: permissionGuards('/system-message'),
           ),
           GetPage(
             name: '/cache',
@@ -261,6 +267,7 @@ class MyApp extends StatelessWidget {
             binding: BindingsBuilder(() {
               Get.lazyPut(() => SearchResultController());
             }),
+            middlewares: permissionGuards('/search-result'),
           ),
           GetPage(
             name: '/search-media-result',
@@ -269,10 +276,10 @@ class MyApp extends StatelessWidget {
               final args = Get.parameters;
               Get.lazyPut(() {
                 final c = SearchMediaController();
-                c.searchType = switch (args['type'] ?? 'title') {
+                c.searchType = switch (args['type'] ?? 'media') {
                   'media' => SearchType.media,
                   'title' => SearchType.title,
-                  _ => SearchType.title,
+                  _ => SearchType.media,
                 };
                 c.mediaSearchKey = args['mediaSearchKey'] ?? '';
                 c.area = args['area'] ?? 'title';
@@ -291,6 +298,7 @@ class MyApp extends StatelessWidget {
                 return c;
               });
             }),
+            middlewares: permissionGuards('/search-media-result'),
           ),
           GetPage(
             name: '/media-search-list',
@@ -298,13 +306,22 @@ class MyApp extends StatelessWidget {
             binding: BindingsBuilder(() {
               final args = Get.arguments;
               final params = Get.parameters;
+              final paramKw = params['keyword']?.trim();
               String? keyword;
-              if (args is Map && args['keyword'] != null) {
+              if (paramKw != null && paramKw.isNotEmpty) {
+                keyword = paramKw;
+              } else if (args is Map && args['keyword'] != null) {
                 keyword = args['keyword']?.toString();
-              } else if (params.containsKey('keyword')) {
-                keyword = params['keyword'];
               }
-              String? type = params['type'] ?? args['type'];
+              var type = params['type'];
+              if ((type == null || type.isEmpty) &&
+                  args is Map &&
+                  args['type'] != null) {
+                type = args['type']?.toString();
+              }
+              if (Get.isRegistered<MediaSearchListController>()) {
+                Get.delete<MediaSearchListController>();
+              }
               Get.put(
                 MediaSearchListController(
                   initialKeyword: keyword,
@@ -312,6 +329,7 @@ class MyApp extends StatelessWidget {
                 ),
               );
             }),
+            middlewares: permissionGuards('/media-search-list'),
           ),
           GetPage(
             name: '/person-search-list',
@@ -324,6 +342,7 @@ class MyApp extends StatelessWidget {
                 permanent: false,
               );
             }),
+            middlewares: permissionGuards('/person-search-list'),
           ),
           GetPage(
             name: '/person-detail',
@@ -349,6 +368,7 @@ class MyApp extends StatelessWidget {
                 permanent: false,
               );
             }),
+            middlewares: permissionGuards('/subscribe-tv'),
           ),
           GetPage(
             name: '/subscribe-movie',
@@ -359,6 +379,7 @@ class MyApp extends StatelessWidget {
                 permanent: false,
               );
             }),
+            middlewares: permissionGuards('/subscribe-movie'),
           ),
           GetPage(
             name: '/subscribe-popular',
@@ -366,6 +387,7 @@ class MyApp extends StatelessWidget {
             binding: BindingsBuilder(() {
               Get.put(SubscribePopularController(), permanent: false);
             }),
+            middlewares: permissionGuards('/subscribe-popular'),
           ),
           GetPage(
             name: '/subscribe-share',
@@ -377,6 +399,7 @@ class MyApp extends StatelessWidget {
                 permanent: false,
               );
             }),
+            middlewares: permissionGuards('/subscribe-share'),
           ),
           GetPage(
             name: '/subscribe-share-statistics',
@@ -384,6 +407,7 @@ class MyApp extends StatelessWidget {
             binding: BindingsBuilder(() {
               Get.put(SubscribeShareStatisticsController(), permanent: false);
             }),
+            middlewares: permissionGuards('/subscribe-share-statistics'),
           ),
           GetPage(
             name: '/subscribe-calendar',
@@ -391,6 +415,7 @@ class MyApp extends StatelessWidget {
             binding: BindingsBuilder(() {
               Get.put(SubscribeCalendarController(), permanent: false);
             }),
+            middlewares: permissionGuards('/subscribe-calendar'),
           ),
           GetPage(
             name: '/subscribe-edit',
@@ -407,6 +432,7 @@ class MyApp extends StatelessWidget {
               }
               Get.put(SubscribeEditController(), permanent: false);
             }),
+            middlewares: permissionGuards('/subscribe-edit'),
           ),
           GetPage(
             name: '/media-organize',
@@ -421,6 +447,7 @@ class MyApp extends StatelessWidget {
                 permanent: false,
               );
             }),
+            middlewares: permissionGuards('/media-organize'),
           ),
           GetPage(
             name: '/downloader',
@@ -434,9 +461,10 @@ class MyApp extends StatelessWidget {
             page: () => const DownloaderConfigListPage(),
             binding: BindingsBuilder(() {
               if (!Get.isRegistered<DownloadController>()) {
-                Get.put(DownloadController(), permanent: true);
+                Get.put(DownloadController(), permanent: false);
               }
             }),
+            middlewares: permissionGuards('/downloader-config'),
           ),
           GetPage(
             name: '/downloader-detail',
@@ -467,6 +495,7 @@ class MyApp extends StatelessWidget {
                 Get.put(MediaServerController(), permanent: true);
               }
             }),
+            middlewares: permissionGuards('/mediaserver-config'),
           ),
           GetPage(
             name: '/plugin',
@@ -478,6 +507,7 @@ class MyApp extends StatelessWidget {
               );
               Get.put(PluginController(), permanent: false);
             }),
+            middlewares: permissionGuards('/plugin'),
           ),
           GetPage(
             name: '/plugin/dynamic-form/log',
@@ -494,6 +524,7 @@ class MyApp extends StatelessWidget {
                   ..title = title,
               );
             }),
+            middlewares: permissionGuards('/plugin/dynamic-form/log'),
           ),
           GetPage(
             name: '/plugin-list',
@@ -505,6 +536,7 @@ class MyApp extends StatelessWidget {
               );
               Get.put(PluginListController(), permanent: false);
             }),
+            middlewares: permissionGuards('/plugin-list'),
           ),
           GetPage(
             name: '/media-detail',
@@ -546,14 +578,19 @@ class MyApp extends StatelessWidget {
                 permanent: false,
               );
             }),
+            middlewares: permissionGuards('/recommend-category-list'),
           ),
 
           GetPage(
             name: '/site',
             page: () => const SitePage(),
             binding: BindingsBuilder(() {
-              Get.lazyPut(() => SiteController());
+              if (!Get.isRegistered<SiteController>()) {
+                final controller = Get.put(SiteController(), permanent: true);
+                controller.ensureInitialized();
+              }
             }),
+            middlewares: permissionGuards('/site'),
           ),
           GetPage(
             name: '/site-resource',
@@ -561,6 +598,7 @@ class MyApp extends StatelessWidget {
             binding: BindingsBuilder(() {
               Get.lazyPut(() => SiteResourceController());
             }),
+            middlewares: permissionGuards('/site-resource'),
           ),
           GetPage(
             name: '/site-detail',
@@ -568,6 +606,7 @@ class MyApp extends StatelessWidget {
             binding: BindingsBuilder(() {
               Get.lazyPut(() => SiteDetailController());
             }),
+            middlewares: permissionGuards('/site-detail'),
           ),
           GetPage(
             name: '/site-edit',
@@ -575,6 +614,7 @@ class MyApp extends StatelessWidget {
             binding: BindingsBuilder(() {
               Get.lazyPut(() => SiteEditController());
             }),
+            middlewares: permissionGuards('/site-edit'),
           ),
           GetPage(
             name: '/user-management',
@@ -582,6 +622,7 @@ class MyApp extends StatelessWidget {
             binding: BindingsBuilder(() {
               Get.lazyPut(() => UserManagementController());
             }),
+            middlewares: permissionGuards('/user-management'),
           ),
           GetPage(
             name: '/storage-list',
@@ -591,6 +632,7 @@ class MyApp extends StatelessWidget {
                 Get.put(StorageListController(), permanent: true);
               }
             }),
+            middlewares: permissionGuards('/storage-list'),
           ),
           GetPage(
             name: '/directory-list',
@@ -600,6 +642,7 @@ class MyApp extends StatelessWidget {
                 Get.put(DirectoryListController(), permanent: true);
               }
             }),
+            middlewares: permissionGuards('/directory-list'),
           ),
           GetPage(
             name: '/settings',
@@ -607,6 +650,7 @@ class MyApp extends StatelessWidget {
             binding: BindingsBuilder(() {
               Get.lazyPut(() => SettingsController());
             }),
+            middlewares: permissionGuards('/settings'),
           ),
           GetPage(
             name: '/settings/:category',
@@ -622,10 +666,12 @@ class MyApp extends StatelessWidget {
                 ),
               );
             }),
+            middlewares: permissionGuards('/settings'),
           ),
           GetPage(
             name: '/settings/detail',
             page: () => const SettingsDetailPlaceholderPage(),
+            middlewares: permissionGuards('/settings'),
           ),
           GetPage(
             name: '/settings/system/basic',
@@ -633,6 +679,7 @@ class MyApp extends StatelessWidget {
             binding: BindingsBuilder(() {
               Get.lazyPut(() => SettingsBasicController());
             }),
+            middlewares: permissionGuards('/settings/system/basic'),
           ),
           GetPage(
             name: '/settings/search/basic',
@@ -640,6 +687,7 @@ class MyApp extends StatelessWidget {
             binding: BindingsBuilder(() {
               Get.lazyPut(() => SettingsSearchDownloadController());
             }),
+            middlewares: permissionGuards('/settings/search/basic'),
           ),
           GetPage(
             name: '/settings/advanced/detail',
@@ -647,6 +695,7 @@ class MyApp extends StatelessWidget {
             binding: BindingsBuilder(() {
               Get.lazyPut(() => SettingsAdvancedDetailController());
             }),
+            middlewares: permissionGuards('/settings/advanced/detail'),
           ),
           GetPage(
             name: '/organize-scrape',
@@ -654,6 +703,7 @@ class MyApp extends StatelessWidget {
             binding: BindingsBuilder(() {
               Get.lazyPut(() => SettingsOrganizeScrapeController());
             }),
+            middlewares: permissionGuards('/organize-scrape'),
           ),
           GetPage(
             name: '/site-sync',
@@ -661,6 +711,7 @@ class MyApp extends StatelessWidget {
             binding: BindingsBuilder(() {
               Get.lazyPut(() => SettingsSiteSyncController());
             }),
+            middlewares: permissionGuards('/site-sync'),
           ),
           GetPage(
             name: '/site-options',
@@ -668,6 +719,7 @@ class MyApp extends StatelessWidget {
             binding: BindingsBuilder(() {
               Get.lazyPut(() => SettingsSiteOptionsController());
             }),
+            middlewares: permissionGuards('/site-options'),
           ),
           GetPage(
             name: '/custom-rule',
@@ -675,6 +727,7 @@ class MyApp extends StatelessWidget {
             binding: BindingsBuilder(() {
               Get.lazyPut(() => RuleController(ruleType: RuleType.custom));
             }),
+            middlewares: permissionGuards('/custom-rule'),
           ),
           GetPage(
             name: '/priority-rule',
@@ -682,6 +735,7 @@ class MyApp extends StatelessWidget {
             binding: BindingsBuilder(() {
               Get.lazyPut(() => RuleController(ruleType: RuleType.priority));
             }),
+            middlewares: permissionGuards('/priority-rule'),
           ),
           GetPage(
             name: '/download-rule',
@@ -689,6 +743,7 @@ class MyApp extends StatelessWidget {
             binding: BindingsBuilder(() {
               Get.lazyPut(() => RuleController(ruleType: RuleType.download));
             }),
+            middlewares: permissionGuards('/download-rule'),
           ),
           GetPage(
             name: '/workflow',
@@ -696,6 +751,7 @@ class MyApp extends StatelessWidget {
             binding: BindingsBuilder(() {
               Get.lazyPut(() => WorkflowController());
             }),
+            middlewares: permissionGuards('/workflow'),
           ),
           GetPage(
             name: '/file-manager',
@@ -723,6 +779,7 @@ class MyApp extends StatelessWidget {
                 permanent: false,
               );
             }),
+            middlewares: permissionGuards('/file-manager'),
           ),
           GetPage(
             name: '/plugin/dynamic-form/page',
@@ -742,6 +799,7 @@ class MyApp extends StatelessWidget {
                 tag: 'page',
               );
             }),
+            middlewares: permissionGuards('/plugin/dynamic-form/page'),
           ),
           GetPage(
             name: '/plugin/dynamic-form/form',
@@ -762,6 +820,7 @@ class MyApp extends StatelessWidget {
                 tag: 'form',
               );
             }),
+            middlewares: permissionGuards('/plugin/dynamic-form/form'),
           ),
           GetPage(
             name: '/web-view',
@@ -778,6 +837,7 @@ class MyApp extends StatelessWidget {
             binding: BindingsBuilder(() {
               Get.lazyPut(() => AppSettingController());
             }),
+            middlewares: permissionGuards('/settings/app/theme-mode'),
           ),
           GetPage(
             name: '/settings/app/background-image',
@@ -785,6 +845,7 @@ class MyApp extends StatelessWidget {
             binding: BindingsBuilder(() {
               Get.lazyPut(() => AppSettingController());
             }),
+            middlewares: permissionGuards('/settings/app/background-image'),
           ),
           GetPage(
             name: '/settings/app/app-setting',
@@ -792,15 +853,18 @@ class MyApp extends StatelessWidget {
             binding: BindingsBuilder(() {
               Get.lazyPut(() => AppSettingController());
             }),
+            middlewares: permissionGuards('/settings/app/app-setting'),
           ),
           GetPage(
             name: '/settings/app/changelog',
             page: () => const ChangelogPage(),
+            middlewares: permissionGuards('/settings/app/changelog'),
           ),
           GetPage(
             name: '/app/log',
             page: () =>
                 TalkerScreen(talker: talker.talker, appBarTitle: 'App日志'),
+            middlewares: permissionGuards('/app/log'),
           ),
         ],
         // 配置错误处理

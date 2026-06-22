@@ -3,10 +3,13 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:moviepilot_mobile/modules/login/models/login_profile.dart';
 import 'package:moviepilot_mobile/modules/multifunction/models/multifunction_config.dart';
 import 'package:moviepilot_mobile/modules/multifunction/models/multifunction_models.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
+import 'package:moviepilot_mobile/services/realm_service.dart';
+import 'package:moviepilot_mobile/utils/image_util.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -148,6 +151,13 @@ class MultifunctionController extends GetxController {
   Timer? _downloaderPollingTimer;
   var _isRefreshingDownloader = false;
 
+  bool get canAccessDiscovery => _appService.canDiscovery;
+  bool get canAccessSearch => _appService.canSearch;
+  bool get canAccessSubscribe => _appService.canSubscribe;
+  bool get canAccessManage => _appService.canManage;
+  bool get canAccessSystemSettings => _appService.canAccessRoute('/settings');
+  bool get canAccessUserManagement => _appService.isSuperuser;
+
   @override
   void onInit() {
     super.onInit();
@@ -179,53 +189,74 @@ class MultifunctionController extends GetxController {
       siteDataReady.value = false;
 
       List<Map<String, dynamic>> subscribes = const [];
-      try {
-        subscribes = await _fetchSubscribeItems();
-        subscribeDataReady.value = true;
-      } catch (_) {
-        subscribes = const [];
-        subscribeDataReady.value = false;
-      }
-      _buildSubscribeInfo(subscribes);
-      try {
-        await _buildCalendarInfo(subscribes);
-        calendarDataReady.value = true;
-      } catch (_) {
+      if (canAccessSubscribe) {
+        try {
+          subscribes = await _fetchSubscribeItems();
+          subscribeDataReady.value = true;
+        } catch (_) {
+          subscribes = const [];
+          subscribeDataReady.value = false;
+        }
+        _buildSubscribeInfo(subscribes);
+        try {
+          await _buildCalendarInfo(subscribes);
+          calendarDataReady.value = true;
+        } catch (_) {
+          calendarInfo.value = const CalendarDashboardInfo();
+          calendarDataReady.value = false;
+        }
+      } else {
+        subscribeInfo.value = const SubscribeDashboardInfo();
         calendarInfo.value = const CalendarDashboardInfo();
-        calendarDataReady.value = false;
       }
-      await Future.wait([
+      final dashboardTasks = <Future<void>>[
         _loadDownloaderInfo()
             .then((ok) => downloaderDataReady.value = ok)
             .catchError((_) => downloaderDataReady.value = false),
-        _loadPluginCount()
-            .then((ok) => pluginDataReady.value = ok)
-            .catchError((_) => pluginDataReady.value = false),
-        _loadUserCount()
-            .then((ok) => userDataReady.value = ok)
-            .catchError((_) => userDataReady.value = false),
-        _loadSiteInfo()
-            .then((ok) => siteDataReady.value = ok)
-            .catchError((_) => siteDataReady.value = false),
-      ]);
+      ];
+      if (canAccessManage) {
+        dashboardTasks.addAll([
+          _loadPluginCount()
+              .then((ok) => pluginDataReady.value = ok)
+              .catchError((_) => pluginDataReady.value = false),
+          _loadUserCount()
+              .then((ok) => userDataReady.value = ok)
+              .catchError((_) => userDataReady.value = false),
+          _loadSiteInfo()
+              .then((ok) => siteDataReady.value = ok)
+              .catchError((_) => siteDataReady.value = false),
+        ]);
+      } else {
+        pluginInstalledCount.value = 0;
+        userCount.value = 0;
+        siteInfo.value = const SiteDashboardInfo();
+      }
+      await Future.wait(dashboardTasks);
     } finally {
       isLoadingDashboard.value = false;
       _startDownloaderPollingIfNeeded();
     }
   }
 
-  void handleTap(MultifunctionItem item) {
-    handleRouteTap(item.route, title: item.title);
+  Future<void> handleTap(MultifunctionItem item) async {
+    await handleRouteTap(item.route, title: item.title);
   }
 
-  void handleRouteTap(String? route, {String? title}) {
+  Future<void> handleRouteTap(String? route, {String? title}) async {
     var targetRoute = route;
+    if (!_appService.canAccessRoute(targetRoute)) {
+      ToastUtil.info(_appService.accessDeniedMessage(targetRoute));
+      return;
+    }
     if (targetRoute == '/downloader' &&
         _appService.enableDownloaderManager.value) {
       targetRoute = '/downloader-config';
     }
     if (targetRoute != null && targetRoute.isNotEmpty) {
-      Get.toNamed(targetRoute);
+      await Get.toNamed(targetRoute);
+      if (!isClosed) {
+        await refreshDashboard();
+      }
       return;
     }
     ToastUtil.info('${title ?? '该功能'} 暂未开放');
@@ -247,6 +278,11 @@ class MultifunctionController extends GetxController {
 
   /// 仅刷新多功能页的订阅区数据（电影/剧集计数与海报），避免全量刷新。
   Future<void> refreshSubscribeSection() async {
+    if (!canAccessSubscribe) {
+      subscribeDataReady.value = false;
+      _buildSubscribeInfo(const []);
+      return;
+    }
     try {
       final subscribes = await _fetchSubscribeItems();
       subscribeDataReady.value = true;
@@ -277,18 +313,86 @@ class MultifunctionController extends GetxController {
     }
   }
 
+  String? _normalizeUsername(String? value) {
+    final normalized = value?.trim();
+    if (normalized == null || normalized.isEmpty) return null;
+    return normalized.toLowerCase();
+  }
+
+  String? _latestProfileUsername() {
+    if (kIsWeb || !Get.isRegistered<RealmService>()) return null;
+    try {
+      final profiles =
+          Get.find<RealmService>().realm.all<LoginProfile>().toList()
+            ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      if (profiles.isEmpty) return null;
+      return _normalizeUsername(profiles.first.username);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Set<String> _currentUsernames() {
+    final usernames = <String>{};
+
+    final profileUsername = _latestProfileUsername();
+    if (profileUsername != null) {
+      usernames.add(profileUsername);
+    }
+
+    final loginUsername = _normalizeUsername(
+      _appService.loginResponse?.userName,
+    );
+    if (loginUsername != null) {
+      usernames.add(loginUsername);
+    }
+
+    final userInfoName = _normalizeUsername(_appService.userInfo?.name);
+    if (userInfoName != null) {
+      usernames.add(userInfoName);
+    }
+
+    return usernames;
+  }
+
+  bool _matchesCurrentUser(
+    Map<String, dynamic> item,
+    Set<String> currentUsernames,
+  ) {
+    if (_appService.isSuperuser) return true;
+    if (currentUsernames.isEmpty) return true;
+    final itemUsername = _normalizeUsername(item['username']?.toString());
+    if (itemUsername == null) return false;
+    return currentUsernames.contains(itemUsername);
+  }
+
+  String? _getToken() =>
+      _appService.loginResponse?.accessToken ??
+      _appService.latestLoginProfileAccessToken ??
+      _apiClient.token;
+
   Future<List<Map<String, dynamic>>> _fetchSubscribeItems() async {
-    final response = await _apiClient.get<dynamic>('/api/v1/subscribe/');
+    final response = await _apiClient.get<dynamic>(
+      '/api/v1/subscribe/',
+      token: _getToken(),
+    );
     final status = response.statusCode ?? 0;
     if (status >= 400) {
       throw Exception('subscribe request failed');
     }
+    final currentUsernames = _currentUsernames();
     final raw = response.data;
     if (raw is List) {
-      return raw.whereType<Map<String, dynamic>>().toList();
+      return raw
+          .whereType<Map<String, dynamic>>()
+          .where((item) => _matchesCurrentUser(item, currentUsernames))
+          .toList();
     }
     if (raw is Map<String, dynamic> && raw['data'] is List) {
-      return (raw['data'] as List).whereType<Map<String, dynamic>>().toList();
+      return (raw['data'] as List)
+          .whereType<Map<String, dynamic>>()
+          .where((item) => _matchesCurrentUser(item, currentUsernames))
+          .toList();
     }
     return const [];
   }
@@ -345,6 +449,7 @@ class MultifunctionController extends GetxController {
       final poster = normalizePoster((item['poster']?.toString() ?? '').trim());
       final response = await _apiClient.get<dynamic>(
         '/api/v1/tmdb/$tmdbId/$season',
+        token: _getToken(),
       );
       final status = response.statusCode ?? 0;
       if (status >= 400) continue;
@@ -371,7 +476,9 @@ class MultifunctionController extends GetxController {
           todayEntries.add(entry);
         }
         if (date.compareTo(weekEndStr) <= 0) {
-          weekCount++;
+          if (date != todayStr) {
+            weekCount++;
+          }
           weekEntries.add(entry);
         }
       }
@@ -382,11 +489,14 @@ class MultifunctionController extends GetxController {
       if (cmp != 0) return cmp;
       return a.episodeCode.compareTo(b.episodeCode);
     });
+    final upcomingWeekEntries = weekEntries
+        .where((entry) => entry.airDate != todayStr)
+        .toList();
     calendarInfo.value = CalendarDashboardInfo(
       todayCount: todayCount,
       weekCount: weekCount,
       todayItems: todayEntries.take(3).toList(),
-      weekItems: weekEntries.take(4).toList(),
+      weekItems: upcomingWeekEntries.take(4).toList(),
     );
   }
 
@@ -443,6 +553,10 @@ class MultifunctionController extends GetxController {
   }
 
   Future<bool> _loadPluginCount() async {
+    if (!canAccessManage) {
+      pluginInstalledCount.value = 0;
+      return false;
+    }
     final response = await _apiClient.get<dynamic>(
       '/api/v1/plugin/',
       queryParameters: {'state': 'installed'},
@@ -461,6 +575,10 @@ class MultifunctionController extends GetxController {
   }
 
   Future<bool> _loadUserCount() async {
+    if (!canAccessManage) {
+      userCount.value = 0;
+      return false;
+    }
     final response = await _apiClient.get<dynamic>('/api/v1/user/');
     if ((response.statusCode ?? 0) >= 400) {
       userCount.value = 0;
@@ -476,6 +594,10 @@ class MultifunctionController extends GetxController {
   }
 
   Future<bool> _loadSiteInfo() async {
+    if (!canAccessManage) {
+      siteInfo.value = const SiteDashboardInfo();
+      return false;
+    }
     final siteResp = await _apiClient.get<dynamic>('/api/v1/site/');
     var count = 0;
     var siteOk = false;
@@ -527,13 +649,16 @@ class MultifunctionController extends GetxController {
   String normalizePoster(String raw) {
     final trimmed = raw.trim();
     if (trimmed.isEmpty) return '';
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-      return trimmed;
-    }
-    if (trimmed.startsWith('/')) {
-      return 'https://image.tmdb.org/t/p/w300$trimmed';
-    }
-    return trimmed;
+    final url = ImageUtil.convertCacheImageUrl(raw);
+    return url.isNotEmpty ? url : trimmed;
+
+    // if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    //   return trimmed;
+    // }
+    // if (trimmed.startsWith('/')) {
+    //   return 'https://image.tmdb.org/t/p/w300$trimmed';
+    // }
+    // return trimmed;
   }
 
   int _asInt(dynamic value) {
@@ -568,6 +693,7 @@ class MultifunctionController extends GetxController {
         .toList();
     final allItems = multifunctionSections
         .expand((section) => section.items)
+        .where((item) => _appService.canAccessRoute(item.route))
         .toList();
     final modules = allItems.map((item) {
       final route = item.route ?? '';
@@ -647,16 +773,6 @@ class MultifunctionController extends GetxController {
                 '上传 ${_formatSize(infoSite.totalUpload)} / 下载 ${_formatSize(infoSite.totalDownload)}',
             hasData: siteDataReady.value,
           );
-        case '/search-result':
-          return DashboardModuleViewModel(
-            title: item.title,
-            route: route,
-            icon: item.icon,
-            accent: item.accent,
-            primaryText: '快速查看近期搜索',
-            secondaryText: item.subtitle ?? '支持关键词和结果回看',
-            hasData: false,
-          );
         default:
           return DashboardModuleViewModel(
             title: item.title,
@@ -679,7 +795,6 @@ class MultifunctionController extends GetxController {
   }
 
   static const List<String> _dashboardOrder = [
-    '/search-result',
     '/subscribe-movie',
     '/subscribe-tv',
     '/subscribe-calendar',

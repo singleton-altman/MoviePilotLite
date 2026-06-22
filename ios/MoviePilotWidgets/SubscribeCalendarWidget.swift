@@ -7,9 +7,11 @@ private enum SharedSessionConfig {
   static let appGroup = "group.com.altman.moviepilot.shared"
   static let serverKey = "shared_server_url"
   static let tokenKey = "shared_access_token"
+  static let siteWidgetPayloadKey = "shared_site_widget_payload"
 }
 
 private let widgetLog = Logger(subsystem: "com.altman.moviepilot", category: "widgets")
+private let systemMessageWidgetURL = URL(string: "moviepilot://system-message")
 
 private struct SharedSession {
   let server: String
@@ -1014,6 +1016,780 @@ private struct RecommendTrendingService {
     }
     return nil
   }
+}
+
+struct SiteWidgetPayloadDTO: Decodable {
+  let updatedAt: String?
+  let summary: SiteWidgetSummaryDTO
+  let sites: [SiteWidgetSiteDTO]
+}
+
+struct SiteWidgetSummaryDTO: Decodable {
+  let totalSites: Int
+  let enabledSites: Int
+  let sitesWithUserData: Int
+  let warningSites: Int
+  let unreadMessages: Int
+  let totalUpload: Int
+  let totalDownload: Int
+  let totalSeeding: Int
+  let totalSeedingSize: Int
+  let totalBonus: Double
+}
+
+struct SiteWidgetSiteDTO: Decodable, Identifiable {
+  let id: Int
+  let name: String
+  let domain: String
+  let priority: Int
+  let iconBase64: String?
+  let isActive: Bool
+  let hasIssue: Bool
+  let errorMessage: String
+  let messageUnread: Int
+  let upload: Int
+  let download: Int
+  let ratio: Double
+  let seeding: Int
+  let seedingSize: Int
+  let bonus: Double
+  let updatedDay: String
+  let updatedTime: String
+
+  var iconData: Data? {
+    guard let iconBase64, !iconBase64.isEmpty else { return nil }
+    var normalized = iconBase64
+    if let commaIndex = normalized.firstIndex(of: ",") {
+      normalized = String(normalized[normalized.index(after: commaIndex)...])
+    }
+    return Data(base64Encoded: normalized)
+  }
+
+  var badgeText: String? {
+    if hasIssue {
+      return errorMessage.isEmpty ? "异常" : "告警"
+    }
+    if messageUnread > 0 {
+      return "未读 \(messageUnread)"
+    }
+    return nil
+  }
+
+  var badgeColor: Color {
+    if hasIssue {
+      return .red
+    }
+    if messageUnread > 0 {
+      return .orange
+    }
+    return .secondary
+  }
+
+}
+
+struct SiteOverviewEntry: TimelineEntry {
+  let date: Date
+  let state: State
+
+  enum State {
+    case loaded(SiteWidgetPayloadDTO)
+    case empty(String)
+    case failed(String)
+  }
+}
+
+struct SiteOverviewProvider: TimelineProvider {
+  func placeholder(in context: Context) -> SiteOverviewEntry {
+    SiteOverviewEntry(
+      date: Date(),
+      state: .loaded(
+        SiteWidgetPayloadDTO(
+          updatedAt: "2026-04-08T12:00:00Z",
+          summary: SiteWidgetSummaryDTO(
+            totalSites: 12,
+            enabledSites: 11,
+            sitesWithUserData: 10,
+            warningSites: 2,
+            unreadMessages: 6,
+            totalUpload: 912_680_550_400,
+            totalDownload: 274_877_906_944,
+            totalSeeding: 86,
+            totalSeedingSize: 549_755_813_888,
+            totalBonus: 12345.6
+          ),
+          sites: [
+            SiteWidgetSiteDTO(
+              id: 1,
+              name: "Audience",
+              domain: "audiences.me",
+              priority: 1,
+              iconBase64: nil,
+              isActive: true,
+              hasIssue: false,
+              errorMessage: "",
+              messageUnread: 3,
+              upload: 268_435_456_000,
+              download: 64_424_509_440,
+              ratio: 4.17,
+              seeding: 12,
+              seedingSize: 137_438_953_472,
+              bonus: 2350,
+              updatedDay: "2026-04-08",
+              updatedTime: "08:00:00"
+            ),
+            SiteWidgetSiteDTO(
+              id: 2,
+              name: "OpenCD",
+              domain: "open.cd",
+              priority: 2,
+              iconBase64: nil,
+              isActive: true,
+              hasIssue: true,
+              errorMessage: "登录状态失效",
+              messageUnread: 0,
+              upload: 171_798_691_840,
+              download: 42_949_672_960,
+              ratio: 4.00,
+              seeding: 8,
+              seedingSize: 85_899_345_920,
+              bonus: 1880,
+              updatedDay: "2026-04-08",
+              updatedTime: "08:10:00"
+            ),
+            SiteWidgetSiteDTO(
+              id: 3,
+              name: "HDHome",
+              domain: "hdhome.org",
+              priority: 3,
+              iconBase64: nil,
+              isActive: true,
+              hasIssue: false,
+              errorMessage: "",
+              messageUnread: 1,
+              upload: 128_849_018_880,
+              download: 34_359_738_368,
+              ratio: 3.75,
+              seeding: 15,
+              seedingSize: 103_079_215_104,
+              bonus: 1520,
+              updatedDay: "2026-04-08",
+              updatedTime: "08:20:00"
+            ),
+          ]
+        )
+      )
+    )
+  }
+
+  func getSnapshot(in context: Context, completion: @escaping (SiteOverviewEntry) -> Void) {
+    completion(Self.loadEntry())
+  }
+
+  func getTimeline(in context: Context, completion: @escaping (Timeline<SiteOverviewEntry>) -> Void) {
+    let entry = Self.loadEntry()
+    let refreshDate = Calendar.current.date(byAdding: .hour, value: 1, to: Date()) ?? Date().addingTimeInterval(3600)
+    completion(Timeline(entries: [entry], policy: .after(refreshDate)))
+  }
+
+  static func loadEntry() -> SiteOverviewEntry {
+    guard let defaults = UserDefaults(suiteName: SharedSessionConfig.appGroup) else {
+      return SiteOverviewEntry(date: Date(), state: .failed("共享数据不可用"))
+    }
+    guard let raw = defaults.string(forKey: SharedSessionConfig.siteWidgetPayloadKey), !raw.isEmpty else {
+      let message = SharedSessionStore.load() == nil ? "请先登录 MoviePilot" : "正在同步站点数据"
+      return SiteOverviewEntry(date: Date(), state: .empty(message))
+    }
+    do {
+      let payload = try JSONDecoder().decode(SiteWidgetPayloadDTO.self, from: Data(raw.utf8))
+      if payload.sites.isEmpty {
+        return SiteOverviewEntry(date: Date(), state: .empty("暂无站点数据"))
+      }
+      return SiteOverviewEntry(date: Date(), state: .loaded(payload))
+    } catch {
+      widgetLog.error("site overview widget decode failed: \(error.localizedDescription, privacy: .public)")
+      return SiteOverviewEntry(date: Date(), state: .failed("站点数据暂时不可用"))
+    }
+  }
+}
+
+struct SiteOverviewWidget: Widget {
+  let kind = "SiteOverviewWidget"
+
+  var body: some WidgetConfiguration {
+    StaticConfiguration(kind: kind, provider: SiteOverviewProvider()) { entry in
+      SiteOverviewWidgetEntryView(entry: entry)
+        .widgetURL(URL(string: "moviepilot://site-overview"))
+    }
+    .configurationDisplayName("站点概览")
+    .description("展示站点总览与关键站点状态")
+    .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+  }
+}
+
+private struct SiteOverviewWidgetEntryView: View {
+  let entry: SiteOverviewEntry
+  @Environment(\.widgetFamily) private var family
+
+  var body: some View {
+    content
+      .padding(contentPadding)
+      .moviePilotWidgetBackground()
+  }
+
+  private var contentPadding: CGFloat {
+    switch family {
+    case .systemSmall:
+      return 10
+    case .systemMedium:
+      return 11
+    default:
+      return 8
+    }
+  }
+
+  @ViewBuilder
+  private var content: some View {
+    switch entry.state {
+    case .loaded(let payload):
+      loadedView(payload)
+    case .empty(let message):
+      siteMessageView(title: "站点概览", message: message)
+    case .failed(let message):
+      siteMessageView(title: "同步失败", message: message)
+    }
+  }
+
+  @ViewBuilder
+  private func loadedView(_ payload: SiteWidgetPayloadDTO) -> some View {
+    switch family {
+    case .systemSmall:
+      SiteOverviewSmallView(payload: payload)
+    case .systemLarge:
+      SiteOverviewLargeView(payload: payload)
+    default:
+      SiteOverviewMediumView(payload: payload)
+    }
+  }
+
+  private func siteMessageView(title: String, message: String) -> some View {
+    VStack(alignment: .leading, spacing: 10) {
+      Text(title)
+        .font(.system(size: 18, weight: .bold))
+        .foregroundStyle(.primary)
+      Spacer()
+      Text(message)
+        .font(.system(size: 14, weight: .medium))
+        .foregroundStyle(.secondary)
+      Spacer()
+    }
+  }
+}
+
+private struct SiteOverviewSmallView: View {
+  let payload: SiteWidgetPayloadDTO
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 5) {
+      SiteOverviewHeaderView(payload: payload, compact: true)
+      SiteSummaryGrid(
+        items: [
+          SiteSummaryItem(label: "站点", value: "\(payload.summary.totalSites)", tint: .blue),
+          SiteSummaryItem(label: "在线", value: "\(payload.summary.enabledSites)", tint: .green),
+          SiteSummaryItem(label: "告警", value: "\(payload.summary.warningSites)", tint: .red),
+          SiteSummaryItem(
+            label: "消息",
+            value: "\(payload.summary.unreadMessages)",
+            tint: .orange,
+            destination: payload.summary.unreadMessages > 0 ? systemMessageWidgetURL : nil
+          ),
+        ]
+      )
+      Spacer(minLength: 0)
+    }
+  }
+}
+
+private struct SiteOverviewMediumView: View {
+  let payload: SiteWidgetPayloadDTO
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 5) {
+      SiteOverviewHeaderView(payload: payload)
+      SiteSummaryGrid(
+        items: [
+          SiteSummaryItem(label: "站点", value: "\(payload.summary.totalSites)", tint: .blue),
+          SiteSummaryItem(label: "在线", value: "\(payload.summary.enabledSites)", tint: .green),
+          SiteSummaryItem(label: "告警", value: "\(payload.summary.warningSites)", tint: .red),
+          SiteSummaryItem(
+            label: "消息",
+            value: "\(payload.summary.unreadMessages)",
+            tint: .orange,
+            destination: payload.summary.unreadMessages > 0 ? systemMessageWidgetURL : nil
+          ),
+        ]
+      )
+      SiteInsetGroup {
+        SiteOverviewDetailRow(
+          title: "总流量",
+          content: {
+            SiteTrafficText(
+              upload: payload.summary.totalUpload,
+              download: payload.summary.totalDownload,
+              compact: true
+            )
+          }
+        )
+        SiteRowDivider(inset: 0)
+        SiteOverviewDetailRow(
+          title: "做种规模",
+          trailingText: "\(payload.summary.totalSeeding) 项 · \(formatBytes(payload.summary.totalSeedingSize))"
+        )
+        SiteRowDivider(inset: 0)
+        SiteOverviewDetailRow(
+          title: "魔力值",
+          trailingText: formatBonus(payload.summary.totalBonus)
+        )
+      }
+    }
+  }
+}
+
+private struct SiteOverviewLargeView: View {
+  let payload: SiteWidgetPayloadDTO
+
+  private var prioritizedSites: [SiteWidgetSiteDTO] {
+    payload.sites.sorted { lhs, rhs in
+      if lhs.priority != rhs.priority {
+        return lhs.priority < rhs.priority
+      }
+      return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
+    }
+  }
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 4) {
+      SiteOverviewHeaderView(payload: payload)
+      SiteSummaryRow(
+        items: [
+          SiteSummaryItem(label: "站点", value: "\(payload.summary.totalSites)", tint: .blue),
+          SiteSummaryItem(label: "在线", value: "\(payload.summary.enabledSites)", tint: .green),
+          SiteSummaryItem(
+            label: "消息",
+            value: "\(payload.summary.unreadMessages)",
+            tint: .orange,
+            destination: payload.summary.unreadMessages > 0 ? systemMessageWidgetURL : nil
+          ),
+          SiteSummaryItem(label: "做种", value: "\(payload.summary.totalSeeding)", tint: .purple),
+        ],
+        compact: true
+      )
+      SiteInsetGroup(horizontalPadding: 8, verticalPadding: 6, rowSpacing: 3) {
+        ForEach(Array(prioritizedSites.prefix(5).enumerated()), id: \.element.id) { index, site in
+          SiteOverviewRow(site: site, compact: true)
+          if index < min(prioritizedSites.count, 5) - 1 {
+            SiteRowDivider(inset: 36, verticalPadding: 1)
+          }
+        }
+      }
+    }
+  }
+}
+
+private struct SiteOverviewHeaderView: View {
+  let payload: SiteWidgetPayloadDTO
+  let compact: Bool
+
+  init(payload: SiteWidgetPayloadDTO, compact: Bool = false) {
+    self.payload = payload
+    self.compact = compact
+  }
+
+  var body: some View {
+    HStack(alignment: .firstTextBaseline, spacing: 6) {
+      Text("站点概览")
+        .font(.system(size: compact ? 12 : 13, weight: .bold))
+        .foregroundStyle(.primary)
+        .lineLimit(1)
+      Text("共 \(payload.summary.totalSites) 个")
+        .font(.system(size: 9, weight: .medium))
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+      Spacer()
+      if payload.summary.unreadMessages > 0 {
+        Link(destination: systemMessageWidgetURL!) {
+          SiteSummaryBadge(
+            label: "消息",
+            value: "\(payload.summary.unreadMessages)",
+            tint: .orange
+          )
+        }
+        .buttonStyle(.plain)
+      }
+    }
+  }
+}
+
+private struct SiteSummaryItem {
+  let label: String
+  let value: String
+  let tint: Color
+  let destination: URL?
+
+  init(label: String, value: String, tint: Color, destination: URL? = nil) {
+    self.label = label
+    self.value = value
+    self.tint = tint
+    self.destination = destination
+  }
+}
+
+private struct SiteSummaryRow: View {
+  let items: [SiteSummaryItem]
+  let compact: Bool
+
+  init(items: [SiteSummaryItem], compact: Bool = false) {
+    self.items = items
+    self.compact = compact
+  }
+
+  var body: some View {
+    HStack(spacing: compact ? 6 : 8) {
+      ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+        SiteSummaryBadge(
+          label: item.label,
+          value: item.value,
+          tint: item.tint,
+          destination: item.destination,
+          compact: compact
+        )
+      }
+    }
+  }
+}
+
+private struct SiteSummaryGrid: View {
+  let items: [SiteSummaryItem]
+
+  private let columns = [
+    GridItem(.flexible(), spacing: 8),
+    GridItem(.flexible(), spacing: 8),
+  ]
+
+  var body: some View {
+    LazyVGrid(columns: columns, spacing: 8) {
+      ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+        SiteSummaryBadge(
+          label: item.label,
+          value: item.value,
+          tint: item.tint,
+          destination: item.destination
+        )
+      }
+    }
+  }
+}
+
+private struct SiteOverviewDetailRow<Content: View>: View {
+  let title: String
+  let trailingText: String?
+  let content: Content?
+
+  init(title: String, trailingText: String) where Content == EmptyView {
+    self.title = title
+    self.trailingText = trailingText
+    self.content = nil
+  }
+
+  init(
+    title: String,
+    @ViewBuilder content: () -> Content
+  ) {
+    self.title = title
+    self.trailingText = nil
+    self.content = content()
+  }
+
+  var body: some View {
+    HStack(alignment: .center, spacing: 12) {
+      Text(title)
+        .font(.system(size: 10, weight: .medium))
+        .foregroundStyle(.secondary)
+      Spacer(minLength: 8)
+      if let content {
+        content
+      } else if let trailingText {
+        Text(trailingText)
+          .font(.system(size: 10, weight: .semibold))
+          .foregroundStyle(.primary)
+          .lineLimit(1)
+      }
+    }
+    .padding(.horizontal, 2)
+    .padding(.vertical, 3)
+  }
+}
+
+private struct SiteSummaryBadge: View {
+  let label: String
+  let value: String
+  let tint: Color
+  let destination: URL?
+  let compact: Bool
+
+  init(label: String, value: String, tint: Color, destination: URL? = nil, compact: Bool = false) {
+    self.label = label
+    self.value = value
+    self.tint = tint
+    self.destination = destination
+    self.compact = compact
+  }
+
+  var body: some View {
+    let content = HStack(spacing: 4) {
+      Text(label)
+        .font(.system(size: compact ? 8 : 9, weight: .medium))
+        .foregroundStyle(.secondary)
+      Text(value)
+        .font(.system(size: compact ? 8 : 9, weight: .semibold))
+        .foregroundStyle(tint)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .padding(.horizontal, compact ? 6 : 8)
+    .padding(.vertical, compact ? 4 : 5)
+    .background(
+      RoundedRectangle(cornerRadius: 11, style: .continuous)
+        .fill(Color(.secondarySystemGroupedBackground))
+    )
+
+    if let destination {
+      Link(destination: destination) {
+        content
+      }
+      .buttonStyle(.plain)
+    } else {
+      content
+    }
+  }
+}
+
+private struct SiteHeroCard: View {
+  let site: SiteWidgetSiteDTO
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      HStack(alignment: .center, spacing: 8) {
+        SiteIconView(site: site, size: 38)
+        VStack(alignment: .leading, spacing: 2) {
+          Text(site.name)
+            .font(.system(size: 15, weight: .bold))
+            .foregroundStyle(.primary)
+            .lineLimit(1)
+          Text(site.domain)
+            .font(.system(size: 10, weight: .medium))
+            .foregroundStyle(.tertiary)
+            .lineLimit(1)
+        }
+        Spacer(minLength: 6)
+        SiteBadge(site: site, destination: site.messageUnread > 0 ? systemMessageWidgetURL : nil)
+      }
+      SiteTrafficText(upload: site.upload, download: site.download, compact: false)
+      if site.hasIssue, !site.errorMessage.isEmpty {
+        Text(site.errorMessage)
+          .font(.system(size: 11, weight: .medium))
+          .foregroundStyle(.red)
+          .lineLimit(1)
+      }
+    }
+    .padding(.horizontal, 12)
+    .padding(.vertical, 10)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(
+      RoundedRectangle(cornerRadius: 18, style: .continuous)
+        .fill(Color(.secondarySystemGroupedBackground))
+    )
+  }
+}
+
+private struct SiteOverviewRow: View {
+  let site: SiteWidgetSiteDTO
+  let compact: Bool
+
+  var body: some View {
+    HStack(alignment: .center, spacing: 9) {
+      SiteIconView(site: site, size: compact ? 28 : 34)
+      VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: 6) {
+          Text(site.name)
+            .font(.system(size: compact ? 12 : 14, weight: .semibold))
+            .foregroundStyle(.primary)
+            .lineLimit(1)
+          SiteBadge(site: site, destination: site.messageUnread > 0 ? systemMessageWidgetURL : nil)
+        }
+        if site.hasIssue, !site.errorMessage.isEmpty {
+          Text(site.errorMessage)
+            .font(.system(size: compact ? 10 : 12, weight: .medium))
+            .foregroundStyle(.red)
+            .lineLimit(1)
+        } else {
+          SiteTrafficText(upload: site.upload, download: site.download, compact: compact)
+        }
+      }
+      Spacer(minLength: 0)
+    }
+    .padding(.horizontal, compact ? 7 : 8)
+    .padding(.vertical, compact ? 6 : 7)
+  }
+}
+
+private struct SiteBadge: View {
+  let site: SiteWidgetSiteDTO
+  let destination: URL?
+
+  init(site: SiteWidgetSiteDTO, destination: URL? = nil) {
+    self.site = site
+    self.destination = destination
+  }
+
+  var body: some View {
+    if let badgeText = site.badgeText {
+      let content = Text(badgeText)
+        .font(.system(size: 10, weight: .semibold))
+        .foregroundStyle(site.badgeColor)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 4)
+        .background(site.badgeColor.opacity(0.12), in: Capsule())
+
+      if let destination {
+        Link(destination: destination) {
+          content
+        }
+        .buttonStyle(.plain)
+      } else {
+        content
+      }
+    }
+  }
+}
+
+private struct SiteInsetGroup<Content: View>: View {
+  @ViewBuilder let content: Content
+  let horizontalPadding: CGFloat
+  let verticalPadding: CGFloat
+  let rowSpacing: CGFloat
+
+  init(
+    horizontalPadding: CGFloat = 12,
+    verticalPadding: CGFloat = 10,
+    rowSpacing: CGFloat = 0,
+    @ViewBuilder content: () -> Content
+  ) {
+    self.horizontalPadding = horizontalPadding
+    self.verticalPadding = verticalPadding
+    self.rowSpacing = rowSpacing
+    self.content = content()
+  }
+
+  var body: some View {
+    VStack(spacing: rowSpacing) {
+      content
+    }
+    .padding(.horizontal, horizontalPadding)
+    .padding(.vertical, verticalPadding)
+    .background(
+      RoundedRectangle(cornerRadius: 18, style: .continuous)
+        .fill(Color(.secondarySystemGroupedBackground))
+    )
+  }
+}
+
+private struct SiteRowDivider: View {
+  let inset: CGFloat
+  let verticalPadding: CGFloat
+
+  init(inset: CGFloat = 46, verticalPadding: CGFloat = 0) {
+    self.inset = inset
+    self.verticalPadding = verticalPadding
+  }
+
+  var body: some View {
+    Divider()
+      .overlay(Color(.separator).opacity(0.35))
+      .padding(.leading, inset)
+      .padding(.vertical, verticalPadding)
+  }
+}
+
+private struct SiteIconView: View {
+  let site: SiteWidgetSiteDTO
+  let size: CGFloat
+
+  var body: some View {
+    ZStack {
+      RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
+        .fill(Color(.tertiarySystemFill))
+      if let data = site.iconData, let uiImage = UIImage(data: data) {
+        Image(uiImage: uiImage)
+          .resizable()
+          .scaledToFill()
+      } else {
+        Image(systemName: site.hasIssue ? "exclamationmark.triangle.fill" : "globe")
+          .font(.system(size: size * 0.42, weight: .semibold))
+          .foregroundStyle(site.badgeColor)
+      }
+    }
+    .frame(width: size, height: size)
+    .clipShape(RoundedRectangle(cornerRadius: size * 0.28, style: .continuous))
+  }
+}
+
+private struct SiteTrafficText: View {
+  let upload: Int
+  let download: Int
+  let compact: Bool
+
+  var body: some View {
+    HStack(spacing: compact ? 6 : 8) {
+      Label {
+        Text(formatBytes(upload))
+          .font(.system(size: compact ? 9 : 11, weight: .semibold))
+          .foregroundStyle(Color(red: 0.12, green: 0.60, blue: 0.33))
+      } icon: {
+        Image(systemName: "arrow.up.right")
+          .font(.system(size: compact ? 9 : 10, weight: .bold))
+          .foregroundStyle(Color(red: 0.12, green: 0.60, blue: 0.33))
+      }
+      Label {
+        Text(formatBytes(download))
+          .font(.system(size: compact ? 9 : 11, weight: .semibold))
+          .foregroundStyle(Color(red: 0.12, green: 0.45, blue: 0.92))
+      } icon: {
+        Image(systemName: "arrow.down.right")
+          .font(.system(size: compact ? 9 : 10, weight: .bold))
+          .foregroundStyle(Color(red: 0.12, green: 0.45, blue: 0.92))
+      }
+    }
+    .lineLimit(1)
+  }
+}
+
+private func formatBytes(_ value: Int) -> String {
+  guard value > 0 else { return "0 B" }
+  let formatter = ByteCountFormatter()
+  formatter.allowedUnits = [.useKB, .useMB, .useGB, .useTB]
+  formatter.countStyle = .binary
+  formatter.includesUnit = true
+  formatter.isAdaptive = true
+  return formatter.string(fromByteCount: Int64(value))
+}
+
+private func formatBonus(_ value: Double) -> String {
+  if value >= 10000 {
+    return String(format: "%.1fk", value / 1000)
+  }
+  if value >= 1000 {
+    return String(format: "%.0f", value)
+  }
+  return String(format: "%.1f", value)
 }
 
 struct RecommendTrendingWidget: Widget {

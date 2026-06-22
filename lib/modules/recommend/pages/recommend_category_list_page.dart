@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/modules/recommend/controllers/recommend_category_list_controller.dart';
 import 'package:moviepilot_mobile/modules/recommend/models/recommend_api_item.dart';
+import 'package:moviepilot_mobile/modules/recommend/widgets/recommend_item_base_card.dart';
 import 'package:moviepilot_mobile/modules/recommend/widgets/recommend_item_card.dart';
+import 'package:moviepilot_mobile/modules/search_result/controllers/search_result_controller.dart';
 import 'package:moviepilot_mobile/theme/app_theme.dart';
 import 'package:moviepilot_mobile/utils/grid_layout.dart';
 import 'package:moviepilot_mobile/utils/http_path_builder_util.dart';
@@ -21,20 +23,19 @@ class RecommendCategoryListPage
   static const double _gridSpacing = 8;
   static const double _gridPadding = 16;
   static const double _cardAspectRatio = 1 / 1.3;
+  static const double _listPosterWidth = 72;
+  static const double _listPosterHeight = 96;
+  static const double _narrowScreenBreakpoint = 600;
+
   @override
   Widget build(BuildContext context) {
     final themeColor = controller.appBarThemeColor;
     if (themeColor == null) {
-      return Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: Get.back,
-          ),
-          title: Text(controller.categoryTitle),
-          centerTitle: false,
+      return Obx(
+        () => Scaffold(
+          appBar: _buildPlainAppBar(context),
+          body: _buildBody(context, immersive: false),
         ),
-        body: _buildBody(context, immersive: false),
       );
     }
 
@@ -42,6 +43,35 @@ class RecommendCategoryListPage
     return Scaffold(
       backgroundColor: bodyColor,
       body: _buildBody(context, immersive: true, bodyColor: bodyColor),
+    );
+  }
+
+  AppBar _buildPlainAppBar(BuildContext context) {
+    final isNarrowScreen =
+        MediaQuery.sizeOf(context).width < _narrowScreenBreakpoint;
+    controller.preferredViewMode.value;
+    final viewMode = controller.resolvedViewMode(
+      isNarrowScreen: isNarrowScreen,
+    );
+    return AppBar(
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        onPressed: Get.back,
+      ),
+      title: Text(controller.categoryTitle),
+      centerTitle: false,
+      actions: [
+        IconButton(
+          tooltip: viewMode == SearchResultViewMode.list ? '切换为网格' : '切换为列表',
+          onPressed: () =>
+              controller.toggleViewMode(isNarrowScreen: isNarrowScreen),
+          icon: Icon(
+            viewMode == SearchResultViewMode.list
+                ? CupertinoIcons.square_grid_2x2
+                : CupertinoIcons.list_bullet,
+          ),
+        ),
+      ],
     );
   }
 
@@ -55,6 +85,12 @@ class RecommendCategoryListPage
       final isLoading = controller.isLoading.value;
       final error = controller.error.value;
       final hasMore = controller.hasMore.value;
+      final isNarrowScreen =
+          MediaQuery.sizeOf(context).width < _narrowScreenBreakpoint;
+      controller.preferredViewMode.value;
+      final viewMode = controller.resolvedViewMode(
+        isNarrowScreen: isNarrowScreen,
+      );
       final layout = gridLayout(
         context,
         gridSpacing: _gridSpacing,
@@ -67,20 +103,26 @@ class RecommendCategoryListPage
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             if (immersive)
-              _buildImmersiveHeader(context, items, bodyColor: bodyColor)
+              _buildImmersiveHeader(
+                context,
+                items,
+                bodyColor: bodyColor,
+                viewMode: viewMode,
+                isNarrowScreen: isNarrowScreen,
+              )
             else
               const SliverToBoxAdapter(child: SizedBox.shrink()),
 
             immersive
                 ? SliverPadding(
-                    padding: EdgeInsetsGeometry.symmetric(
+                    padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 16,
                     ),
                     sliver: SliverToBoxAdapter(
                       child: Text(
                         controller.categoryTitle,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 25,
                           fontWeight: FontWeight.w900,
                           color: Colors.white,
@@ -98,21 +140,9 @@ class RecommendCategoryListPage
               ),
               sliver: Skeletonizer.sliver(
                 enabled: isLoading || items.isEmpty,
-                child: SliverGrid(
-                  delegate: SliverChildBuilderDelegate((context, index) {
-                    final item = items[index];
-                    return RecommendItemCard(
-                      item: item,
-                      onTap: () => _openDetail(item),
-                    );
-                  }, childCount: items.length),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: layout.crossAxisCount,
-                    mainAxisSpacing: _gridSpacing,
-                    crossAxisSpacing: _gridSpacing,
-                    childAspectRatio: _cardAspectRatio,
-                  ),
-                ),
+                child: viewMode == SearchResultViewMode.list
+                    ? _buildListSliver(items)
+                    : _buildGridSliver(items, layout.crossAxisCount),
               ),
             ),
             SliverToBoxAdapter(
@@ -131,10 +161,186 @@ class RecommendCategoryListPage
     });
   }
 
+  Widget _buildGridSliver(List<RecommendApiItem> items, int crossAxisCount) {
+    return SliverGrid(
+      delegate: SliverChildBuilderDelegate((context, index) {
+        final item = items[index];
+        return RecommendItemCard(
+          item: item,
+          onTap: () => _openDetail(item),
+        );
+      }, childCount: items.length),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        mainAxisSpacing: _gridSpacing,
+        crossAxisSpacing: _gridSpacing,
+        childAspectRatio: _cardAspectRatio,
+      ),
+    );
+  }
+
+  Widget _buildListSliver(List<RecommendApiItem> items) {
+    return SliverList(
+      delegate: SliverChildBuilderDelegate((context, index) {
+        final isLast = index == items.length - 1;
+        final item = items[index];
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RecommendItemBaseCard(
+              item: item,
+              child: _buildListRow(item),
+            ),
+            if (!isLast) ...[
+              const SizedBox(height: 10),
+              Divider(
+                height: 1,
+                thickness: 1,
+                color: Colors.white.withValues(alpha: 0.08),
+              ),
+              const SizedBox(height: 10),
+            ],
+          ],
+        );
+      }, childCount: items.length),
+    );
+  }
+
+  Widget _buildListRow(RecommendApiItem item) {
+    final title = _bestTitle(item) ?? '';
+    final year = _displayYear(item);
+    final overview = item.overview?.trim();
+    final type = item.type?.trim();
+    final vote = item.vote_average;
+    final metaChips = <Widget>[
+      if (type != null && type.isNotEmpty) _buildListMetaPill(type),
+      if (year.isNotEmpty)
+        Text(
+          year,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.72),
+            fontSize: 13,
+          ),
+        ),
+      if (vote != null && vote > 0) _buildListMetaPill(vote.toStringAsFixed(1)),
+    ];
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => _openDetail(item),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: _listPoster(item),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        height: 1.25,
+                      ),
+                    ),
+                    if (metaChips.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: metaChips,
+                      ),
+                    ],
+                    if (overview != null && overview.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        overview,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.58),
+                          fontSize: 12,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _listPoster(RecommendApiItem item) {
+    final raw = item.poster_path ?? item.backdrop_path;
+    if (raw != null && raw.isNotEmpty) {
+      return CachedImage(
+        imageUrl: ImageUtil.convertCacheImageUrl(raw),
+        width: _listPosterWidth,
+        height: _listPosterHeight,
+        fit: BoxFit.cover,
+      );
+    }
+    return Container(
+      width: _listPosterWidth,
+      height: _listPosterHeight,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF9FA8DA), Color(0xFF5C6BC0)],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildListMetaPill(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0xFF4C6FFF).withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  String _displayYear(RecommendApiItem item) {
+    final year = item.year?.trim() ?? '';
+    if (year.isNotEmpty) return year;
+    return item.title_year?.trim() ?? '';
+  }
+
   SliverAppBar _buildImmersiveHeader(
     BuildContext context,
     List<RecommendApiItem> items, {
     Color? bodyColor,
+    required SearchResultViewMode viewMode,
+    required bool isNarrowScreen,
   }) {
     final themeColor = controller.appBarThemeColor ?? Colors.black;
     final secondaryColor = controller.appBarSecondaryThemeColor ?? Colors.black;
@@ -147,7 +353,19 @@ class RecommendCategoryListPage
         icon: const Icon(Icons.arrow_back, color: Colors.white),
         onPressed: Get.back,
       ),
-
+      actions: [
+        IconButton(
+          tooltip: viewMode == SearchResultViewMode.list ? '切换为网格' : '切换为列表',
+          onPressed: () =>
+              controller.toggleViewMode(isNarrowScreen: isNarrowScreen),
+          icon: Icon(
+            viewMode == SearchResultViewMode.list
+                ? CupertinoIcons.square_grid_2x2
+                : CupertinoIcons.list_bullet,
+            color: Colors.white,
+          ),
+        ),
+      ],
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
           decoration: BoxDecoration(

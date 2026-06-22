@@ -2,6 +2,15 @@
 
 基于 [MoviePilot](https://github.com/jxxghp/MoviePilot) 项目的 Flutter 移动端客户端。
 
+## 功能预览（Web）
+
+在线体验：[https://web-brown-kappa-21.vercel.app](https://web-brown-kappa-21.vercel.app)
+
+## HarmonyOS（OHOS）
+
+- OHOS 适配在独立分支 `ohos`
+- HAP 需要使用自己的证书进行自签后安装
+
 ## 社区与贡献
 
 - 📱 **Telegram 群聊**：[小白裙](https://t.me/+MLbOpDDD1mdlOTM1)，欢迎加入交流
@@ -66,6 +75,12 @@ Android 用户可参考 iOS TestFlight 用户的使用步骤：
 - **UI风格**: iOS (Cupertino)
 - **数据解析**: Freezed
 - **本地数据库**: Realm
+
+## 开发与 CI 说明
+
+- `altman_downloader_control` 通过 Git 依赖引入，默认跟随仓库远端最新提交。
+- 为避免 GitHub Actions 继续使用 `pubspec.lock` 中旧的 `resolved-ref`，CI 在执行 `flutter pub get` 前会先执行 `flutter pub upgrade altman_downloader_control`。
+- 如果你本地也需要同步该依赖的最新源码，可以手动执行同样的命令后再运行 `flutter pub get`。
 
 ## 许可证
 

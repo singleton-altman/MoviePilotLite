@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:moviepilot_mobile/modules/media_organize/controllers/media_organize_controller.dart';
 import 'package:moviepilot_mobile/modules/media_organize/models/media_organize_models.dart';
+import 'package:moviepilot_mobile/modules/media_organize/widgets/media_organize_detail_sheet.dart';
 import 'package:moviepilot_mobile/modules/media_organize/widgets/media_organize_item_card.dart';
 import 'package:moviepilot_mobile/modules/search_result/widgets/sort_pull_down_widget.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
@@ -415,7 +416,12 @@ class MediaOrganizePage extends GetView<MediaOrganizeController> {
       selected: selectionEnabled && controller.isItemSelected(item),
       onTap: selectionEnabled
           ? () => controller.toggleItemSelection(item)
-          : null,
+          : () => MediaOrganizeDetailSheet.show(
+              context,
+              item: item,
+              srcStorageName: controller.getStorageName(item.src_storage),
+              destStorageName: controller.getStorageName(item.dest_storage),
+            ),
       onSelectionChanged: selectionEnabled
           ? (_) => controller.toggleItemSelection(item)
           : null,

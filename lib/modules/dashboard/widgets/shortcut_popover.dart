@@ -100,7 +100,7 @@ class _ShortcutPopoverState extends State<ShortcutPopover>
             children: [
               // 背景轻微变暗，弱化其他内容
               Container(
-                color: Colors.black26.withOpacity(0.8 * _opacity.value),
+                color: Colors.black26.withValues(alpha: 0.8 * _opacity.value),
               ),
               Positioned(
                 left: left,
@@ -108,10 +108,7 @@ class _ShortcutPopoverState extends State<ShortcutPopover>
                 child: Transform.scale(
                   scale: _scale.value,
                   alignment: Alignment.topLeft,
-                  child: Opacity(
-                    opacity: _opacity.value,
-                    child: child,
-                  ),
+                  child: Opacity(opacity: _opacity.value, child: child),
                 ),
               ),
             ],
@@ -203,4 +200,3 @@ class _ShortcutRow extends StatelessWidget {
     );
   }
 }
-

@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:moviepilot_mobile/modules/site/models/site_icon_cache.dart';
@@ -7,16 +9,19 @@ import 'package:moviepilot_mobile/modules/site/models/site_model_cache.dart';
 import 'package:moviepilot_mobile/modules/site/models/site_models.dart';
 import 'package:moviepilot_mobile/modules/site/models/site_userdata_cache.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
+import 'package:moviepilot_mobile/services/ios_shared_session_service.dart';
 import 'package:moviepilot_mobile/services/realm_service.dart';
 
 class SiteController extends GetxController {
   final _apiClient = Get.find<ApiClient>();
-  final _realm = Get.find<RealmService>().realm.value;
+  final _iosSharedSessionService = Get.find<IosSharedSessionService>();
+  final _realm = Get.find<RealmService>();
   final _log = Get.find<AppLog>();
 
   final items = <SiteItem>[].obs;
   final isLoading = false.obs;
   final errorText = RxnString();
+  bool _didInitialize = false;
 
   /// 可用于 RSS 订阅的站点 ID 集合；null 表示未加载，空集合表示 API 无配置
   final rssSiteIds = Rxn<Set<int>>();
@@ -24,8 +29,14 @@ class SiteController extends GetxController {
   @override
   void onReady() {
     super.onReady();
-    load();
-    loadRssSiteIds();
+    unawaited(ensureInitialized());
+  }
+
+  Future<void> ensureInitialized() async {
+    if (_didInitialize) return;
+    _didInitialize = true;
+    await load();
+    await loadRssSiteIds();
   }
 
   /// 获取可用于 RSS 的站点 ID 列表
@@ -233,16 +244,16 @@ class SiteController extends GetxController {
     merged.sort((a, b) => a.site.pri.compareTo(b.site.pri));
     items.assignAll(merged);
     _saveToCache();
+    await _syncWidgetSnapshot(merged);
     isLoading.value = false;
   }
 
   void loadFromCache() {
-    final realm = _realm;
-    if (realm == null) return;
-    final siteCaches = realm.all<SiteModelCache>();
+    if (kIsWeb) return;
+    final siteCaches = _realm.realm.all<SiteModelCache>();
     if (siteCaches.isEmpty) return;
 
-    final userDataCaches = realm.all<SiteUserDataCache>();
+    final userDataCaches = _realm.realm.all<SiteUserDataCache>();
     final userDataByDomain = <String, SiteUserDataModel>{};
     for (final c in userDataCaches) {
       userDataByDomain[c.domain] = SiteUserDataModel(
@@ -268,7 +279,7 @@ class SiteController extends GetxController {
       );
     }
 
-    final iconCaches = realm.all<SiteIconCache>();
+    final iconCaches = _realm.realm.all<SiteIconCache>();
     final iconBytesByUrl = <String, List<int>>{};
     for (final c in iconCaches) {
       if (c.iconBase64.isEmpty) continue;
@@ -307,9 +318,116 @@ class SiteController extends GetxController {
 
     list.sort((a, b) => a.site.pri.compareTo(b.site.pri));
     items.assignAll(list);
+    unawaited(_syncWidgetSnapshot(list));
+  }
+
+  Future<void> _syncWidgetSnapshot(List<SiteItem> sourceItems) async {
+    if (sourceItems.isEmpty) return;
+    try {
+      await _iosSharedSessionService.syncSiteWidgetPayload(
+        jsonEncode(_buildWidgetPayload(sourceItems)),
+      );
+    } catch (e, st) {
+      _log.handle(e, stackTrace: st, message: '同步 iOS 站点组件数据失败');
+    }
+  }
+
+  Map<String, dynamic> _buildWidgetPayload(List<SiteItem> sourceItems) {
+    final summarySites = List<SiteItem>.from(sourceItems)
+      ..sort((a, b) {
+        final aIssue = _hasSiteIssue(a) ? 1 : 0;
+        final bIssue = _hasSiteIssue(b) ? 1 : 0;
+        if (aIssue != bIssue) return bIssue.compareTo(aIssue);
+
+        final aUnread = a.userData?.messageUnread ?? 0;
+        final bUnread = b.userData?.messageUnread ?? 0;
+        if (aUnread != bUnread) return bUnread.compareTo(aUnread);
+
+        final aUpload = a.userData?.upload ?? 0;
+        final bUpload = b.userData?.upload ?? 0;
+        if (aUpload != bUpload) return bUpload.compareTo(aUpload);
+
+        return a.site.pri.compareTo(b.site.pri);
+      });
+
+    return {
+      'updatedAt': DateTime.now().toUtc().toIso8601String(),
+      'summary': {
+        'totalSites': sourceItems.length,
+        'enabledSites': sourceItems.where((item) => item.site.isActive).length,
+        'sitesWithUserData': sourceItems
+            .where((item) => item.userData != null)
+            .length,
+        'warningSites': sourceItems.where(_hasSiteIssue).length,
+        'unreadMessages': sourceItems.fold<int>(
+          0,
+          (sum, item) => sum + (item.userData?.messageUnread ?? 0),
+        ),
+        'totalUpload': sourceItems.fold<int>(
+          0,
+          (sum, item) => sum + (item.userData?.upload ?? 0),
+        ),
+        'totalDownload': sourceItems.fold<int>(
+          0,
+          (sum, item) => sum + (item.userData?.download ?? 0),
+        ),
+        'totalSeeding': sourceItems.fold<int>(
+          0,
+          (sum, item) => sum + (item.userData?.seeding ?? 0),
+        ),
+        'totalSeedingSize': sourceItems.fold<int>(
+          0,
+          (sum, item) => sum + (item.userData?.seedingSize ?? 0),
+        ),
+        'totalBonus': sourceItems.fold<double>(
+          0,
+          (sum, item) => sum + (item.userData?.bonus ?? 0),
+        ),
+      },
+      'sites': summarySites.map((item) {
+        final userData = item.userData;
+        final iconBase64 = _siteIconBase64(item);
+        return {
+          'id': item.site.id,
+          'name': item.site.name,
+          'domain': item.site.domain,
+          'priority': item.site.pri,
+          'iconBase64': iconBase64,
+          'isActive': item.site.isActive,
+          'hasIssue': _hasSiteIssue(item),
+          'errorMessage': (userData?.errMsg ?? '').trim(),
+          'messageUnread': userData?.messageUnread ?? 0,
+          'upload': userData?.upload ?? 0,
+          'download': userData?.download ?? 0,
+          'ratio': userData?.ratio ?? 0,
+          'seeding': userData?.seeding ?? 0,
+          'seedingSize': userData?.seedingSize ?? 0,
+          'bonus': userData?.bonus ?? 0,
+          'updatedDay': userData?.updatedDay ?? '',
+          'updatedTime': userData?.updatedTime ?? '',
+        };
+      }).toList(),
+    };
+  }
+
+  bool _hasSiteIssue(SiteItem item) {
+    if (!item.site.isActive) return true;
+    final errMsg = (item.userData?.errMsg ?? '').trim();
+    return errMsg.isNotEmpty;
+  }
+
+  String? _siteIconBase64(SiteItem item) {
+    final inlineBase64 = item.iconBase64?.trim();
+    if (inlineBase64 != null && inlineBase64.isNotEmpty) {
+      return inlineBase64;
+    }
+    final bytes = item.iconBytes;
+    if (bytes == null || bytes.isEmpty) return null;
+    return base64Encode(bytes);
   }
 
   void _saveToCache() {
+    if (kIsWeb) return;
     final siteCaches = items.map((item) {
       final s = item.site;
       return SiteModelCache(
@@ -363,13 +481,12 @@ class SiteController extends GetxController {
       );
     }
     final userDataCaches = userDataByDomain.values.toList();
-    final realm = _realm;
-    if (realm == null) return;
-    realm.write(() {
-      realm.deleteAll<SiteModelCache>();
-      realm.deleteAll<SiteUserDataCache>();
-      realm.addAll(siteCaches, update: true);
-      realm.addAll(userDataCaches, update: true);
+
+    _realm.realm.write(() {
+      _realm.realm.deleteAll<SiteModelCache>();
+      _realm.realm.deleteAll<SiteUserDataCache>();
+      _realm.realm.addAll(siteCaches, update: true);
+      _realm.realm.addAll(userDataCaches, update: true);
     });
   }
 
@@ -378,9 +495,11 @@ class SiteController extends GetxController {
     final url = site.url;
     if (url.isEmpty) return _fetchIconBytesFromApi(site.id, url);
 
-    final realm = _realm;
-    if (realm == null) return null;
-    final cached = realm.find<SiteIconCache>(url);
+    if (kIsWeb) {
+      return _fetchIconBytesFromApi(site.id, url);
+    }
+
+    final cached = _realm.realm.find<SiteIconCache>(url);
     if (cached != null && cached.iconBase64.isNotEmpty) {
       return _decodeBase64ToBytes(cached.iconBase64);
     }
@@ -427,11 +546,9 @@ class SiteController extends GetxController {
       final bytes = base64Decode(base64);
       if (bytes.isEmpty) return null;
 
-      if (siteUrl.isNotEmpty) {
-        final realm = _realm;
-        if (realm == null) return null;
-        realm.write(() {
-          realm.add(SiteIconCache(siteUrl, base64), update: true);
+      if (!kIsWeb && siteUrl.isNotEmpty) {
+        _realm.realm.write(() {
+          _realm.realm.add(SiteIconCache(siteUrl, base64), update: true);
         });
       }
 

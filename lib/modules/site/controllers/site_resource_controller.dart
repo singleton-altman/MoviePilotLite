@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:moviepilot_mobile/modules/download/utils/search_result_raw_cache.dart';
 import 'package:moviepilot_mobile/modules/search_result/models/search_result_models.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:moviepilot_mobile/modules/site/models/site_resource_models.dart';
@@ -187,7 +188,7 @@ class SiteResourceController extends GetxController {
   }
 
   SearchResultItem _mapToSearchResultItem(SiteResourceItem item) {
-    return SearchResultItem(
+    final result = SearchResultItem(
       meta_info: SearchMetaInfo(
         title: item.title,
         subtitle: item.description,
@@ -223,6 +224,11 @@ class SiteResourceController extends GetxController {
         freedate_diff: item.freedateDiff,
       ),
     );
+    cacheSearchResultItemRaw(result, {
+      'meta_info': result.meta_info?.toJson(),
+      'torrent_info': result.torrent_info?.toJson(),
+    });
+    return result;
   }
 
   bool _matchKeyword(SearchResultItem item, String keywordLower) {

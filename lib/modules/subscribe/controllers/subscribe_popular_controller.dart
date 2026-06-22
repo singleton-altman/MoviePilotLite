@@ -15,6 +15,7 @@ class SubscribePopularController extends GetxController {
   final _log = Get.find<AppLog>();
 
   static const int _pageSize = 30;
+  static const String _defaultSortType = 'count';
 
   late final SubscribeType subscribeType;
   bool _cookieRefreshTriggered = false;
@@ -227,7 +228,82 @@ class SubscribePopularController extends GetxController {
     return '${voteMin.value}分+';
   }
 
+  bool get hasActiveFilters => selectedGenres.isNotEmpty || voteMin.value > 0;
+
   List<RecommendApiItem> get visibleItems {
-    return items.toList();
+    var list = items.toList();
+    final key = keyword.value.trim().toLowerCase();
+    if (key.isNotEmpty) {
+      list = list.where((e) {
+        final blob = [
+          e.title,
+          e.original_title,
+          e.en_title,
+          e.overview,
+        ].whereType<String>().join(' ').toLowerCase();
+        return blob.contains(key);
+      }).toList();
+    }
+    final min = voteMin.value;
+    if (min > 0) {
+      list = list.where((e) {
+        final v = e.vote_average;
+        if (v == null) return false;
+        return v >= min;
+      }).toList();
+    }
+    return list;
+  }
+
+  static Future<List<RecommendApiItem>> fetchPreviewItems({
+    required ApiClient apiClient,
+    required AppLog log,
+    required SubscribeType subscribeType,
+    int count = 5,
+  }) async {
+    try {
+      final response = await apiClient.get<dynamic>(
+        '/api/v1/subscribe/popular',
+        queryParameters: {
+          'stype': subscribeType.stype,
+          'page': 1,
+          'count': count,
+          'sort_type': _defaultSortType,
+          'genre_id': const <String>[],
+        },
+      );
+      final status = response.statusCode ?? 0;
+      if (status >= 400) return const [];
+      return _parseItems(_extractStaticList(response.data), log);
+    } catch (e, st) {
+      log.handle(e, stackTrace: st, message: '获取热门订阅预览失败');
+      return const [];
+    }
+  }
+
+  static Iterable<dynamic> _extractStaticList(dynamic raw) {
+    if (raw is List) return raw;
+    if (raw is Map<String, dynamic>) {
+      final data = raw['data'];
+      if (data is List) return data;
+    }
+    return const [];
+  }
+
+  static List<RecommendApiItem> _parseItems(
+    Iterable<dynamic> list,
+    AppLog log,
+  ) {
+    final parsed = <RecommendApiItem>[];
+    for (final raw in list) {
+      if (raw is Map<String, dynamic>) {
+        try {
+          parsed.add(RecommendApiItem.fromJson(raw));
+        } catch (e, st) {
+          log.handle(e, stackTrace: st, message: '解析热门订阅失败');
+        }
+      }
+    }
+    return parsed;
   }
 }

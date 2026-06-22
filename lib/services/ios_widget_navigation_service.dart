@@ -1,17 +1,20 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:moviepilot_mobile/utils/deep_link_route.dart';
 
 class IosWidgetNavigationService extends GetxService {
   static const _channel = MethodChannel('org.moviepilot/widget_navigation');
 
-  _WidgetRouteTarget? _pendingRoute;
+  DeepLinkTarget? _pendingRoute;
 
   Future<IosWidgetNavigationService> init() async {
-    if (!_isSupportedPlatform) return this;
+    if (!_isIos) return this;
     _channel.setMethodCallHandler(_handleMethodCall);
     try {
-      final route = await _channel.invokeMethod<String>('getPendingWidgetRoute');
+      final route = await _channel.invokeMethod<String>(
+        'getPendingWidgetRoute',
+      );
       _storePendingRoute(route);
     } catch (_) {}
     return this;
@@ -19,53 +22,28 @@ class IosWidgetNavigationService extends GetxService {
 
   Future<void> _handleMethodCall(MethodCall call) async {
     if (call.method != 'openWidgetRoute') return;
-    final route = _parseRoute(call.arguments);
+    final route = parseDeepLinkTarget(call.arguments?.toString());
     if (route == null) return;
     _pendingRoute = route;
     _tryNavigateImmediately();
   }
 
   void _storePendingRoute(String? route) {
-    final normalized = _parseRoute(route);
+    final normalized = parseDeepLinkTarget(route);
     if (normalized == null) return;
     _pendingRoute = normalized;
   }
 
-  _WidgetRouteTarget? _parseRoute(dynamic raw) {
-    final value = raw is String ? raw.trim() : '';
-    if (value.isEmpty) return null;
-    final uri = Uri.tryParse(value);
-    if (uri == null) return null;
-    if (uri.host == 'subscribe-calendar') {
-      return const _WidgetRouteTarget(route: '/subscribe-calendar');
-    }
-    if (uri.path == '/subscribe-calendar') {
-      return const _WidgetRouteTarget(route: '/subscribe-calendar');
-    }
-    if (uri.host == 'media-detail' || uri.path == '/media-detail') {
-      final path = (uri.queryParameters['path'] ?? '').trim();
-      if (path.isEmpty) return null;
-      final title = (uri.queryParameters['title'] ?? '').trim();
-      final year = (uri.queryParameters['year'] ?? '').trim();
-      final typeName = (uri.queryParameters['type_name'] ?? '').trim();
-      final params = <String, String>{'path': path};
-      if (title.isNotEmpty) params['title'] = title;
-      if (year.isNotEmpty) params['year'] = year;
-      if (typeName.isNotEmpty) params['type_name'] = typeName;
-      return _WidgetRouteTarget(route: '/media-detail', parameters: params);
-    }
-    if (uri.host == 'recommend-widget' || uri.path == '/recommend-widget') {
-      final key = (uri.queryParameters['key'] ?? 'tmdb_trending').trim();
-      final title = (uri.queryParameters['title'] ?? '流行趋势').trim();
-      return _WidgetRouteTarget(
-        route: '/recommend-category-list',
-        parameters: {
-          'key': key.isEmpty ? 'tmdb_trending' : key,
-          'title': title.isEmpty ? '流行趋势' : title,
-        },
-      );
-    }
-    return null;
+  void enqueueDeepLink(String? raw) {
+    final target = parseDeepLinkTarget(raw);
+    if (target == null) return;
+    _pendingRoute = target;
+    _tryNavigateImmediately();
+  }
+
+  void enqueueTarget(DeepLinkTarget target) {
+    _pendingRoute = target;
+    _tryNavigateImmediately();
   }
 
   void _tryNavigateImmediately() {
@@ -75,7 +53,7 @@ class IosWidgetNavigationService extends GetxService {
   }
 
   void navigateToPendingRoute() {
-    if (!_isSupportedPlatform) return;
+    if (kIsWeb) return;
     final target = _pendingRoute;
     if (target == null || target.route.isEmpty) return;
     _pendingRoute = null;
@@ -88,13 +66,6 @@ class IosWidgetNavigationService extends GetxService {
     });
   }
 
-  bool get _isSupportedPlatform =>
+  bool get _isIos =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
-}
-
-class _WidgetRouteTarget {
-  const _WidgetRouteTarget({required this.route, this.parameters = const {}});
-
-  final String route;
-  final Map<String, String> parameters;
 }

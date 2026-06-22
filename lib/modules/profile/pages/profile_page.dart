@@ -350,7 +350,7 @@ class ProfilePage extends GetView<ProfileController> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.16),
+        color: Colors.white.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: Colors.white24),
       ),
@@ -410,7 +410,7 @@ class ProfilePage extends GetView<ProfileController> {
 
   Widget _buildAvatar(String? avatar) {
     if (avatar == null || avatar.isEmpty) {
-      return Assets.images.avatars.avatar1.image(width: 60, height: 60);
+      return _buildDefaultAvatar();
     }
 
     try {
@@ -423,17 +423,24 @@ class ProfilePage extends GetView<ProfileController> {
       }
       final bytes = base64Decode(base64String);
       if (bytes.isEmpty) {
-        return const CircleAvatar(
-          radius: 32,
-          child: Icon(CupertinoIcons.person),
-        );
+        return _buildDefaultAvatar();
       }
       return CircleAvatar(
         radius: 32,
         backgroundImage: MemoryImage(Uint8List.fromList(bytes)),
       );
     } catch (_) {
-      return Assets.images.avatars.avatar1.image(width: 60, height: 60);
+      return _buildDefaultAvatar();
     }
+  }
+
+  Widget _buildDefaultAvatar() {
+    return ClipOval(
+      child: Assets.images.avatars.avatar1.image(
+        width: 60,
+        height: 60,
+        fit: BoxFit.cover,
+      ),
+    );
   }
 }

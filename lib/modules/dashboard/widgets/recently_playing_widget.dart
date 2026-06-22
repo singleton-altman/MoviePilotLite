@@ -1,11 +1,12 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_section.dart';
+import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_widget_styles.dart';
 import 'package:moviepilot_mobile/modules/mediaserver/controllers/mediaserver_controller.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
 import 'package:moviepilot_mobile/widgets/cached_image.dart';
 
-/// 最近添加组件
+/// 最近播放组件
 class RecentlyPlayingWidget extends StatelessWidget {
   const RecentlyPlayingWidget({super.key});
 
@@ -14,169 +15,119 @@ class RecentlyPlayingWidget extends StatelessWidget {
     return Obx(() {
       final playingMedia = mediaServerController.playingMedia;
       if (playingMedia.value == null || playingMedia.value!.isEmpty) {
-        return const Center(
-          child: Padding(
-            padding: EdgeInsets.symmetric(vertical: 40),
-            child: Column(
-              children: [
-                Icon(
-                  CupertinoIcons.film,
-                  size: 48,
-                  color: CupertinoColors.systemGrey,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  '暂无继续观看的媒体',
-                  style: TextStyle(color: CupertinoColors.systemGrey),
-                ),
-              ],
-            ),
-          ),
+        return const DashboardEmptyState(
+          icon: CupertinoIcons.play_rectangle,
+          title: '暂无继续观看内容',
+          subtitle: '开始播放后会在这里继续追看',
         );
       }
 
       return SizedBox(
-        height: 220,
-        child: ListView.builder(
+        height: 210,
+        child: ListView.separated(
           scrollDirection: Axis.horizontal,
           itemCount: playingMedia.value!.length,
+          separatorBuilder: (context, index) => const SizedBox(width: 14),
           itemBuilder: (context, index) {
             final media = playingMedia.value![index];
-            return Container(
-              margin: const EdgeInsets.only(right: 8),
-              width: 110,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 媒体封面卡片
-                  Container(
-                    width: 110,
-                    height: 150,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: CupertinoColors.systemGrey.withAlpha(20),
-                          spreadRadius: 1,
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: media.image.isNotEmpty
-                          ? Stack(
-                              children: [
-                                // 封面图
-                                CachedImage(
-                                  imageUrl: media.image.isNotEmpty
-                                      ? ImageUtil.convertInternalImageUrl(
-                                          media.image,
-                                        )
-                                      : '',
-                                  width: 110,
-                                  height: 150,
-                                  fit: BoxFit.cover,
-                                ),
-                                // 媒体类型标签
-                                if (media.type.isNotEmpty)
-                                  Positioned(
-                                    top: 8,
-                                    left: 8,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: CupertinoColors.systemBlue
-                                            .withAlpha(180),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        media.type,
-                                        style: const TextStyle(
-                                          fontSize: 10,
-                                          color: CupertinoColors.white,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            )
-                          : Container(
-                              color: CupertinoColors.systemGrey5,
-                              child: const Center(
-                                child: Icon(
-                                  CupertinoIcons.film,
-                                  size: 40,
-                                  color: CupertinoColors.systemGrey,
-                                ),
-                              ),
-                            ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // 媒体信息
-                  SizedBox(
-                    width: 110,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        // 媒体标题
-                        Text(
-                          media.title,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        // 媒体库名称
-                        if (media.libraryName.isNotEmpty)
-                          Text(
-                            media.libraryName,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: CupertinoColors.systemGrey,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        const SizedBox(height: 2),
-                        // 媒体年份
-                        Text(
-                          media.subtitle,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: CupertinoColors.systemGrey,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
+            return SizedBox(width: 272, child: _buildMediaCard(media));
           },
         ),
       );
     });
   }
 
+  Widget _buildMediaCard(dynamic media) {
+    final palette = DashboardPalette.of(Get.context!);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          media.image.isNotEmpty
+              ? CachedImage(
+                  imageUrl: ImageUtil.convertInternalImageUrl(media.image),
+                  fit: BoxFit.cover,
+                )
+              : Container(color: palette.surfaceAlt),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.08),
+                  Colors.black.withValues(alpha: 0.24),
+                  Colors.black.withValues(alpha: 0.78),
+                ],
+                stops: const [0.0, 0.45, 1.0],
+              ),
+            ),
+          ),
+          Positioned(
+            top: 12,
+            left: 12,
+            child: DashboardInfoPill(
+              text: media.type.isEmpty ? '播放中' : media.type,
+              color: Colors.white,
+              backgroundColor: palette.overlay.withValues(alpha: 0.68),
+            ),
+          ),
+          const Positioned(
+            right: 14,
+            top: 14,
+            child: Icon(
+              CupertinoIcons.play_circle_fill,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+          Positioned(
+            left: 14,
+            right: 14,
+            bottom: 14,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  media.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  media.libraryName.isNotEmpty
+                      ? media.libraryName
+                      : media.subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white.withValues(alpha: 0.74),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                DashboardProgressBar(
+                  value: 0.66,
+                  color: palette.primary,
+                  backgroundColor: Colors.white.withValues(alpha: 0.32),
+                  height: 4,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return DashboardSection(
-      title: '最近播放',
-      icon: CupertinoIcons.play_arrow,
-      child: _buildInfo(context),
-    );
+    return _buildInfo(context);
   }
 }

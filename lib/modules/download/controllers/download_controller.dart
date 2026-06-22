@@ -2,22 +2,29 @@ import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
 
-import 'package:altman_downloader_control/controller/controller_adaptor.dart';
 import 'package:altman_downloader_control/controller/downloader_config.dart';
+import 'package:moviepilot_mobile/utils/downloader_controller_adaptor.dart';
 import 'package:altman_downloader_control/page/torrent_download_screen.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart' hide Response;
 import 'package:moviepilot_mobile/applog/app_log.dart';
+import 'package:moviepilot_mobile/modules/directory/controllers/directory_list_controller.dart';
 import 'package:moviepilot_mobile/modules/downloader/models/downloader_stats.dart';
+import 'package:moviepilot_mobile/modules/download/utils/search_result_raw_cache.dart';
 import 'package:moviepilot_mobile/modules/search_result/models/search_result_models.dart';
 import 'package:moviepilot_mobile/modules/setting/controllers/setting_controller.dart';
 import 'package:moviepilot_mobile/modules/setting/models/setting_models.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
+import 'package:moviepilot_mobile/utils/prefs_keys.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DownloadController extends GetxController {
+  static const _downloadLogTag = '[Download]';
+
   final _apiClient = Get.find<ApiClient>();
   final _log = Get.find<AppLog>();
   final scrollController = DraggableScrollableController();
@@ -32,6 +39,8 @@ class DownloadController extends GetxController {
 
   // 下载目录列表和建议
   final selectedDirectory = ''.obs;
+  String? _preferredDownloaderName;
+  String _preferredDirectory = '';
 
   // TMDB ID
   final tmdbId = ''.obs;
@@ -50,9 +59,17 @@ class DownloadController extends GetxController {
     return Get.find<SettingController>();
   }
 
+  DirectoryListController get _directoryListController {
+    if (!Get.isRegistered<DirectoryListController>()) {
+      Get.put(DirectoryListController(), permanent: true);
+    }
+    return Get.find<DirectoryListController>();
+  }
+
   @override
   void onInit() {
     super.onInit();
+    _restoreSheetSelections();
     _loadDownloaders();
     _loadDirectories();
     ever(downloaders, (_) => loadDownloaderStats());
@@ -80,31 +97,34 @@ class DownloadController extends GetxController {
     // 监听 SettingController 的下载客户端列表
     ever(_settingController.downloadClients, (clients) {
       downloaders.value = clients;
-
-      // 设置默认下载器（选择第一个）
-      if (downloaders.isNotEmpty && selectedDownloader.value == null) {
-        selectedDownloader.value = downloaders.first;
-      }
+      _applyPreferredDownloader();
     });
 
     // 立即同步一次
     if (_settingController.downloadClients.isNotEmpty) {
       downloaders.value = _settingController.downloadClients.toList();
-      if (selectedDownloader.value == null && downloaders.isNotEmpty) {
-        selectedDownloader.value = downloaders.first;
-      }
+      _applyPreferredDownloader();
     }
   }
 
   /// 加载下载目录列表（从 SettingController）
   void _loadDirectories() {
-    // 目录建议从 SettingController 获取
-    // 通过 directorySuggestions getter 访问
+    ever(_directoryListController.directories, (_) {
+      _applyPreferredDirectory();
+    });
+    _applyPreferredDirectory();
   }
 
   /// 获取目录建议列表
   List<String> get directorySuggestions {
-    return _settingController.directorySuggestions;
+    final seen = <String>{};
+    for (final value in _settingController.directorySuggestions) {
+      final normalized = value.trim();
+      if (normalized.isNotEmpty) {
+        seen.add(normalized);
+      }
+    }
+    return seen.toList();
   }
 
   /// 获取目录列表（从目录设置中提取）
@@ -113,6 +133,62 @@ class DownloadController extends GetxController {
         .map((dir) => dir.downloadPath)
         .where((path) => path.isNotEmpty)
         .toList();
+  }
+
+  Future<void> _restoreSheetSelections() async {
+    final prefs = await SharedPreferences.getInstance();
+    _preferredDownloaderName = prefs.getString(kDownloadSheetLastDownloaderKey);
+    _preferredDirectory = prefs.getString(kDownloadSheetLastDirectoryKey) ?? '';
+    _applyPreferredDownloader();
+    _applyPreferredDirectory();
+  }
+
+  void _applyPreferredDownloader() {
+    if (downloaders.isEmpty) {
+      selectedDownloader.value = null;
+      return;
+    }
+
+    final preferredName = _preferredDownloaderName;
+    if (preferredName != null && preferredName.isNotEmpty) {
+      final matched = downloaders.firstWhereOrNull(
+        (item) => item.name == preferredName,
+      );
+      if (matched != null) {
+        selectedDownloader.value = matched;
+        return;
+      }
+    }
+
+    selectedDownloader.value ??= downloaders.first;
+  }
+
+  void _applyPreferredDirectory() {
+    final preferred = _preferredDirectory.trim();
+    if (preferred.isEmpty) {
+      if (selectedDirectory.value.isEmpty) return;
+      selectedDirectory.value = '';
+      return;
+    }
+
+    final available = directorySuggestions;
+    if (available.contains(preferred)) {
+      selectedDirectory.value = preferred;
+      return;
+    }
+
+    if (selectedDirectory.value.isEmpty) return;
+    selectedDirectory.value = '';
+  }
+
+  Future<void> _persistSheetSelections() async {
+    final prefs = await SharedPreferences.getInstance();
+    final downloaderName = selectedDownloader.value?.name ?? '';
+    await prefs.setString(kDownloadSheetLastDownloaderKey, downloaderName);
+    await prefs.setString(
+      kDownloadSheetLastDirectoryKey,
+      selectedDirectory.value,
+    );
   }
 
   /// 获取下载器加载状态
@@ -155,41 +231,418 @@ class DownloadController extends GetxController {
   /// 获取目录加载状态
   bool get isLoadingDirectories => _settingController.isLoadingDirectories;
 
+  void _printDownload(String message) {
+    debugPrint('$_downloadLogTag $message');
+    _log.debug('$_downloadLogTag $message');
+  }
+
+  void _printDownloadJson(
+    String label,
+    Object? value, {
+    int maxLength = 16000,
+  }) {
+    try {
+      final text = const JsonEncoder.withIndent('  ').convert(value);
+      if (text.length <= maxLength) {
+        _printDownload('$label:\n$text');
+        return;
+      }
+      _printDownload(
+        '$label (${text.length} chars, truncated to $maxLength):\n'
+        '${text.substring(0, maxLength)}\n...',
+      );
+    } catch (e) {
+      _printDownload('$label: <json encode failed: $e> raw=$value');
+    }
+  }
+
+  Map<String, dynamic> _maskDownloadPayloadForLog(
+    Map<String, dynamic> payload,
+  ) {
+    final copy = Map<String, dynamic>.from(payload);
+    final torrent = copy['torrent_in'];
+    if (torrent is Map) {
+      final masked = Map<String, dynamic>.from(torrent);
+      final cookie = masked['site_cookie']?.toString();
+      if (cookie != null && cookie.isNotEmpty) {
+        masked['site_cookie'] = _maskSecret(cookie);
+      }
+      final ua = masked['site_ua']?.toString();
+      if (ua != null && ua.isNotEmpty) {
+        masked['site_ua'] = _maskSecret(ua);
+      }
+      copy['torrent_in'] = masked;
+    }
+    return copy;
+  }
+
+  String _describeMapFieldTypes(Map<String, dynamic> map) {
+    final entries = map.entries
+        .map((e) => '${e.key}:${e.value?.runtimeType ?? 'null'}')
+        .toList();
+    return entries.join(', ');
+  }
+
+  int? _coerceApiInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value.trim());
+    return null;
+  }
+
+  double? _coerceApiDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value.trim());
+    return null;
+  }
+
+  bool? _coerceApiBool(dynamic value) {
+    if (value == null) return null;
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized == 'true' || normalized == '1') return true;
+      if (normalized == 'false' || normalized == '0') return false;
+    }
+    return null;
+  }
+
+  Map<String, dynamic> _normalizeTorrentIn(Map<String, dynamic> torrent) {
+    _printDownload(
+      'normalize torrent_in BEFORE types: ${_describeMapFieldTypes(torrent)}',
+    );
+    _printDownloadJson('normalize torrent_in BEFORE', torrent, maxLength: 6000);
+    final normalized = Map<String, dynamic>.from(torrent);
+    final siteProxy = _coerceApiBool(normalized['site_proxy']);
+    if (siteProxy != null) normalized['site_proxy'] = siteProxy;
+    final hitAndRun = _coerceApiBool(normalized['hit_and_run']);
+    if (hitAndRun != null) normalized['hit_and_run'] = hitAndRun;
+    for (final key in const [
+      'site',
+      'site_order',
+      'seeders',
+      'peers',
+      'grabs',
+      'pri_order',
+    ]) {
+      final coerced = _coerceApiInt(normalized[key]);
+      if (coerced != null) normalized[key] = coerced;
+    }
+    for (final key in const [
+      'size',
+      'uploadvolumefactor',
+      'downloadvolumefactor',
+    ]) {
+      final coerced = _coerceApiDouble(normalized[key]);
+      if (coerced != null) normalized[key] = coerced;
+    }
+    _printDownload(
+      'normalize torrent_in AFTER types: ${_describeMapFieldTypes(normalized)}',
+    );
+    _printDownloadJson(
+      'normalize torrent_in AFTER',
+      normalized,
+      maxLength: 6000,
+    );
+    return normalized;
+  }
+
+  Map<String, dynamic> _normalizeMediaIn(Map<String, dynamic> media) {
+    _printDownload(
+      'normalize media_in BEFORE types: ${_describeMapFieldTypes(media)}',
+    );
+    _printDownloadJson('normalize media_in BEFORE', media, maxLength: 8000);
+    final normalized = Map<String, dynamic>.from(media);
+    for (final key in const [
+      'tmdb_id',
+      'tvdb_id',
+      'bangumi_id',
+      'collection_id',
+      'season',
+      'vote_count',
+      'number_of_episodes',
+      'number_of_seasons',
+      'runtime',
+    ]) {
+      final coerced = _coerceApiInt(normalized[key]);
+      if (coerced != null) {
+        normalized[key] = coerced;
+      } else if (normalized[key] != null) {
+        normalized.remove(key);
+      }
+    }
+    for (final key in const ['vote_average', 'popularity']) {
+      final coerced = _coerceApiDouble(normalized[key]);
+      if (coerced != null) normalized[key] = coerced;
+    }
+    final adult = _coerceApiBool(normalized['adult']);
+    if (adult != null) normalized['adult'] = adult;
+    final episodeGroup = normalized['episode_group'];
+    if (episodeGroup != null && episodeGroup is! String) {
+      normalized.remove('episode_group');
+    }
+    for (final key in const [
+      'release_dates',
+      'season_info',
+      'names',
+      'actors',
+      'directors',
+      'created_by',
+      'episode_run_time',
+      'genres',
+      'languages',
+      'networks',
+      'origin_country',
+      'production_companies',
+      'production_countries',
+      'spoken_languages',
+      'genre_ids',
+      'episode_groups',
+    ]) {
+      if (normalized[key] == null) normalized[key] = <dynamic>[];
+    }
+    if (normalized['seasons'] == null) {
+      normalized['seasons'] = <String, dynamic>{};
+    }
+    if (normalized['next_episode_to_air'] == null) {
+      normalized['next_episode_to_air'] = <String, dynamic>{};
+    }
+    if (normalized['category'] == null) normalized['category'] = '';
+    _printDownload(
+      'normalize media_in AFTER types: ${_describeMapFieldTypes(normalized)}',
+    );
+    _printDownloadJson('normalize media_in AFTER', normalized, maxLength: 8000);
+    return normalized;
+  }
+
+  ({String path, Map<String, dynamic> body}) _buildDownloadRequest({
+    required Map<String, dynamic> torrentIn,
+    required Map<String, dynamic>? mediaIn,
+    required String downloader,
+    required String? savePath,
+    String? customTmdbId,
+  }) {
+    final body = <String, dynamic>{
+      'torrent_in': torrentIn,
+      'downloader': downloader,
+      'save_path': savePath,
+    };
+    final parsedTmdb = customTmdbId != null && customTmdbId.trim().isNotEmpty
+        ? int.tryParse(customTmdbId.trim())
+        : null;
+    if (mediaIn != null && mediaIn.isNotEmpty) {
+      body['media_in'] = mediaIn;
+      _printDownload('_buildDownloadRequest: use POST / (has media_in)');
+      return (path: '/api/v1/download/', body: body);
+    }
+    if (parsedTmdb != null) body['tmdbid'] = parsedTmdb;
+    _printDownload(
+      '_buildDownloadRequest: use POST /add (no media_in, tmdbid=$parsedTmdb)',
+    );
+    return (path: '/api/v1/download/add', body: body);
+  }
+
+  Map<String, dynamic>? _buildDownloadTorrentIn(SearchResultItem item) {
+    final raw = rawTorrentInfoFor(item);
+    _printDownload(
+      '_buildDownloadTorrentIn: hasRaw=${raw != null && raw.isNotEmpty}, '
+      'hasModel=${item.torrent_info != null}',
+    );
+    if (raw != null && raw.isNotEmpty) {
+      return _normalizeTorrentIn(raw);
+    }
+    final torrent = item.torrent_info;
+    if (torrent == null) return null;
+    return _normalizeTorrentIn(torrent.toJson());
+  }
+
+  Map<String, dynamic>? _buildDownloadMediaIn(
+    SearchResultItem item, {
+    String? customTmdbId,
+  }) {
+    final raw = rawMediaInfoFor(item);
+    _printDownload(
+      '_buildDownloadMediaIn: hasRaw=${raw != null && raw.isNotEmpty}, '
+      'hasModel=${item.media_info != null}, customTmdbId=$customTmdbId',
+    );
+    var media = raw != null && raw.isNotEmpty
+        ? Map<String, dynamic>.from(raw)
+        : item.media_info?.toJson();
+    if (media == null || media.isEmpty) {
+      _printDownload('_buildDownloadMediaIn: media empty, return null');
+      return null;
+    }
+    if (customTmdbId != null && customTmdbId.trim().isNotEmpty) {
+      final parsed = int.tryParse(customTmdbId.trim());
+      if (parsed != null) {
+        media = {...media, 'tmdb_id': parsed};
+      }
+    }
+    return _normalizeMediaIn(media);
+  }
+
+  void _logStartDownloadRequest({
+    required Map<String, dynamic> payload,
+    required bool torrentFromRaw,
+    required bool mediaFromRaw,
+    required String downloadPath,
+  }) {
+    final torrent = payload['torrent_in'];
+    final media = payload['media_in'];
+    final torrentMap = torrent is Map
+        ? Map<String, dynamic>.from(torrent)
+        : null;
+    final mediaMap = media is Map ? Map<String, dynamic>.from(media) : null;
+    final enclosure = torrentMap?['enclosure']?.toString() ?? '';
+
+    _log.info(
+      '下载请求 POST $downloadPath '
+      'downloader=${payload['downloader']}, '
+      'save_path=${payload['save_path']}, '
+      'tmdbid=${payload['tmdbid']}, '
+      'torrentSource=${torrentFromRaw ? 'raw' : 'model'}, '
+      'mediaSource=${mediaMap == null ? 'none' : (mediaFromRaw ? 'raw' : 'model')}',
+    );
+    _printDownload(
+      '>>> REQUEST $downloadPath '
+      'downloader=${payload['downloader']} save_path=${payload['save_path']} '
+      'tmdbid=${payload['tmdbid']} torrentSource=${torrentFromRaw ? 'raw' : 'model'} '
+      'mediaSource=${mediaMap == null ? 'none' : (mediaFromRaw ? 'raw' : 'model')}',
+    );
+    if (torrentMap != null) {
+      _log.info(
+        'torrent_in: site=${torrentMap['site']}, '
+        'site_name=${torrentMap['site_name']}, '
+        'site_proxy=${torrentMap['site_proxy']}(${torrentMap['site_proxy']?.runtimeType}), '
+        'category=${torrentMap['category']}, '
+        'title=${_shorten(torrentMap['title']?.toString() ?? '', 100)}',
+      );
+      _log.info(
+        'torrent_in: enclosure=${_describeEnclosureMode(enclosure)}, '
+        'enclosureLen=${enclosure.length}, '
+        'page_url=${_shorten(torrentMap['page_url']?.toString() ?? '', 120)}, '
+        'site_cookie=${_describeSecretPresence(torrentMap['site_cookie'])}',
+      );
+      _printDownload(
+        'torrent_in summary: site=${torrentMap['site']} '
+        'site_name=${torrentMap['site_name']} '
+        'site_proxy=${torrentMap['site_proxy']}(${torrentMap['site_proxy']?.runtimeType}) '
+        'enclosure=${_describeEnclosureMode(enclosure)} len=${enclosure.length} '
+        'cookie=${_describeSecretPresence(torrentMap['site_cookie'])}',
+      );
+    }
+    if (mediaMap != null) {
+      final tmdbId = mediaMap['tmdb_id'];
+      _log.info(
+        'media_in: source=${mediaMap['source']}, type=${mediaMap['type']}, '
+        'tmdb_id=$tmdbId(${tmdbId.runtimeType}), '
+        'title=${_shorten(mediaMap['title']?.toString() ?? '', 60)}, '
+        'season_years=${mediaMap.containsKey('season_years')}',
+      );
+      _printDownload(
+        'media_in summary: source=${mediaMap['source']} type=${mediaMap['type']} '
+        'tmdb_id=$tmdbId(${tmdbId.runtimeType}) '
+        'title=${_shorten(mediaMap['title']?.toString() ?? '', 80)}',
+      );
+    }
+    _printDownloadJson(
+      'REQUEST BODY (masked)',
+      _maskDownloadPayloadForLog(payload),
+    );
+  }
+
+  void _logDownloadResponse(String phase, Response<dynamic> response) {
+    final status = response.statusCode;
+    final headers = response.headers.map.entries
+        .map((e) => '${e.key}=${e.value}')
+        .join('; ');
+    _log.info(
+      '$phase: status=$status, headers=${_shorten(headers, 300)}, '
+      'data=${_shorten(response.data?.toString() ?? '', 800)}',
+    );
+    _printDownload('<<< $phase status=$status');
+    _printDownload('<<< $phase headers: ${_shorten(headers, 500)}');
+    _printDownloadJson('<<< $phase body', response.data);
+  }
+
+  String _describeSecretPresence(Object? value) {
+    if (value == null) return 'absent';
+    final text = value.toString().trim();
+    if (text.isEmpty) return 'empty';
+    return 'present:${text.length}chars';
+  }
+
   /// 开始下载
   Future<void> startDownload({
     required SearchResultItem item,
     String? customTmdbId,
   }) async {
+    _printDownload(
+      '======== startDownload BEGIN ======== '
+      'customTmdbId=$customTmdbId '
+      'downloader=${selectedDownloader.value?.name} '
+      'savePath=${selectedDirectory.value}',
+    );
+    _printDownload(
+      'item: hasMeta=${item.meta_info != null} hasMedia=${item.media_info != null} '
+      'hasTorrent=${item.torrent_info != null} '
+      'torrentTitle=${_shorten(item.torrent_info?.title ?? '', 80)}',
+    );
     if (selectedDownloader.value == null) {
+      _printDownload('startDownload ABORT: no downloader selected');
       ToastUtil.error('请选择下载器');
+      return;
+    }
+
+    final torrentFromRaw = rawTorrentInfoFor(item)?.isNotEmpty == true;
+    final mediaFromRaw = rawMediaInfoFor(item)?.isNotEmpty == true;
+    _printDownload(
+      'cache: torrentFromRaw=$torrentFromRaw mediaFromRaw=$mediaFromRaw',
+    );
+    final torrentIn = _buildDownloadTorrentIn(item);
+    if (torrentIn == null) {
+      _log.warning(
+        '下载中止: 缺少种子信息, torrentFromRaw=$torrentFromRaw, '
+        'hasTorrentModel=${item.torrent_info != null}',
+      );
+      ToastUtil.error('缺少种子信息');
       return;
     }
 
     isDownloading.value = true;
     try {
-      // 构建 payload，只包含非空值
-      final payload = <String, dynamic>{
-        'downloader': selectedDownloader.value!.name,
-        if (selectedDirectory.value.isNotEmpty)
-          'save_path': selectedDirectory.value,
-        if (item.media_info != null) 'media_in': item.media_info!.toJson(),
-        if (item.torrent_info != null)
-          'torrent_in': item.torrent_info!.toJson(),
-        if (customTmdbId != null && customTmdbId.isNotEmpty)
-          'tmdbid': customTmdbId,
-      };
+      final mediaIn = _buildDownloadMediaIn(item, customTmdbId: customTmdbId);
+      final request = _buildDownloadRequest(
+        torrentIn: torrentIn,
+        mediaIn: mediaIn,
+        downloader: selectedDownloader.value!.name,
+        savePath: selectedDirectory.value.isNotEmpty
+            ? selectedDirectory.value
+            : null,
+        customTmdbId: customTmdbId,
+      );
+      final downloadPath = request.path;
+      final payload = request.body;
 
-      _log.info('下载请求 payload: $payload');
+      _logStartDownloadRequest(
+        payload: payload,
+        torrentFromRaw: torrentFromRaw,
+        mediaFromRaw: mediaFromRaw,
+        downloadPath: downloadPath,
+      );
 
+      _printDownload('await POST $downloadPath ...');
       final response = await _apiClient.post(
-        item.media_info != null ? '/api/v1/download' : '/api/v1/download/add',
+        downloadPath,
         data: payload,
         timeout: 120,
       );
 
-      _log.info(
-        '下载响应状态码: ${response.statusCode}, 响应头: ${response.headers}, 数据: ${response.data}',
-      );
+      _logDownloadResponse('RESPONSE', response);
 
       // 处理重定向（如果 Dio 没有自动跟随）
       if (response.statusCode == 307 ||
@@ -211,71 +664,117 @@ class DownloadController extends GetxController {
               redirectPath += '?${uri.query}';
             }
           } else if (!location.startsWith('/')) {
-            // 相对路径，需要基于当前路径解析
             redirectPath = '/api/v1/download/$location';
           }
 
           _log.info('重定向路径: $redirectPath');
+          _printDownload('await POST redirect $redirectPath ...');
+          _printDownloadJson(
+            'REDIRECT REQUEST BODY (masked)',
+            _maskDownloadPayloadForLog(payload),
+          );
           // 对于 307，需要保持原始请求方法和请求体
           final redirectResponse = await _apiClient.post(
             redirectPath,
             data: payload,
             timeout: 120,
           );
-          _log.info(
-            '重定向后响应状态码: ${redirectResponse.statusCode}, 数据: ${redirectResponse.data}',
-          );
+          _logDownloadResponse('REDIRECT RESPONSE', redirectResponse);
 
           if (redirectResponse.statusCode == 200 ||
               redirectResponse.statusCode == 201) {
-            Get.back();
-            Future.delayed(const Duration(seconds: 1), () {
-              ToastUtil.success('下载任务已创建');
-            });
+            final redirectData = redirectResponse.data;
+            final redirectFailed =
+                redirectData is Map && redirectData['success'] == false;
+            if (!redirectFailed) {
+              _printDownload('startDownload SUCCESS (redirect)');
+              Get.back();
+              Future.delayed(const Duration(seconds: 1), () {
+                ToastUtil.success('下载任务已创建');
+              });
+            } else {
+              final errorMsg = _downloadApiErrorMessage(
+                redirectData,
+                '下载失败 (HTTP ${redirectResponse.statusCode})',
+              );
+              _printDownload(
+                'startDownload FAIL (redirect business): $errorMsg',
+              );
+              _printDownloadJson('redirect fail body', redirectData);
+              ToastUtil.error(errorMsg);
+              _log.error('重定向后下载失败: $errorMsg, 响应数据: $redirectData');
+            }
           } else {
-            final errorMsg = redirectResponse.data is Map
-                ? (redirectResponse.data as Map)['message'] ??
-                      (redirectResponse.data as Map)['detail'] ??
-                      '下载失败 (HTTP ${redirectResponse.statusCode})'
-                : '下载失败 (HTTP ${redirectResponse.statusCode})';
+            final errorMsg = _downloadApiErrorMessage(
+              redirectResponse.data,
+              '下载失败 (HTTP ${redirectResponse.statusCode})',
+            );
+            _printDownload('startDownload FAIL (redirect http): $errorMsg');
+            _printDownloadJson(
+              'redirect http fail body',
+              redirectResponse.data,
+            );
             ToastUtil.error(errorMsg);
             _log.error('重定向后下载失败: $errorMsg, 响应数据: ${redirectResponse.data}');
           }
         } else {
           _log.warning('收到 ${response.statusCode} 重定向响应，但未找到 Location 头');
+          _printDownload(
+            'REDIRECT without Location header, status=${response.statusCode}',
+          );
         }
         return;
       }
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        if (response.data['success'] == true) {
+        final data = response.data;
+        final explicitFailure = data is Map && data['success'] == false;
+        if (!explicitFailure) {
+          _printDownload('startDownload SUCCESS');
           Get.back();
           Future.delayed(const Duration(seconds: 1), () {
             ToastUtil.success('下载任务已创建');
           });
         } else {
-          final errorMsg = response.data is Map
-              ? (response.data as Map)['message'] ??
-                    (response.data as Map)['detail'] ??
-                    '下载失败 (HTTP ${response.statusCode})'
-              : '下载失败 (HTTP ${response.statusCode})';
+          final errorMsg = _downloadApiErrorMessage(data, '下载失败');
+          _printDownload('startDownload FAIL (business): $errorMsg');
+          _printDownloadJson('fail body', data);
           ToastUtil.error(errorMsg);
-          _log.error('下载失败: $errorMsg, 响应数据: ${response.data}');
+          _log.error('下载失败: $errorMsg, 响应数据: $data');
         }
       } else {
-        final errorMsg = response.data is Map
-            ? (response.data as Map)['message'] ??
-                  (response.data as Map)['detail'] ??
-                  '下载失败 (HTTP ${response.statusCode})'
-            : '下载失败 (HTTP ${response.statusCode})';
+        final errorMsg = _downloadApiErrorMessage(
+          response.data,
+          '下载失败 (HTTP ${response.statusCode})',
+        );
+        _printDownload(
+          'startDownload FAIL (http ${response.statusCode}): $errorMsg',
+        );
+        _printDownloadJson('http fail body', response.data);
         ToastUtil.error(errorMsg);
         _log.error('下载失败: $errorMsg, 响应数据: ${response.data}');
       }
     } catch (e, st) {
+      _printDownload('startDownload EXCEPTION: $e');
+      _printDownload('stackTrace:\n$st');
+      if (e is DioException) {
+        _log.error(
+          '下载 Dio 异常: type=${e.type}, status=${e.response?.statusCode}, '
+          'path=${e.requestOptions.uri}, '
+          'response=${_shorten(e.response?.data?.toString() ?? '', 500)}',
+        );
+        _printDownload(
+          'DioException: type=${e.type} status=${e.response?.statusCode} '
+          'uri=${e.requestOptions.uri} method=${e.requestOptions.method}',
+        );
+        _printDownloadJson('DioException request data', e.requestOptions.data);
+        _printDownloadJson('DioException response', e.response?.data);
+      }
       _log.handle(e, stackTrace: st, message: '下载失败');
       ToastUtil.error('下载失败，请稍后重试 $e');
     } finally {
       isDownloading.value = false;
+      _printDownload('======== startDownload END ========');
     }
   }
 
@@ -805,6 +1304,50 @@ class DownloadController extends GetxController {
     return _shorten(text.replaceAll(RegExp(r'\s+'), ' ').trim(), 240);
   }
 
+  String _downloadApiErrorMessage(dynamic data, String fallback) {
+    if (data is! Map) return fallback;
+    final map = data is Map<String, dynamic>
+        ? data
+        : Map<String, dynamic>.from(data);
+    for (final key in const ['message', 'msg', 'detail', 'error']) {
+      final text = _formatApiErrorField(map[key]);
+      if (text != null && text.isNotEmpty) return text;
+    }
+    return fallback;
+  }
+
+  String? _formatApiErrorField(dynamic value) {
+    if (value is String) {
+      final text = value.trim();
+      return text.isEmpty ? null : text;
+    }
+    if (value is List) {
+      final parts = <String>[];
+      for (final item in value) {
+        if (item is Map) {
+          final msg =
+              item['msg']?.toString().trim() ??
+              item['message']?.toString().trim();
+          final loc = item['loc'];
+          if (msg != null && msg.isNotEmpty) {
+            if (loc is List && loc.isNotEmpty) {
+              parts.add('${loc.map((e) => e.toString()).join('.')}: $msg');
+            } else {
+              parts.add(msg);
+            }
+            continue;
+          }
+        }
+        final text = item?.toString().trim() ?? '';
+        if (text.isNotEmpty) parts.add(text);
+      }
+      if (parts.isEmpty) return null;
+      return parts.join('；');
+    }
+    final text = value?.toString().trim() ?? '';
+    return text.isEmpty ? null : text;
+  }
+
   String _shorten(String value, int maxLength) {
     if (value.length <= maxLength) return value;
     return '${value.substring(0, maxLength)}...';
@@ -826,10 +1369,14 @@ class DownloadController extends GetxController {
 
   void setDownloader(DownloadClient? downloader) {
     selectedDownloader.value = downloader;
+    _preferredDownloaderName = downloader?.name;
+    unawaited(_persistSheetSelections());
   }
 
   void setDirectory(String directory) {
     selectedDirectory.value = directory;
+    _preferredDirectory = directory;
+    unawaited(_persistSheetSelections());
   }
 
   void setTmdbId(String id) {

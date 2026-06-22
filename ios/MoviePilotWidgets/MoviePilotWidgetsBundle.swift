@@ -5,6 +5,7 @@ import WidgetKit
 struct MoviePilotWidgetsBundle: WidgetBundle {
   var body: some Widget {
     SubscribeCalendarWidget()
+    SiteOverviewWidget()
     RecommendTrendingWidget()
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/modules/settings/controllers/settings_controller.dart';
 import 'package:moviepilot_mobile/modules/settings/models/settings_config.dart';
+import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/theme/section.dart';
 
 /// 设定页：单页展示，iOS 设置风格（分组 + 分区标题 + 行）
@@ -11,6 +12,8 @@ class SettingsPage extends GetView<SettingsController> {
 
   @override
   Widget build(BuildContext context) {
+    final appService = Get.find<AppService>();
+
     return Scaffold(
       appBar: AppBar(
         leading: CupertinoButton(
@@ -21,11 +24,12 @@ class SettingsPage extends GetView<SettingsController> {
         title: const Text('设定'),
         centerTitle: false,
         actions: [
-          CupertinoButton(
-            padding: EdgeInsets.zero,
-            onPressed: () => Get.toNamed('/app/log'),
-            child: const Icon(CupertinoIcons.info),
-          ),
+          if (appService.isSuperuser)
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              onPressed: () => Get.toNamed('/app/log'),
+              child: const Icon(CupertinoIcons.info),
+            ),
         ],
       ),
       body: ListView.builder(

@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/adapters/plugin_form_adapter.dart';
+import 'package:moviepilot_mobile/modules/dynamic_form/adapters/plugin_form_adapter_registry.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/controllers/dynamic_form_controller.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/models/form_block_models.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/utils/vuetify_mappings.dart';
@@ -146,6 +147,9 @@ class DynamicFormPage extends GetView<DynamicFormController> {
         final blocks = controller.effectiveBlocks;
         final pNodes = controller.effectivePageNodes;
         final hasContent = blocks.isNotEmpty || pNodes.isNotEmpty;
+        final customRenderer = controller.pluginId == null
+            ? null
+            : PluginFormAdapterRegistry.getCustomRenderer(controller.pluginId!);
 
         if (loading && !hasContent) {
           return const Center(child: CupertinoActivityIndicator());
@@ -173,6 +177,18 @@ class DynamicFormPage extends GetView<DynamicFormController> {
             ),
           );
         }
+        if (customRenderer != null &&
+            (hasContent ||
+                controller.hasFormModel ||
+                controller.isAppLitePushPlugin)) {
+          return customRenderer(
+            context,
+            blocks,
+            controller,
+            controller.formMode.value,
+            _buildBlock,
+          );
+        }
         if (!hasContent) {
           return Center(
             child: Text(
@@ -187,8 +203,11 @@ class DynamicFormPage extends GetView<DynamicFormController> {
           );
         }
 
-        // page 模式且有原始节点：使用通用 VuetifyRenderer
-        if (pNodes.isNotEmpty && !controller.formMode.value) {
+        // page 模式且原始节点仍落在通用子集内时，使用原始 VuetifyRenderer；
+        // 否则回退到 FormBlock 渲染，避免 web 端新节点直接导致页面空白。
+        if (pNodes.isNotEmpty &&
+            !controller.formMode.value &&
+            controller.canUseRawPageRenderer) {
           return VuetifyPageRenderer(nodes: pNodes, controller: controller);
         }
 
@@ -217,6 +236,7 @@ class DynamicFormPage extends GetView<DynamicFormController> {
         // 依赖 isLoading，以便 adapter 异步注入后能重新计算是否显示入口
         controller.isLoading.value;
         if (controller.formMode.value) return const SizedBox.shrink();
+        if (controller.isAppLitePushPlugin) return const SizedBox.shrink();
         final showEntry = controller.pluginAdapter?.supportsFormEntry ?? true;
         if (!showEntry) return const SizedBox.shrink();
         return Container(
@@ -306,9 +326,9 @@ class DynamicFormPage extends GetView<DynamicFormController> {
   }
 
   Future<void> _onApplyPushAlias() async {
-    final token = await controller.applyCurrentPushTokenAsAlias();
-    if (token == null || token.isEmpty) {
-      ToastUtil.error('应用失败，请确认已完成推送初始化');
+    final outcome = await controller.applyCurrentPushTokenAsAlias();
+    if (!outcome.isSuccess) {
+      ToastUtil.error(outcome.errorMessage ?? '应用失败');
       return;
     }
     ToastUtil.success('已将当前 App Push Token 应用为 JPush Alias');

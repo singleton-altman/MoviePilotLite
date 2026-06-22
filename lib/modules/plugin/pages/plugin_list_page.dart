@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -7,9 +9,10 @@ import 'package:moviepilot_mobile/modules/plugin/defines/plugin_list_filter_defi
 import 'package:moviepilot_mobile/modules/plugin/models/plugin_models.dart';
 import 'package:moviepilot_mobile/modules/plugin/pages/plugin_info_sheet.dart';
 import 'package:moviepilot_mobile/modules/plugin/widgets/plugin_item_card.dart';
+import 'package:moviepilot_mobile/modules/plugin/widgets/plugin_center_widgets.dart';
 import 'package:moviepilot_mobile/modules/plugin/widgets/plugin_list_filter_sheet.dart';
 import 'package:moviepilot_mobile/modules/search_result/widgets/sort_pull_down_widget.dart';
-import 'package:moviepilot_mobile/theme/app_theme.dart';
+import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
 
 class PluginListPage extends GetView<PluginListController> {
@@ -19,6 +22,7 @@ class PluginListPage extends GetView<PluginListController> {
   static const double _itemWidth = 250;
   static const double _horizontalPadding = 16;
   static const double _gridSpacing = 12;
+  static const double _floatingBarHeight = 52;
 
   static const Map<PluginListFilterType, String> _filterSectionTitles = {
     PluginListFilterType.author: '作者',
@@ -26,11 +30,36 @@ class PluginListPage extends GetView<PluginListController> {
     PluginListFilterType.repo: '仓库',
   };
 
+  double _bottomInset(BuildContext context) {
+    return _floatingBarHeight + 24 + MediaQuery.paddingOf(context).bottom;
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (!Get.find<AppService>().canManage) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('插件列表'), centerTitle: false),
+        body: const Center(
+          child: Text(
+            '当前帐号无管理权限',
+            style: TextStyle(fontSize: 14, color: CupertinoColors.systemGrey),
+          ),
+        ),
+      );
+    }
+    final theme = Theme.of(context);
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('插件列表'),
+        backgroundColor: theme.scaffoldBackgroundColor,
+        surfaceTintColor: Colors.transparent,
+        title: Text(
+          '插件市场',
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: theme.colorScheme.onSurface,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         centerTitle: false,
         actions: [
           Obx(() {
@@ -51,75 +80,213 @@ class PluginListPage extends GetView<PluginListController> {
           }),
         ],
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton: _buildFloatingBar(context),
       body: RefreshIndicator(
         onRefresh: controller.load,
-        child: CustomScrollView(
-          controller: controller.scrollController,
-          cacheExtent: 400,
-          slivers: [
-            SliverToBoxAdapter(child: _buildSearchBar(context)),
-            SliverToBoxAdapter(child: _buildToolbar(context)),
-            _buildSliverContent(context),
+        child: Stack(
+          children: [
+            const Positioned.fill(child: PluginCenterBackdrop()),
+            CustomScrollView(
+              controller: controller.scrollController,
+              cacheExtent: 200,
+              slivers: [
+                SliverToBoxAdapter(child: _buildOverviewHeader(context)),
+                _buildSliverContent(context),
+                SliverToBoxAdapter(
+                  child: SizedBox(height: _bottomInset(context)),
+                ),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSearchBar(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        _horizontalPadding,
-        12,
-        _horizontalPadding,
-        8,
-      ),
-      child: CupertinoSearchTextField(
-        onSubmitted: controller.updateKeyword,
-        placeholder: '搜索插件名称、描述、作者…',
-        backgroundColor: CupertinoDynamicColor.resolve(
-          CupertinoColors.tertiarySystemFill,
-          context,
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      ),
-    );
+  Widget _buildOverviewHeader(BuildContext context) {
+    return Obx(() {
+      final items = controller.items;
+      return PluginOverviewHeader(
+        title: '探索扩展能力',
+        count: items.length,
+        icon: Icons.storefront_rounded,
+      );
+    });
   }
 
-  Widget _buildToolbar(BuildContext context) {
+  Widget _buildFloatingBar(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        _horizontalPadding,
-        0,
-        _horizontalPadding,
-        8,
-      ),
-      child: SizedBox(
-        height: 40,
-        child: Row(
-          children: [
-            Obx(
-              () => SortPullDownWidget<PluginListSortKey>(
-                isAscending: controller.sortAscending.value,
-                currentValue: controller.sortKey.value,
-                options: PluginListSortKey.values,
-                labelBuilder: _sortLabel,
-                onDirectionChanged: (asc) {
-                  if (controller.sortAscending.value != asc) {
-                    controller.toggleSortDirection();
-                  }
-                },
-                onValueChanged: controller.updateSortKey,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: cs.outline.withValues(alpha: 0.1),
+            width: 0.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 20,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 90, sigmaY: 90),
+            child: Container(
+              height: _floatingBarHeight,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              color: cs.surface.withValues(alpha: 0.55),
+              child: Row(
+                children: [
+                  _buildFloatingFilterButton(context),
+                  const SizedBox(width: 8),
+                  Expanded(child: _buildFakeSearchBar(context)),
+                  const SizedBox(width: 8),
+                  _buildFloatingSortButton(context),
+                ],
               ),
             ),
-            const SizedBox(width: 6),
-            Expanded(child: _buildFilterBar(context)),
-            const SizedBox(width: 6),
-            _buildFilterButton(context),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFloatingFilterButton(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Obx(() {
+      final has = controller.hasActiveFilters;
+      final color = has ? cs.primary : cs.onSurface.withValues(alpha: 0.75);
+      return CupertinoButton(
+        padding: EdgeInsets.zero,
+        minimumSize: Size.zero,
+        onPressed: () => _openFilterSheet(context),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Icon(CupertinoIcons.slider_horizontal_3, size: 22, color: color),
+            if (has)
+              Positioned(
+                right: -2,
+                top: -2,
+                child: Container(
+                  width: 7,
+                  height: 7,
+                  decoration: BoxDecoration(
+                    color: cs.primary,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: cs.surface, width: 1),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildFloatingSortButton(BuildContext context) {
+    return Obx(
+      () => SortPullDownWidget<PluginListSortKey>(
+        isAscending: controller.sortAscending.value,
+        currentValue: controller.sortKey.value,
+        options: PluginListSortKey.values,
+        labelBuilder: _sortLabel,
+        onDirectionChanged: (asc) {
+          if (controller.sortAscending.value != asc) {
+            controller.toggleSortDirection();
+          }
+        },
+        onValueChanged: controller.updateSortKey,
+      ),
+    );
+  }
+
+  Widget _buildFakeSearchBar(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: () => _openKeywordSheet(context),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(999),
+          color: cs.onSurface.withValues(alpha: 0.06),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              CupertinoIcons.search,
+              size: 18,
+              color: cs.onSurface.withValues(alpha: 0.55),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Obx(
+                () => Text(
+                  controller.keyword.value.isEmpty
+                      ? '搜索名称、描述、作者…'
+                      : controller.keyword.value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: controller.keyword.value.isEmpty
+                        ? cs.onSurface.withValues(alpha: 0.45)
+                        : cs.onSurface.withValues(alpha: 0.88),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _openKeywordSheet(BuildContext context) async {
+    final textController = TextEditingController(
+      text: controller.keyword.value,
+    );
+    final submitted = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final bottom = MediaQuery.viewInsetsOf(ctx).bottom;
+        return Padding(
+          padding: EdgeInsets.only(bottom: bottom),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            decoration: BoxDecoration(
+              color: CupertinoDynamicColor.resolve(
+                CupertinoColors.systemBackground,
+                ctx,
+              ),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(18),
+              ),
+            ),
+            child: CupertinoSearchTextField(
+              controller: textController,
+              autofocus: true,
+              placeholder: '搜索插件名称、描述、作者…',
+              onSubmitted: (v) => Navigator.of(ctx).pop(v),
+            ),
+          ),
+        );
+      },
+    );
+    textController.dispose();
+    if (submitted == null) return;
+    controller.updateKeyword(submitted);
   }
 
   static String _sortLabel(PluginListSortKey key) {
@@ -133,163 +300,6 @@ class PluginListPage extends GetView<PluginListController> {
       case PluginListSortKey.addTime:
         return '添加时间';
     }
-  }
-
-  Widget _buildFilterButton(BuildContext context) {
-    return Obx(() {
-      final hasFilters = controller.hasActiveFilters;
-      final accent = context.primaryColor;
-      return CupertinoButton(
-        padding: const EdgeInsets.all(6),
-        minimumSize: Size.zero,
-        pressedOpacity: 0.7,
-        onPressed: () => _openFilterSheet(context),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: CupertinoDynamicColor.resolve(
-              CupertinoColors.tertiarySystemFill,
-              context,
-            ),
-            borderRadius: BorderRadius.circular(8),
-            border: hasFilters
-                ? Border.all(color: accent.withValues(alpha: 0.5), width: 1)
-                : null,
-          ),
-          child: Stack(
-            alignment: Alignment.center,
-            clipBehavior: Clip.none,
-            children: [
-              Icon(
-                CupertinoIcons.slider_horizontal_3,
-                size: 16,
-                color: hasFilters
-                    ? accent
-                    : CupertinoDynamicColor.resolve(
-                        CupertinoColors.tertiaryLabel,
-                        context,
-                      ),
-              ),
-              if (hasFilters)
-                Positioned(
-                  right: -2,
-                  top: -2,
-                  child: Container(
-                    width: 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: accent,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      );
-    });
-  }
-
-  Widget _buildFilterBar(BuildContext context) {
-    return Obx(() {
-      final items = [
-        _FilterChipItem(
-          filterType: PluginListFilterType.author,
-          label: _filterSectionTitles[PluginListFilterType.author]!,
-          icon: CupertinoIcons.person,
-          count: controller.selectedAuthors.length,
-        ),
-        _FilterChipItem(
-          filterType: PluginListFilterType.label,
-          label: _filterSectionTitles[PluginListFilterType.label]!,
-          icon: CupertinoIcons.tag,
-          count: controller.selectedLabels.length,
-        ),
-        _FilterChipItem(
-          filterType: PluginListFilterType.repo,
-          label: _filterSectionTitles[PluginListFilterType.repo]!,
-          icon: CupertinoIcons.cube_box,
-          count: controller.selectedRepos.length,
-        ),
-      ];
-
-      return SizedBox(
-        height: 32,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          itemBuilder: (context, index) =>
-              _buildFilterPill(context, items[index]),
-          separatorBuilder: (_, __) => const SizedBox(width: 6),
-          itemCount: items.length,
-        ),
-      );
-    });
-  }
-
-  Widget _buildFilterPill(BuildContext context, _FilterChipItem item) {
-    final hasCount = item.count > 0;
-    const chipColors = {
-      PluginListFilterType.author: Color(0xFF3B82F6),
-      PluginListFilterType.label: Color(0xFF8B5CF6),
-      PluginListFilterType.repo: Color(0xFF10B981),
-    };
-    final chipColor = chipColors[item.filterType] ?? const Color(0xFF6B7280);
-    final bgColor = hasCount ? chipColor : chipColor.withValues(alpha: 0.12);
-    final borderColor = hasCount
-        ? chipColor
-        : chipColor.withValues(alpha: 0.35);
-
-    return CupertinoButton(
-      padding: EdgeInsets.zero,
-      minimumSize: Size.zero,
-      pressedOpacity: 0.7,
-      onPressed: () => _openFilterSheet(context, item.filterType),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(5),
-          border: Border.all(color: borderColor, width: 1),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              item.icon,
-              size: 14,
-              color: hasCount ? Colors.white : chipColor,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              item.label,
-              style: TextStyle(
-                color: hasCount ? Colors.white : chipColor,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            if (hasCount) ...[
-              const SizedBox(width: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                decoration: BoxDecoration(
-                  color: chipColor,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  '${item.count}',
-                  style: const TextStyle(
-                    color: CupertinoColors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 10,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
   }
 
   List<PluginListFilterSectionConfig> _buildFilterSections() {
@@ -327,7 +337,7 @@ class PluginListPage extends GetView<PluginListController> {
       context: context,
       builder: (sheetContext) {
         return SizedBox(
-          height: MediaQuery.of(sheetContext).size.height * 0.78,
+          height: MediaQuery.sizeOf(sheetContext).height * 0.78,
           child: Obx(
             () => PluginListFilterSheet(
               title: '筛选',
@@ -408,7 +418,7 @@ class PluginListPage extends GetView<PluginListController> {
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(
                 _horizontalPadding,
-                16,
+                8,
                 _horizontalPadding,
                 0,
               ),
@@ -422,7 +432,7 @@ class PluginListPage extends GetView<PluginListController> {
                           .toInt(),
                   mainAxisSpacing: _gridSpacing,
                   crossAxisSpacing: _gridSpacing,
-                  mainAxisExtent: 140,
+                  mainAxisExtent: 148,
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (context, index) => _buildCard(context, items[index]),
@@ -436,7 +446,7 @@ class PluginListPage extends GetView<PluginListController> {
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(
                 _horizontalPadding,
-                16,
+                8,
                 _horizontalPadding,
                 0,
               ),
@@ -463,7 +473,7 @@ class PluginListPage extends GetView<PluginListController> {
       if (controller.visibleItems.isEmpty) return const SizedBox.shrink();
       if (!controller.hasMore) {
         return Padding(
-          padding: const EdgeInsets.fromLTRB(0, 16, 0, 80),
+          padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
           child: Center(
             child: Text(
               '没有更多了',
@@ -480,7 +490,7 @@ class PluginListPage extends GetView<PluginListController> {
       }
       final loading = controller.isLoadingMore.value;
       return Padding(
-        padding: const EdgeInsets.fromLTRB(0, 16, 0, 80),
+        padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
         child: Center(
           child: loading
               ? SizedBox(
@@ -521,18 +531,4 @@ class PluginListPage extends GetView<PluginListController> {
       ),
     );
   }
-}
-
-class _FilterChipItem {
-  const _FilterChipItem({
-    required this.filterType,
-    required this.label,
-    required this.icon,
-    required this.count,
-  });
-
-  final PluginListFilterType filterType;
-  final String label;
-  final IconData icon;
-  final int count;
 }

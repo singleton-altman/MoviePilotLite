@@ -9,6 +9,13 @@ import 'package:moviepilot_mobile/modules/recognize/models/recognize_model.dart'
 import 'package:moviepilot_mobile/modules/storage/controllers/storage_list_controller.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 
+class FileActionResult {
+  const FileActionResult({required this.success, this.message = ''});
+
+  final bool success;
+  final String message;
+}
+
 /// 文件浏览器控制器 - 使用 Get.to 页面级导航，每页单一 currentPath
 class FileManagerBrowserController extends GetxController {
   final _apiClient = Get.find<ApiClient>();
@@ -236,16 +243,12 @@ class FileManagerBrowserController extends GetxController {
     final storage = selectedStorage.value;
     if (storage == null) return false;
 
-    final body = file.toJson();
-    // 确保 storage 字段正确
-    if (body['storage'] == null || (body['storage'] as String).isEmpty) {
-      body['storage'] = storage.type;
-    }
+    final body = _buildStorageFilePayload(file, storageType: storage.type);
 
     try {
-      final response = await _apiClient.post<dynamic>(
+      final response = await _apiClient.postJson<dynamic>(
         '/api/v1/storage/delete',
-        data: body,
+        body,
       );
       final status = response.statusCode ?? 0;
       if (status >= 200 && status < 300) {
@@ -301,16 +304,107 @@ class FileManagerBrowserController extends GetxController {
     if (data == null) return null;
     try {
       if (data is Map) {
-        return RecognizeResponse.fromJson(Map<String, dynamic>.from(data));
+        return RecognizeResponse.fromJson(
+          _normalizeRecognizePayload(Map<String, dynamic>.from(data)),
+        );
       }
       if (data is String && data.trim().startsWith('{')) {
         final decoded = jsonDecode(data);
         if (decoded is Map) {
-          return RecognizeResponse.fromJson(Map<String, dynamic>.from(decoded));
+          return RecognizeResponse.fromJson(
+            _normalizeRecognizePayload(Map<String, dynamic>.from(decoded)),
+          );
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      _log.handle(e, message: '解析识别结果失败');
+    }
     return null;
+  }
+
+  static const Set<String> _recognizeStringKeys = {
+    'source',
+    'type',
+    'title',
+    'subtitle',
+    'name',
+    'cn_name',
+    'en_name',
+    'year',
+    'org_string',
+    'season_episode',
+    'part',
+    'resource_type',
+    'resource_effect',
+    'resource_pix',
+    'resource_team',
+    'video_encode',
+    'audio_encode',
+    'edition',
+    'web_source',
+    'en_title',
+    'title_year',
+    'imdb_id',
+    'mediaid_prefix',
+    'media_id',
+    'original_language',
+    'original_title',
+    'release_date',
+    'backdrop_path',
+    'poster_path',
+    'overview',
+    'category',
+    'detail_link',
+    'first_air_date',
+    'homepage',
+    'last_air_date',
+    'original_name',
+    'status',
+    'tagline',
+    'air_date',
+    'known_for_department',
+    'profile_path',
+    'character',
+    'credit_id',
+    'job',
+    'logo_path',
+    'origin_country',
+    'iso_3166_1',
+    'english_name',
+    'iso_639_1',
+    'certification',
+    'note',
+    'description',
+    'production_code',
+    'still_path',
+  };
+
+  Map<String, dynamic> _normalizeRecognizePayload(Map<String, dynamic> source) {
+    final normalized = <String, dynamic>{};
+    source.forEach((key, value) {
+      normalized[key] = _normalizeRecognizeValue(key, value);
+    });
+    return normalized;
+  }
+
+  dynamic _normalizeRecognizeValue(String key, dynamic value) {
+    if (value is Map) {
+      return _normalizeRecognizePayload(Map<String, dynamic>.from(value));
+    }
+    if (value is List) {
+      return value.map((item) {
+        if (item is Map) {
+          return _normalizeRecognizePayload(Map<String, dynamic>.from(item));
+        }
+        return item;
+      }).toList();
+    }
+    if (_recognizeStringKeys.contains(key) &&
+        value != null &&
+        value is! String) {
+      return value.toString();
+    }
+    return value;
   }
 
   /// 刮削文件/文件夹 - POST /api/v1/media/scrape/{storage}
@@ -318,15 +412,12 @@ class FileManagerBrowserController extends GetxController {
     final storage = selectedStorage.value;
     if (storage == null) return false;
 
-    final body = file.toJson();
-    if (body['storage'] == null || (body['storage'] as String).isEmpty) {
-      body['storage'] = storage.type;
-    }
+    final body = _buildStorageFilePayload(file, storageType: storage.type);
 
     try {
-      final response = await _apiClient.post<dynamic>(
+      final response = await _apiClient.postJson<dynamic>(
         '/api/v1/media/scrape/${storage.type}',
-        data: body,
+        body,
       );
       final status = response.statusCode ?? 0;
       return status >= 200 && status < 300;
@@ -379,19 +470,16 @@ class FileManagerBrowserController extends GetxController {
     final storage = selectedStorage.value;
     if (storage == null) return false;
 
-    final body = file.toJson();
-    if (body['storage'] == null || (body['storage'] as String).isEmpty) {
-      body['storage'] = storage.type;
-    }
+    final body = _buildStorageFilePayload(file, storageType: storage.type);
     if (renameDirFiles) {
       body['rename_dir_files'] = true;
     }
 
     try {
-      final response = await _apiClient.post<dynamic>(
+      final response = await _apiClient.postJson<dynamic>(
         '/api/v1/storage/rename',
+        body,
         queryParameters: {'new_name': newName},
-        data: body,
       );
       final status = response.statusCode ?? 0;
       if (status >= 200 && status < 300) {
@@ -403,6 +491,147 @@ class FileManagerBrowserController extends GetxController {
       _log.handle(e, message: '重命名失败');
       return false;
     }
+  }
+
+  Future<FileActionResult> manualTransfer(
+    MediaOrganizeFileItem file, {
+    required String mode,
+    required String targetStorage,
+    required String transferType,
+    required String targetPath,
+    required bool scrape,
+    required bool libraryTypeFolder,
+    required bool libraryCategoryFolder,
+    required String tmdbId,
+    required String part,
+    required String minFileSize,
+    required String episodeGroup,
+    required String season,
+    required String episodeFormat,
+    required String episodeOffset,
+  }) async {
+    final sourceStorage = selectedStorage.value?.type ?? file.storage ?? '';
+    if (sourceStorage.isEmpty || targetStorage.trim().isEmpty) {
+      return const FileActionResult(success: false, message: '缺少源存储或目标存储');
+    }
+
+    final normalizedTransferType = transferType.trim();
+    final normalizedTargetPath = targetPath.trim();
+    final normalizedTmdbId = tmdbId.trim();
+    final normalizedPart = part.trim();
+    final normalizedEpisodeGroup = episodeGroup.trim();
+    final normalizedSeason = season.trim();
+    final normalizedEpisodeFormat = episodeFormat.trim();
+    final normalizedEpisodeOffset = episodeOffset.trim();
+    final parsedMinFileSize =
+        double.tryParse(minFileSize.trim())?.floor().clamp(0, 1 << 31) ?? 0;
+
+    final payload = <String, dynamic>{
+      'fileitem': _buildStorageFilePayload(file, storageType: sourceStorage),
+      'logid': 0,
+      'target_storage': targetStorage.trim(),
+      'transfer_type': normalizedTransferType == 'auto'
+          ? ''
+          : normalizedTransferType,
+      'target_path': normalizedTargetPath,
+      'min_filesize': parsedMinFileSize,
+      'scrape': scrape,
+      'from_history': false,
+      'library_category_folder': libraryCategoryFolder,
+      'library_type_folder': libraryTypeFolder,
+    };
+
+    if (mode == 'movie') {
+      payload['type_name'] = '';
+    } else if (mode == 'tv') {
+      payload['type_name'] = '电视剧';
+    }
+
+    if (normalizedTmdbId.isNotEmpty) {
+      payload['tmdbid'] = normalizedTmdbId;
+    }
+
+    if (normalizedPart.isNotEmpty) {
+      payload[mode == 'tv' ? 'episode_part' : 'part'] = normalizedPart;
+    }
+
+    if (mode == 'tv') {
+      if (normalizedEpisodeGroup.isNotEmpty) {
+        payload['episode_group'] = normalizedEpisodeGroup;
+      }
+      final parsedSeason = int.tryParse(normalizedSeason);
+      if (parsedSeason != null) {
+        payload['season'] = parsedSeason;
+      }
+      if (normalizedEpisodeFormat.isNotEmpty) {
+        payload['episode_format'] = normalizedEpisodeFormat;
+      }
+      if (normalizedEpisodeOffset.isNotEmpty) {
+        payload['episode_offset'] = normalizedEpisodeOffset;
+      }
+    }
+
+    try {
+      final response = await _apiClient.postJson<dynamic>(
+        '/api/v1/transfer/manual',
+        payload,
+        queryParameters: {'background': false},
+      );
+      final status = response.statusCode ?? 0;
+      if (status >= 200 && status < 300) {
+        final data = response.data;
+        if (data is Map) {
+          final result = Map<String, dynamic>.from(data);
+          final success = result['success'] is bool
+              ? result['success'] as bool
+              : false;
+          final message = result['message']?.toString().trim() ?? '';
+          if (success) {
+            loadFiles();
+          }
+          return FileActionResult(success: success, message: message);
+        }
+        return const FileActionResult(success: false, message: '整理响应格式异常');
+      }
+      final data = response.data;
+      String message = '整理失败 (HTTP $status)';
+      if (data is Map && data['message'] != null) {
+        final serverMessage = data['message']?.toString().trim() ?? '';
+        if (serverMessage.isNotEmpty) {
+          message = serverMessage;
+        }
+      }
+      return FileActionResult(success: false, message: message);
+    } catch (e, st) {
+      _log.handle(e, stackTrace: st, message: '手动整理失败');
+      return const FileActionResult(success: false, message: '手动整理失败');
+    }
+  }
+
+  Map<String, dynamic> _buildStorageFilePayload(
+    MediaOrganizeFileItem file, {
+    required String storageType,
+  }) {
+    final path = (file.path?.trim().isNotEmpty ?? false)
+        ? file.path!.trim()
+        : getNextPath(file);
+    return {
+      'path': path,
+      'storage': storageType,
+      'type': file.type,
+      'name': file.name,
+      'basename': file.basename,
+      'extension': file.extension,
+      'size': file.size,
+      'modify_time': file.modifyTime,
+      'children': file.children,
+      'fileid': file.fileid,
+      'parent_fileid': file.parent_fileid,
+      'thumbnail': file.thumbnail,
+      'pickcode': file.pickcode,
+      'drive_id': file.drive_id,
+      'url': file.url,
+    };
   }
 
   void retryLoadStorages() {

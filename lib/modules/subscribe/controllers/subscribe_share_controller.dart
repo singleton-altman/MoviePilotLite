@@ -41,6 +41,7 @@ class SubscribeShareController extends GetxController {
   @override
   void onClose() {
     scrollController.dispose();
+    searchController.dispose();
     super.onClose();
   }
 
@@ -215,6 +216,9 @@ class SubscribeShareController extends GetxController {
     if (voteMin.value <= 0) return '评分';
     return '${voteMin.value}分+';
   }
+
+  bool get hasActiveFilters =>
+      selectedGenres.isNotEmpty || voteMin.value > 0;
 
   List<SubscribeShareItem> get visibleItems {
     var list = items.toList();

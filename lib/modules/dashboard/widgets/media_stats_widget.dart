@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
-import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_section.dart';
+import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_widget_styles.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import '../controllers/dashboard_controller.dart';
 
@@ -9,6 +9,7 @@ class MediaStatsWidget extends StatelessWidget {
   const MediaStatsWidget({super.key});
   Widget _buildInfo(BuildContext context) {
     final controller = Get.find<DashboardController>();
+    final palette = DashboardPalette.of(context);
     return Obx(() {
       final statisticData = controller.statisticData.value;
 
@@ -18,32 +19,35 @@ class MediaStatsWidget extends StatelessWidget {
           'label': '电影',
           'value': statisticData?.movie_count ?? 0,
           'icon': CupertinoIcons.film,
-          'color': CupertinoColors.systemPurple,
+          'color': palette.primary,
         },
         {
           'label': '电视剧',
           'value': statisticData?.tv_count ?? 0,
           'icon': CupertinoIcons.tv,
-          'color': CupertinoColors.systemGreen,
+          'color': palette.coolAccent,
         },
         {
           'label': '剧集',
           'value': statisticData?.episode_count ?? 0,
           'icon': CupertinoIcons.collections,
-          'color': CupertinoColors.systemOrange,
+          'color': palette.warningAccent,
         },
         {
           'label': '用户',
           'value': statisticData?.user_count ?? 0,
           'icon': CupertinoIcons.person,
-          'color': CupertinoColors.systemBlue,
+          'color': palette.successAccent,
         },
       ];
       return Skeletonizer(
         enabled: statisticData == null,
-        child: Row(
+        child: Wrap(
+          spacing: 12,
+          runSpacing: 12,
           children: stats.map((stat) {
-            return Expanded(
+            return SizedBox(
+              width: (MediaQuery.sizeOf(context).width - 72) / 2,
               child: _buildStatItem(
                 stat['label'] as String,
                 (stat['value'] as int).toString(),
@@ -59,11 +63,7 @@ class MediaStatsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DashboardSection(
-      title: '媒体统计',
-      icon: CupertinoIcons.chart_bar,
-      child: _buildInfo(context),
-    );
+    return _buildInfo(context);
   }
 
   Widget _buildStatItem(
@@ -72,30 +72,48 @@ class MediaStatsWidget extends StatelessWidget {
     IconData icon,
     Color color,
   ) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
+    final palette = DashboardPalette.of(Get.context!);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: palette.tileSurface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: palette.tileBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, size: 20, color: color),
           ),
-          child: Icon(icon, size: 24, color: color),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-          textAlign: TextAlign.center,
-        ),
-        Text(
-          label,
-          style: TextStyle(fontSize: 12, color: CupertinoColors.systemGrey),
-          textAlign: TextAlign.center,
-        ),
-      ],
+          const SizedBox(height: 14),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: palette.titleText,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label.toUpperCase(),
+            style: TextStyle(
+              fontSize: 11,
+              color: palette.mutedText,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.1,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

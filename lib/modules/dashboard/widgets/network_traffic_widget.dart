@@ -1,9 +1,6 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_section.dart';
-import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_widget_header.dart';
-import 'package:moviepilot_mobile/theme/section.dart';
+import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_widget_styles.dart';
 import 'package:moviepilot_mobile/utils/size_formatter.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import '../controllers/dashboard_controller.dart';
@@ -14,24 +11,59 @@ class NetworkTrafficWidget extends StatelessWidget {
 
   Widget _buildInfo(BuildContext context) {
     final controller = Get.find<DashboardController>();
+    final palette = DashboardPalette.of(context);
     return Obx(() {
       final traffic = controller.networkTraffic;
+      final upload = traffic.isNotEmpty ? traffic.first : 0;
+      final download = traffic.length > 1 ? traffic.last : 0;
+      final total = upload + download;
+      final uploadRatio = total == 0 ? 0.0 : upload / total;
+      final downloadRatio = total == 0 ? 0.0 : download / total;
+
       return Skeletonizer(
         enabled: traffic.isEmpty,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+        child: Column(
           children: [
-            _buildTrafficItem(
-              '上行',
-              '${SizeFormatter.formatSize(traffic.first)}ps',
-              CupertinoIcons.arrow_up,
-              Theme.of(context).colorScheme.secondary,
+            Row(
+              children: [
+                Expanded(
+                  child: DashboardMetricTile(
+                    label: '上行',
+                    value: '${SizeFormatter.formatSize(upload.toDouble())}/s',
+                    icon: CupertinoIcons.arrow_up,
+                    accentColor: palette.primary,
+                    subtitle: '占比 ${(uploadRatio * 100).toStringAsFixed(0)}%',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DashboardMetricTile(
+                    label: '下行',
+                    value: '${SizeFormatter.formatSize(download.toDouble())}/s',
+                    icon: CupertinoIcons.arrow_down,
+                    accentColor: palette.coolAccent,
+                    subtitle: '占比 ${(downloadRatio * 100).toStringAsFixed(0)}%',
+                  ),
+                ),
+              ],
             ),
-            _buildTrafficItem(
-              '下行',
-              '${SizeFormatter.formatSize(traffic.last)}ps',
-              CupertinoIcons.arrow_down,
-              Theme.of(context).colorScheme.primary,
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: DashboardProgressBar(
+                    value: uploadRatio,
+                    color: palette.primary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DashboardProgressBar(
+                    value: downloadRatio,
+                    color: palette.coolAccent,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -41,32 +73,6 @@ class NetworkTrafficWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DashboardSection(
-      title: '网络流量',
-      icon: CupertinoIcons.wifi,
-      child: _buildInfo(context),
-    );
-  }
-
-  Widget _buildTrafficItem(
-    String label,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
-    return Column(
-      children: [
-        Icon(icon, size: 32, color: color),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        Text(
-          label,
-          style: TextStyle(fontSize: 12, color: CupertinoColors.systemGrey),
-        ),
-      ],
-    );
+    return _buildInfo(context);
   }
 }

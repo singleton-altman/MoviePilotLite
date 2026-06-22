@@ -25,9 +25,7 @@ class UserManagementController extends GetxController {
   final errorText = RxnString();
   final searchKeyword = ''.obs;
 
-  bool get isSuperuser =>
-      _appService.loginResponse?.superUser == true ||
-      _appService.userInfo?.isSuperuser == true;
+  bool get canManage => _appService.isSuperuser;
 
   List<UserInfo> get filteredItems {
     final kw = searchKeyword.value.trim().toLowerCase();
@@ -46,10 +44,22 @@ class UserManagementController extends GetxController {
   @override
   void onReady() {
     super.onReady();
+    if (!canManage) {
+      errorText.value = '当前帐号无账户管理权限';
+      items.clear();
+      subscribeStatsMap.clear();
+      return;
+    }
     load();
   }
 
   Future<void> load() async {
+    if (!canManage) {
+      errorText.value = '当前帐号无账户管理权限';
+      items.clear();
+      subscribeStatsMap.clear();
+      return;
+    }
     isLoading.value = true;
     errorText.value = null;
 
@@ -111,6 +121,10 @@ class UserManagementController extends GetxController {
   }
 
   Future<void> deleteUser(int userId) async {
+    if (!canManage) {
+      errorText.value = '当前帐号无账户管理权限';
+      return;
+    }
     try {
       await _apiClient.delete('/api/v1/user/id/$userId');
       items.removeWhere((u) => u.id == userId);

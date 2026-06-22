@@ -3,20 +3,6 @@ import 'package:moviepilot_mobile/modules/multifunction/models/multifunction_mod
 
 const List<MultifunctionSection> multifunctionSections = [
   MultifunctionSection(
-    title: '开始',
-    items: [
-      MultifunctionItem(
-        title: '搜索结果',
-        subtitle: null,
-        icon: Icons.search,
-        accent: Color(0xFF5C7CFA),
-        style: MultifunctionCardStyle.hero,
-        meta: '近期',
-        route: '/search-result',
-      ),
-    ],
-  ),
-  MultifunctionSection(
     title: '订阅',
     items: [
       MultifunctionItem(

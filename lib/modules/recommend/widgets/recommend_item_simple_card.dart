@@ -99,7 +99,7 @@ class RecommendItemSimpleCard extends GetView<SubscribeService> {
           colors: [Colors.transparent, Colors.black54],
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 20),
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -120,7 +120,7 @@ class RecommendItemSimpleCard extends GetView<SubscribeService> {
                 ),
               ),
               if (rating != null && rating > 0) ...[
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 Icon(
                   Icons.star_rounded,
                   size: 16,
@@ -145,7 +145,7 @@ class RecommendItemSimpleCard extends GetView<SubscribeService> {
             ),
           ],
           if (overview.isNotEmpty) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(
               overview,
               style: TextStyle(

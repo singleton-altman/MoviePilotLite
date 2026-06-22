@@ -1,0 +1,66 @@
+name: Deploy Web to Vercel
+
+# 在仓库 Settings → Secrets and variables → Actions 中配置：
+# VERCEL_TOKEN（Vercel Account Settings → Tokens）
+# VERCEL_ORG_ID、VERCEL_PROJECT_ID（项目 Settings → General → Project ID / Team ID）
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+      - main
+    paths:
+      - "lib/**"
+      - "web/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - ".github/workflows/deploy-web-vercel.yml"
+
+concurrency:
+  group: deploy-web-vercel
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.38.2"
+          channel: stable
+          cache: true
+
+      - name: Precache web
+        run: flutter precache --web
+
+      - name: Refresh altman_downloader_control
+        run: flutter pub upgrade altman_downloader_control
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build web
+        run: flutter build web --release
+
+      - name: Link Vercel project
+        working-directory: build/web
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          mkdir -p .vercel
+          printf '%s\n' "{\"orgId\":\"${VERCEL_ORG_ID}\",\"projectId\":\"${VERCEL_PROJECT_ID}\"}" > .vercel/project.json
+
+      - name: Deploy to Vercel
+        working-directory: build/web
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: npx vercel@latest deploy --prod --token "$VERCEL_TOKEN" --yes

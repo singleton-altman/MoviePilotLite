@@ -92,6 +92,7 @@ class RecommendItemCard extends GetView<SubscribeService> {
             right: 0,
             child: _buildTitle(
               data?.title ?? '',
+              year: _displayYear(data),
               overview: data?.overview ?? '',
               inLibrary: inLibrary,
             ),
@@ -114,7 +115,19 @@ class RecommendItemCard extends GetView<SubscribeService> {
     return _buildPoster(item, width, height);
   }
 
-  Widget _buildTitle(String title, {String? overview, bool inLibrary = false}) {
+  String _displayYear(RecommendApiItem? data) {
+    final year = data?.year?.trim() ?? '';
+    if (year.isNotEmpty) return year;
+    final titleYear = data?.title_year?.trim() ?? '';
+    return titleYear;
+  }
+
+  Widget _buildTitle(
+    String title, {
+    String? year,
+    String? overview,
+    bool inLibrary = false,
+  }) {
     return Container(
       // height: 40,
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
@@ -156,6 +169,18 @@ class RecommendItemCard extends GetView<SubscribeService> {
               ),
             ],
           ),
+          if ((year ?? '').isNotEmpty) ...[
+            const SizedBox(height: 3),
+            Text(
+              year!,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.white.withValues(alpha: 0.82),
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
           const SizedBox(height: 3),
           Text(
             overview?.trim() ?? '',
@@ -218,7 +243,7 @@ class RecommendItemCard extends GetView<SubscribeService> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: background.withOpacity(0.9),
+        color: background.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Text(

@@ -30,32 +30,32 @@ Map<String, dynamic> _$$RecognizeResponseImplToJson(
 
 _$MetaInfoImpl _$$MetaInfoImplFromJson(Map<String, dynamic> json) =>
     _$MetaInfoImpl(
-      isfile: json['isfile'] as bool?,
-      org_string: json['org_string'] as String?,
-      title: json['title'] as String?,
-      subtitle: json['subtitle'] as String?,
-      type: json['type'] as String?,
-      name: json['name'] as String?,
-      cn_name: json['cn_name'] as String?,
-      en_name: json['en_name'] as String?,
-      year: json['year'] as String?,
+      isfile: _boolFromJson(json['isfile']),
+      org_string: _stringFromJson(json['org_string']),
+      title: _stringFromJson(json['title']),
+      subtitle: _stringFromJson(json['subtitle']),
+      type: _stringFromJson(json['type']),
+      name: _stringFromJson(json['name']),
+      cn_name: _stringFromJson(json['cn_name']),
+      en_name: _stringFromJson(json['en_name']),
+      year: _stringFromJson(json['year']),
       total_season: _intFromJson(json['total_season']),
       begin_season: _intFromJson(json['begin_season']),
       end_season: _intFromJson(json['end_season']),
       total_episode: _intFromJson(json['total_episode']),
       begin_episode: _intFromJson(json['begin_episode']),
       end_episode: _intFromJson(json['end_episode']),
-      season_episode: json['season_episode'] as String?,
+      season_episode: _stringFromJson(json['season_episode']),
       episode_list: _intListFromJson(json['episode_list']),
-      part: json['part'] as String?,
-      resource_type: json['resource_type'] as String?,
-      resource_effect: json['resource_effect'] as String?,
-      resource_pix: json['resource_pix'] as String?,
-      resource_team: json['resource_team'] as String?,
-      video_encode: json['video_encode'] as String?,
-      audio_encode: json['audio_encode'] as String?,
-      edition: json['edition'] as String?,
-      web_source: json['web_source'] as String?,
+      part: _stringFromJson(json['part']),
+      resource_type: _stringFromJson(json['resource_type']),
+      resource_effect: _stringFromJson(json['resource_effect']),
+      resource_pix: _stringFromJson(json['resource_pix']),
+      resource_team: _stringFromJson(json['resource_team']),
+      video_encode: _stringFromJson(json['video_encode']),
+      audio_encode: _stringFromJson(json['audio_encode']),
+      edition: _stringFromJson(json['edition']),
+      web_source: _stringFromJson(json['web_source']),
       apply_words: _stringListFromJson(json['apply_words']),
     );
 
@@ -92,29 +92,29 @@ Map<String, dynamic> _$$MetaInfoImplToJson(_$MetaInfoImpl instance) =>
 
 _$MediaInfoImpl _$$MediaInfoImplFromJson(Map<String, dynamic> json) =>
     _$MediaInfoImpl(
-      source: json['source'] as String?,
-      type: json['type'] as String?,
-      title: json['title'] as String?,
-      en_title: json['en_title'] as String?,
-      year: json['year'] as String?,
-      title_year: json['title_year'] as String?,
+      source: _stringFromJson(json['source']),
+      type: _stringFromJson(json['type']),
+      title: _stringFromJson(json['title']),
+      en_title: _stringFromJson(json['en_title']),
+      year: _stringFromJson(json['year']),
+      title_year: _stringFromJson(json['title_year']),
       season: _intFromJson(json['season']),
       tmdb_id: _intFromJson(json['tmdb_id']),
-      imdb_id: json['imdb_id'] as String?,
+      imdb_id: _stringFromJson(json['imdb_id']),
       tvdb_id: _intFromJson(json['tvdb_id']),
       douban_id: _intFromJson(json['douban_id']),
       bangumi_id: _intFromJson(json['bangumi_id']),
       collection_id: _intFromJson(json['collection_id']),
-      mediaid_prefix: json['mediaid_prefix'] as String?,
-      media_id: json['media_id'] as String?,
-      original_language: json['original_language'] as String?,
-      original_title: json['original_title'] as String?,
-      release_date: json['release_date'] as String?,
-      backdrop_path: json['backdrop_path'] as String?,
-      poster_path: json['poster_path'] as String?,
+      mediaid_prefix: _stringFromJson(json['mediaid_prefix']),
+      media_id: _stringFromJson(json['media_id']),
+      original_language: _stringFromJson(json['original_language']),
+      original_title: _stringFromJson(json['original_title']),
+      release_date: _stringFromJson(json['release_date']),
+      backdrop_path: _stringFromJson(json['backdrop_path']),
+      poster_path: _stringFromJson(json['poster_path']),
       vote_average: _doubleFromJson(json['vote_average']),
-      overview: json['overview'] as String?,
-      category: json['category'] as String?,
+      overview: _stringFromJson(json['overview']),
+      category: _stringFromJson(json['category']),
       seasons: _seasonsFromJson(json['seasons']),
       season_info: (json['season_info'] as List<dynamic>?)
           ?.map((e) => SeasonInfo.fromJson(e as Map<String, dynamic>))
@@ -126,8 +126,8 @@ _$MediaInfoImpl _$$MediaInfoImplFromJson(Map<String, dynamic> json) =>
       directors: (json['directors'] as List<dynamic>?)
           ?.map((e) => Director.fromJson(e as Map<String, dynamic>))
           .toList(),
-      detail_link: json['detail_link'] as String?,
-      adult: json['adult'] as bool?,
+      detail_link: _stringFromJson(json['detail_link']),
+      adult: _boolFromJson(json['adult']),
       created_by: (json['created_by'] as List<dynamic>?)
           ?.map((e) => CreatedBy.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -135,17 +135,17 @@ _$MediaInfoImpl _$$MediaInfoImplFromJson(Map<String, dynamic> json) =>
       genres: (json['genres'] as List<dynamic>?)
           ?.map((e) => Genre.fromJson(e as Map<String, dynamic>))
           .toList(),
-      first_air_date: json['first_air_date'] as String?,
-      homepage: json['homepage'] as String?,
+      first_air_date: _stringFromJson(json['first_air_date']),
+      homepage: _stringFromJson(json['homepage']),
       languages: _stringListFromJson(json['languages']),
-      last_air_date: json['last_air_date'] as String?,
+      last_air_date: _stringFromJson(json['last_air_date']),
       networks: (json['networks'] as List<dynamic>?)
           ?.map((e) => Network.fromJson(e as Map<String, dynamic>))
           .toList(),
       number_of_episodes: _intFromJson(json['number_of_episodes']),
       number_of_seasons: _intFromJson(json['number_of_seasons']),
       origin_country: _stringListFromJson(json['origin_country']),
-      original_name: json['original_name'] as String?,
+      original_name: _stringFromJson(json['original_name']),
       production_companies: (json['production_companies'] as List<dynamic>?)
           ?.map((e) => ProductionCompany.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -158,21 +158,15 @@ _$MediaInfoImpl _$$MediaInfoImplFromJson(Map<String, dynamic> json) =>
       release_dates: (json['release_dates'] as List<dynamic>?)
           ?.map((e) => ReleaseDate.fromJson(e as Map<String, dynamic>))
           .toList(),
-      status: json['status'] as String?,
-      tagline: json['tagline'] as String?,
+      status: _stringFromJson(json['status']),
+      tagline: _stringFromJson(json['tagline']),
       genre_ids: _intListFromJson(json['genre_ids']),
       vote_count: _intFromJson(json['vote_count']),
       popularity: _doubleFromJson(json['popularity']),
       runtime: _intFromJson(json['runtime']),
       next_episode_to_air: _nextEpisodeFromJson(json['next_episode_to_air']),
-      episode_groups: (json['episode_groups'] as List<dynamic>?)
-          ?.map((e) => EpisodeGroup.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      episode_group: json['episode_group'] == null
-          ? null
-          : EpisodeGroup.fromJson(
-              json['episode_group'] as Map<String, dynamic>,
-            ),
+      episode_groups: _episodeGroupsFromJson(json['episode_groups']),
+      episode_group: _episodeGroupFromJson(json['episode_group']),
     );
 
 Map<String, dynamic> _$$MediaInfoImplToJson(_$MediaInfoImpl instance) =>
@@ -230,8 +224,8 @@ Map<String, dynamic> _$$MediaInfoImplToJson(_$MediaInfoImpl instance) =>
       'popularity': instance.popularity,
       'runtime': instance.runtime,
       'next_episode_to_air': _nextEpisodeToJson(instance.next_episode_to_air),
-      'episode_groups': instance.episode_groups,
-      'episode_group': instance.episode_group,
+      'episode_groups': _episodeGroupsToJson(instance.episode_groups),
+      'episode_group': _episodeGroupToJson(instance.episode_group),
     };
 
 _$SeasonEpisodesImpl _$$SeasonEpisodesImplFromJson(Map<String, dynamic> json) =>
@@ -251,12 +245,12 @@ Map<String, dynamic> _$$SeasonEpisodesImplToJson(
 
 _$SeasonInfoImpl _$$SeasonInfoImplFromJson(Map<String, dynamic> json) =>
     _$SeasonInfoImpl(
-      air_date: json['air_date'] as String?,
+      air_date: _stringFromJson(json['air_date']),
       episode_count: _intFromJson(json['episode_count']),
       id: _intFromJson(json['id']),
-      name: json['name'] as String?,
-      overview: json['overview'] as String?,
-      poster_path: json['poster_path'] as String?,
+      name: _stringFromJson(json['name']),
+      overview: _stringFromJson(json['overview']),
+      poster_path: _stringFromJson(json['poster_path']),
       season_number: _intFromJson(json['season_number']),
       vote_average: _doubleFromJson(json['vote_average']),
     );
@@ -274,17 +268,17 @@ Map<String, dynamic> _$$SeasonInfoImplToJson(_$SeasonInfoImpl instance) =>
     };
 
 _$ActorImpl _$$ActorImplFromJson(Map<String, dynamic> json) => _$ActorImpl(
-  source: json['source'] as String?,
-  adult: json['adult'] as bool?,
+  source: _stringFromJson(json['source']),
+  adult: _boolFromJson(json['adult']),
   gender: _intFromJson(json['gender']),
   id: _intFromJson(json['id']),
-  known_for_department: json['known_for_department'] as String?,
-  name: json['name'] as String?,
-  original_name: json['original_name'] as String?,
+  known_for_department: _stringFromJson(json['known_for_department']),
+  name: _stringFromJson(json['name']),
+  original_name: _stringFromJson(json['original_name']),
   popularity: _doubleFromJson(json['popularity']),
-  profile_path: json['profile_path'] as String?,
-  character: json['character'] as String?,
-  credit_id: json['credit_id'] as String?,
+  profile_path: _stringFromJson(json['profile_path']),
+  character: _stringFromJson(json['character']),
+  credit_id: _stringFromJson(json['credit_id']),
   order: _intFromJson(json['order']),
 );
 
@@ -306,16 +300,16 @@ Map<String, dynamic> _$$ActorImplToJson(_$ActorImpl instance) =>
 
 _$DirectorImpl _$$DirectorImplFromJson(Map<String, dynamic> json) =>
     _$DirectorImpl(
-      adult: json['adult'] as bool?,
+      adult: _boolFromJson(json['adult']),
       gender: _intFromJson(json['gender']),
       id: _intFromJson(json['id']),
-      name: json['name'] as String?,
-      original_name: json['original_name'] as String?,
-      credit_id: json['credit_id'] as String?,
-      known_for_department: json['known_for_department'] as String?,
-      job: json['job'] as String?,
+      name: _stringFromJson(json['name']),
+      original_name: _stringFromJson(json['original_name']),
+      credit_id: _stringFromJson(json['credit_id']),
+      known_for_department: _stringFromJson(json['known_for_department']),
+      job: _stringFromJson(json['job']),
       popularity: _doubleFromJson(json['popularity']),
-      profile_path: json['profile_path'] as String?,
+      profile_path: _stringFromJson(json['profile_path']),
     );
 
 Map<String, dynamic> _$$DirectorImplToJson(_$DirectorImpl instance) =>
@@ -335,11 +329,11 @@ Map<String, dynamic> _$$DirectorImplToJson(_$DirectorImpl instance) =>
 _$CreatedByImpl _$$CreatedByImplFromJson(Map<String, dynamic> json) =>
     _$CreatedByImpl(
       id: _intFromJson(json['id']),
-      credit_id: json['credit_id'] as String?,
-      name: json['name'] as String?,
-      original_name: json['original_name'] as String?,
+      credit_id: _stringFromJson(json['credit_id']),
+      name: _stringFromJson(json['name']),
+      original_name: _stringFromJson(json['original_name']),
       gender: _intFromJson(json['gender']),
-      profile_path: json['profile_path'] as String?,
+      profile_path: _stringFromJson(json['profile_path']),
     );
 
 Map<String, dynamic> _$$CreatedByImplToJson(_$CreatedByImpl instance) =>
@@ -352,8 +346,10 @@ Map<String, dynamic> _$$CreatedByImplToJson(_$CreatedByImpl instance) =>
       'profile_path': instance.profile_path,
     };
 
-_$GenreImpl _$$GenreImplFromJson(Map<String, dynamic> json) =>
-    _$GenreImpl(id: _intFromJson(json['id']), name: json['name'] as String?);
+_$GenreImpl _$$GenreImplFromJson(Map<String, dynamic> json) => _$GenreImpl(
+  id: _intFromJson(json['id']),
+  name: _stringFromJson(json['name']),
+);
 
 Map<String, dynamic> _$$GenreImplToJson(_$GenreImpl instance) =>
     <String, dynamic>{'id': instance.id, 'name': instance.name};
@@ -361,9 +357,9 @@ Map<String, dynamic> _$$GenreImplToJson(_$GenreImpl instance) =>
 _$NetworkImpl _$$NetworkImplFromJson(Map<String, dynamic> json) =>
     _$NetworkImpl(
       id: _intFromJson(json['id']),
-      logo_path: json['logo_path'] as String?,
-      name: json['name'] as String?,
-      origin_country: json['origin_country'] as String?,
+      logo_path: _stringFromJson(json['logo_path']),
+      name: _stringFromJson(json['name']),
+      origin_country: _stringFromJson(json['origin_country']),
     );
 
 Map<String, dynamic> _$$NetworkImplToJson(_$NetworkImpl instance) =>
@@ -378,9 +374,9 @@ _$ProductionCompanyImpl _$$ProductionCompanyImplFromJson(
   Map<String, dynamic> json,
 ) => _$ProductionCompanyImpl(
   id: _intFromJson(json['id']),
-  logo_path: json['logo_path'] as String?,
-  name: json['name'] as String?,
-  origin_country: json['origin_country'] as String?,
+  logo_path: _stringFromJson(json['logo_path']),
+  name: _stringFromJson(json['name']),
+  origin_country: _stringFromJson(json['origin_country']),
 );
 
 Map<String, dynamic> _$$ProductionCompanyImplToJson(
@@ -395,8 +391,8 @@ Map<String, dynamic> _$$ProductionCompanyImplToJson(
 _$ProductionCountryImpl _$$ProductionCountryImplFromJson(
   Map<String, dynamic> json,
 ) => _$ProductionCountryImpl(
-  iso_3166_1: json['iso_3166_1'] as String?,
-  name: json['name'] as String?,
+  iso_3166_1: _stringFromJson(json['iso_3166_1']),
+  name: _stringFromJson(json['name']),
 );
 
 Map<String, dynamic> _$$ProductionCountryImplToJson(
@@ -408,9 +404,9 @@ Map<String, dynamic> _$$ProductionCountryImplToJson(
 
 _$SpokenLanguageImpl _$$SpokenLanguageImplFromJson(Map<String, dynamic> json) =>
     _$SpokenLanguageImpl(
-      english_name: json['english_name'] as String?,
-      iso_639_1: json['iso_639_1'] as String?,
-      name: json['name'] as String?,
+      english_name: _stringFromJson(json['english_name']),
+      iso_639_1: _stringFromJson(json['iso_639_1']),
+      name: _stringFromJson(json['name']),
     );
 
 Map<String, dynamic> _$$SpokenLanguageImplToJson(
@@ -423,10 +419,10 @@ Map<String, dynamic> _$$SpokenLanguageImplToJson(
 
 _$ReleaseDateImpl _$$ReleaseDateImplFromJson(Map<String, dynamic> json) =>
     _$ReleaseDateImpl(
-      certification: json['certification'] as String?,
-      iso_3166_1: json['iso_3166_1'] as String?,
-      release_date: json['release_date'] as String?,
-      note: json['note'] as String?,
+      certification: _stringFromJson(json['certification']),
+      iso_3166_1: _stringFromJson(json['iso_3166_1']),
+      release_date: _stringFromJson(json['release_date']),
+      note: _stringFromJson(json['note']),
       type: _intFromJson(json['type']),
     );
 
@@ -442,14 +438,12 @@ Map<String, dynamic> _$$ReleaseDateImplToJson(_$ReleaseDateImpl instance) =>
 _$EpisodeGroupImpl _$$EpisodeGroupImplFromJson(Map<String, dynamic> json) =>
     _$EpisodeGroupImpl(
       id: _stringFromJson(json['id']),
-      name: json['name'] as String?,
-      description: json['description'] as String?,
+      name: _stringFromJson(json['name']),
+      description: _stringFromJson(json['description']),
       episode_count: _intFromJson(json['episode_count']),
       group_count: _intFromJson(json['group_count']),
-      type: json['type'] as String?,
-      network: json['network'] == null
-          ? null
-          : Network.fromJson(json['network'] as Map<String, dynamic>),
+      type: _stringFromJson(json['type']),
+      network: _networkFromJson(json['network']),
     );
 
 Map<String, dynamic> _$$EpisodeGroupImplToJson(_$EpisodeGroupImpl instance) =>
@@ -460,20 +454,20 @@ Map<String, dynamic> _$$EpisodeGroupImplToJson(_$EpisodeGroupImpl instance) =>
       'episode_count': instance.episode_count,
       'group_count': instance.group_count,
       'type': instance.type,
-      'network': instance.network,
+      'network': _networkToJson(instance.network),
     };
 
 _$NextEpisodeToAirImpl _$$NextEpisodeToAirImplFromJson(
   Map<String, dynamic> json,
 ) => _$NextEpisodeToAirImpl(
-  air_date: json['air_date'] as String?,
+  air_date: _stringFromJson(json['air_date']),
   episode_number: _intFromJson(json['episode_number']),
   id: _intFromJson(json['id']),
-  name: json['name'] as String?,
-  overview: json['overview'] as String?,
-  production_code: json['production_code'] as String?,
+  name: _stringFromJson(json['name']),
+  overview: _stringFromJson(json['overview']),
+  production_code: _stringFromJson(json['production_code']),
   season_number: _intFromJson(json['season_number']),
-  still_path: json['still_path'] as String?,
+  still_path: _stringFromJson(json['still_path']),
   vote_average: _doubleFromJson(json['vote_average']),
   vote_count: _intFromJson(json['vote_count']),
   runtime: _intFromJson(json['runtime']),

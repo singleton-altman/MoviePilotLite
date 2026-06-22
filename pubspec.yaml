@@ -1,7 +1,7 @@
 name: moviepilot_mobile
 description: MoviePilot Flutter mobile client
 publish_to: none
-version: 1.0.8+9
+version: 1.1.8+29
 license: BSL-1.1
 environment:
   sdk: '>=3.8.0 <4.0.0'
@@ -52,10 +52,7 @@ dependencies:
       url: https://gitcode.com/openharmony-tpc/flutter_packages.git
       ref: br_url_launcher-v6.3.2_ohos
       path: packages/url_launcher/url_launcher
-  liquid_tabbar_minimize: 
-    git:
-      url: https://github.com/singleton-altman/liquid_tabbar_minimize.git
-      ref: main
+  flutter_floating_bottom_bar: ^1.4.0
   palette_generator: ^0.3.3+7
   webview_flutter:
     git:
@@ -103,6 +100,7 @@ flutter:
   - assets/images/logos/
   - assets/images/misc/
   - assets/images/svg/
+  - assets/lottie/
 flutter_gen:
   output: lib/gen/
   integrations:

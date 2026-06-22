@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:moviepilot_mobile/modules/login/repositories/auth_repository.dart';
@@ -25,7 +26,7 @@ class MediaDetailController extends GetxController {
   final _authRepository = Get.find<AuthRepository>();
   final _appService = Get.find<AppService>();
   final _log = Get.find<AppLog>();
-  final _realmService = Get.find<RealmService>().realm.value;
+  final _realmService = Get.find<RealmService>().realm;
   final _mediaDetailService = Get.find<MediaDetailService>();
   final _subscribeService = Get.put(SubscribeService());
   final subscribeLoadingState = false.obs;
@@ -138,9 +139,10 @@ class MediaDetailController extends GetxController {
   }
 
   void _loadCachedDetailIfValid() {
+    if (kIsWeb) return;
     final cacheKey = _cacheKey(_args);
     if (cacheKey.isEmpty) return;
-    final cache = _realmService?.find<MediaDetailCache>(cacheKey);
+    final cache = _realmService.find<MediaDetailCache>(cacheKey);
     if (cache == null) return;
     final now = DateTime.now();
     if (now.difference(cache.updatedAt) > _cacheValidDuration) {
@@ -159,6 +161,7 @@ class MediaDetailController extends GetxController {
   }
 
   void _cacheDetail(MediaDetail detail) {
+    if (kIsWeb) return;
     final cacheKey = _cacheKey(_args);
     if (cacheKey.isEmpty) return;
     try {
@@ -175,8 +178,8 @@ class MediaDetailController extends GetxController {
         typeName: _args.typeName,
         session: _args.session,
       );
-      _realmService?.write(() {
-        _realmService?.add(cache, update: true);
+      _realmService.write(() {
+        _realmService.add(cache, update: true);
       });
     } catch (e, st) {
       _log.handle(e, stackTrace: st, message: '写入详情缓存失败');
@@ -656,6 +659,10 @@ class MediaDetailController extends GetxController {
   }
 
   Future<(bool, bool, int? subscribeId)> handleSubscribe({int? season}) async {
+    if (!_appService.canSubscribe) {
+      ToastUtil.info('当前帐号无订阅权限');
+      return (false, false, null);
+    }
     subscribeLoadingState.value = true;
     var detail = mediaDetail.value ?? prefillDetail;
     if (detail == null) {

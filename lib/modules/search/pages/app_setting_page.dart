@@ -375,17 +375,13 @@ class AppSettingPage extends GetView<AppSettingController> {
     VoidCallback? onTap,
     String? additionalInfo,
   }) {
-    return CupertinoListTile.notched(
-      padding: const EdgeInsetsDirectional.only(
-        start: 14,
-        end: 12,
-        top: 8,
-        bottom: 8,
-      ),
-      leading: _buildLeadingIcon(context, icon: icon, color: iconColor),
-      title: Text(title),
-      subtitle: subtitle != null ? Text(subtitle) : null,
-      additionalInfo: additionalInfo != null ? Text(additionalInfo) : null,
+    return _buildSettingTile(
+      context,
+      title: title,
+      subtitle: subtitle,
+      icon: icon,
+      iconColor: iconColor,
+      additionalInfo: additionalInfo,
       trailing: onTap != null ? const CupertinoListTileChevron() : null,
       onTap: onTap,
     );
@@ -400,7 +396,35 @@ class AppSettingPage extends GetView<AppSettingController> {
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
-    return CupertinoListTile(
+    return _buildSettingTile(
+      context,
+      title: title,
+      subtitle: subtitle,
+      icon: icon,
+      iconColor: iconColor,
+      onTap: () => onChanged(!value),
+      trailing: Switch.adaptive(
+        padding: EdgeInsets.zero,
+        value: value,
+        onChanged: onChanged,
+      ),
+    );
+  }
+
+  Widget _buildSettingTile(
+    BuildContext context, {
+    required String title,
+    String? subtitle,
+    required IconData icon,
+    required Color iconColor,
+    Widget? trailing,
+    VoidCallback? onTap,
+    String? additionalInfo,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return CupertinoListTile.notched(
       padding: const EdgeInsetsDirectional.only(
         start: 14,
         end: 12,
@@ -408,13 +432,34 @@ class AppSettingPage extends GetView<AppSettingController> {
         bottom: 8,
       ),
       leading: _buildLeadingIcon(context, icon: icon, color: iconColor),
-      title: Text(title),
-      subtitle: subtitle != null ? Text(subtitle) : null,
-      trailing: Switch.adaptive(
-        padding: EdgeInsets.zero,
-        value: value,
-        onChanged: onChanged,
+      title: Text(
+        title,
+        style: theme.textTheme.bodyLarge?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: colorScheme.onSurface,
+        ),
       ),
+      subtitle: subtitle != null
+          ? Text(
+              subtitle,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                height: 1.25,
+              ),
+            )
+          : null,
+      additionalInfo: additionalInfo != null
+          ? Text(
+              additionalInfo,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            )
+          : null,
+      trailing: trailing,
+      onTap: onTap,
     );
   }
 

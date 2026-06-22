@@ -1,3 +1,5 @@
+// ignore_for_file: invalid_annotation_target, non_constant_identifier_names
+
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'recognize_model.freezed.dart';
@@ -18,33 +20,33 @@ class RecognizeResponse with _$RecognizeResponse {
 @freezed
 class MetaInfo with _$MetaInfo {
   const factory MetaInfo({
-    bool? isfile,
-    String? org_string,
-    String? title,
-    String? subtitle,
-    String? type,
-    String? name,
-    String? cn_name,
-    String? en_name,
-    String? year,
+    @JsonKey(fromJson: _boolFromJson) bool? isfile,
+    @JsonKey(fromJson: _stringFromJson) String? org_string,
+    @JsonKey(fromJson: _stringFromJson) String? title,
+    @JsonKey(fromJson: _stringFromJson) String? subtitle,
+    @JsonKey(fromJson: _stringFromJson) String? type,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+    @JsonKey(fromJson: _stringFromJson) String? cn_name,
+    @JsonKey(fromJson: _stringFromJson) String? en_name,
+    @JsonKey(fromJson: _stringFromJson) String? year,
     @JsonKey(fromJson: _intFromJson) int? total_season,
     @JsonKey(fromJson: _intFromJson) int? begin_season,
     @JsonKey(fromJson: _intFromJson) int? end_season,
     @JsonKey(fromJson: _intFromJson) int? total_episode,
     @JsonKey(fromJson: _intFromJson) int? begin_episode,
     @JsonKey(fromJson: _intFromJson) int? end_episode,
-    String? season_episode,
+    @JsonKey(fromJson: _stringFromJson) String? season_episode,
     @JsonKey(fromJson: _intListFromJson, toJson: _intListToJson)
     List<int>? episode_list,
-    String? part,
-    String? resource_type,
-    String? resource_effect,
-    String? resource_pix,
-    String? resource_team,
-    String? video_encode,
-    String? audio_encode,
-    String? edition,
-    String? web_source,
+    @JsonKey(fromJson: _stringFromJson) String? part,
+    @JsonKey(fromJson: _stringFromJson) String? resource_type,
+    @JsonKey(fromJson: _stringFromJson) String? resource_effect,
+    @JsonKey(fromJson: _stringFromJson) String? resource_pix,
+    @JsonKey(fromJson: _stringFromJson) String? resource_team,
+    @JsonKey(fromJson: _stringFromJson) String? video_encode,
+    @JsonKey(fromJson: _stringFromJson) String? audio_encode,
+    @JsonKey(fromJson: _stringFromJson) String? edition,
+    @JsonKey(fromJson: _stringFromJson) String? web_source,
     @JsonKey(fromJson: _stringListFromJson, toJson: _stringListToJson)
     List<String>? apply_words,
   }) = _MetaInfo;
@@ -56,29 +58,29 @@ class MetaInfo with _$MetaInfo {
 @freezed
 class MediaInfo with _$MediaInfo {
   const factory MediaInfo({
-    String? source,
-    String? type,
-    String? title,
-    String? en_title,
-    String? year,
-    String? title_year,
+    @JsonKey(fromJson: _stringFromJson) String? source,
+    @JsonKey(fromJson: _stringFromJson) String? type,
+    @JsonKey(fromJson: _stringFromJson) String? title,
+    @JsonKey(fromJson: _stringFromJson) String? en_title,
+    @JsonKey(fromJson: _stringFromJson) String? year,
+    @JsonKey(fromJson: _stringFromJson) String? title_year,
     @JsonKey(fromJson: _intFromJson) int? season,
     @JsonKey(fromJson: _intFromJson) int? tmdb_id,
-    String? imdb_id,
+    @JsonKey(fromJson: _stringFromJson) String? imdb_id,
     @JsonKey(fromJson: _intFromJson) int? tvdb_id,
     @JsonKey(fromJson: _intFromJson) int? douban_id,
     @JsonKey(fromJson: _intFromJson) int? bangumi_id,
     @JsonKey(fromJson: _intFromJson) int? collection_id,
-    String? mediaid_prefix,
-    String? media_id,
-    String? original_language,
-    String? original_title,
-    String? release_date,
-    String? backdrop_path,
-    String? poster_path,
+    @JsonKey(fromJson: _stringFromJson) String? mediaid_prefix,
+    @JsonKey(fromJson: _stringFromJson) String? media_id,
+    @JsonKey(fromJson: _stringFromJson) String? original_language,
+    @JsonKey(fromJson: _stringFromJson) String? original_title,
+    @JsonKey(fromJson: _stringFromJson) String? release_date,
+    @JsonKey(fromJson: _stringFromJson) String? backdrop_path,
+    @JsonKey(fromJson: _stringFromJson) String? poster_path,
     @JsonKey(fromJson: _doubleFromJson) double? vote_average,
-    String? overview,
-    String? category,
+    @JsonKey(fromJson: _stringFromJson) String? overview,
+    @JsonKey(fromJson: _stringFromJson) String? category,
     @JsonKey(fromJson: _seasonsFromJson, toJson: _seasonsToJson)
     List<SeasonEpisodes>? seasons,
     List<SeasonInfo>? season_info,
@@ -86,29 +88,29 @@ class MediaInfo with _$MediaInfo {
     List<String>? names,
     List<Actor>? actors,
     List<Director>? directors,
-    String? detail_link,
-    bool? adult,
+    @JsonKey(fromJson: _stringFromJson) String? detail_link,
+    @JsonKey(fromJson: _boolFromJson) bool? adult,
     List<CreatedBy>? created_by,
     @JsonKey(fromJson: _intListFromJson, toJson: _intListToJson)
     List<int>? episode_run_time,
     List<Genre>? genres,
-    String? first_air_date,
-    String? homepage,
+    @JsonKey(fromJson: _stringFromJson) String? first_air_date,
+    @JsonKey(fromJson: _stringFromJson) String? homepage,
     @JsonKey(fromJson: _stringListFromJson, toJson: _stringListToJson)
     List<String>? languages,
-    String? last_air_date,
+    @JsonKey(fromJson: _stringFromJson) String? last_air_date,
     List<Network>? networks,
     @JsonKey(fromJson: _intFromJson) int? number_of_episodes,
     @JsonKey(fromJson: _intFromJson) int? number_of_seasons,
     @JsonKey(fromJson: _stringListFromJson, toJson: _stringListToJson)
     List<String>? origin_country,
-    String? original_name,
+    @JsonKey(fromJson: _stringFromJson) String? original_name,
     List<ProductionCompany>? production_companies,
     List<ProductionCountry>? production_countries,
     List<SpokenLanguage>? spoken_languages,
     List<ReleaseDate>? release_dates,
-    String? status,
-    String? tagline,
+    @JsonKey(fromJson: _stringFromJson) String? status,
+    @JsonKey(fromJson: _stringFromJson) String? tagline,
     @JsonKey(fromJson: _intListFromJson, toJson: _intListToJson)
     List<int>? genre_ids,
     @JsonKey(fromJson: _intFromJson) int? vote_count,
@@ -116,7 +118,9 @@ class MediaInfo with _$MediaInfo {
     @JsonKey(fromJson: _intFromJson) int? runtime,
     @JsonKey(fromJson: _nextEpisodeFromJson, toJson: _nextEpisodeToJson)
     NextEpisodeToAir? next_episode_to_air,
+    @JsonKey(fromJson: _episodeGroupsFromJson, toJson: _episodeGroupsToJson)
     List<EpisodeGroup>? episode_groups,
+    @JsonKey(fromJson: _episodeGroupFromJson, toJson: _episodeGroupToJson)
     EpisodeGroup? episode_group,
   }) = _MediaInfo;
 
@@ -138,12 +142,12 @@ class SeasonEpisodes with _$SeasonEpisodes {
 @freezed
 class SeasonInfo with _$SeasonInfo {
   const factory SeasonInfo({
-    String? air_date,
+    @JsonKey(fromJson: _stringFromJson) String? air_date,
     @JsonKey(fromJson: _intFromJson) int? episode_count,
     @JsonKey(fromJson: _intFromJson) int? id,
-    String? name,
-    String? overview,
-    String? poster_path,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+    @JsonKey(fromJson: _stringFromJson) String? overview,
+    @JsonKey(fromJson: _stringFromJson) String? poster_path,
     @JsonKey(fromJson: _intFromJson) int? season_number,
     @JsonKey(fromJson: _doubleFromJson) double? vote_average,
   }) = _SeasonInfo;
@@ -155,17 +159,17 @@ class SeasonInfo with _$SeasonInfo {
 @freezed
 class Actor with _$Actor {
   const factory Actor({
-    String? source,
-    bool? adult,
+    @JsonKey(fromJson: _stringFromJson) String? source,
+    @JsonKey(fromJson: _boolFromJson) bool? adult,
     @JsonKey(fromJson: _intFromJson) int? gender,
     @JsonKey(fromJson: _intFromJson) int? id,
-    String? known_for_department,
-    String? name,
-    String? original_name,
+    @JsonKey(fromJson: _stringFromJson) String? known_for_department,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+    @JsonKey(fromJson: _stringFromJson) String? original_name,
     @JsonKey(fromJson: _doubleFromJson) double? popularity,
-    String? profile_path,
-    String? character,
-    String? credit_id,
+    @JsonKey(fromJson: _stringFromJson) String? profile_path,
+    @JsonKey(fromJson: _stringFromJson) String? character,
+    @JsonKey(fromJson: _stringFromJson) String? credit_id,
     @JsonKey(fromJson: _intFromJson) int? order,
   }) = _Actor;
 
@@ -175,16 +179,16 @@ class Actor with _$Actor {
 @freezed
 class Director with _$Director {
   const factory Director({
-    bool? adult,
+    @JsonKey(fromJson: _boolFromJson) bool? adult,
     @JsonKey(fromJson: _intFromJson) int? gender,
     @JsonKey(fromJson: _intFromJson) int? id,
-    String? name,
-    String? original_name,
-    String? credit_id,
-    String? known_for_department,
-    String? job,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+    @JsonKey(fromJson: _stringFromJson) String? original_name,
+    @JsonKey(fromJson: _stringFromJson) String? credit_id,
+    @JsonKey(fromJson: _stringFromJson) String? known_for_department,
+    @JsonKey(fromJson: _stringFromJson) String? job,
     @JsonKey(fromJson: _doubleFromJson) double? popularity,
-    String? profile_path,
+    @JsonKey(fromJson: _stringFromJson) String? profile_path,
   }) = _Director;
 
   factory Director.fromJson(Map<String, dynamic> json) =>
@@ -195,11 +199,11 @@ class Director with _$Director {
 class CreatedBy with _$CreatedBy {
   const factory CreatedBy({
     @JsonKey(fromJson: _intFromJson) int? id,
-    String? credit_id,
-    String? name,
-    String? original_name,
+    @JsonKey(fromJson: _stringFromJson) String? credit_id,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+    @JsonKey(fromJson: _stringFromJson) String? original_name,
     @JsonKey(fromJson: _intFromJson) int? gender,
-    String? profile_path,
+    @JsonKey(fromJson: _stringFromJson) String? profile_path,
   }) = _CreatedBy;
 
   factory CreatedBy.fromJson(Map<String, dynamic> json) =>
@@ -210,7 +214,7 @@ class CreatedBy with _$CreatedBy {
 class Genre with _$Genre {
   const factory Genre({
     @JsonKey(fromJson: _intFromJson) int? id,
-    String? name,
+    @JsonKey(fromJson: _stringFromJson) String? name,
   }) = _Genre;
 
   factory Genre.fromJson(Map<String, dynamic> json) => _$GenreFromJson(json);
@@ -220,9 +224,9 @@ class Genre with _$Genre {
 class Network with _$Network {
   const factory Network({
     @JsonKey(fromJson: _intFromJson) int? id,
-    String? logo_path,
-    String? name,
-    String? origin_country,
+    @JsonKey(fromJson: _stringFromJson) String? logo_path,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+    @JsonKey(fromJson: _stringFromJson) String? origin_country,
   }) = _Network;
 
   factory Network.fromJson(Map<String, dynamic> json) =>
@@ -233,9 +237,9 @@ class Network with _$Network {
 class ProductionCompany with _$ProductionCompany {
   const factory ProductionCompany({
     @JsonKey(fromJson: _intFromJson) int? id,
-    String? logo_path,
-    String? name,
-    String? origin_country,
+    @JsonKey(fromJson: _stringFromJson) String? logo_path,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+    @JsonKey(fromJson: _stringFromJson) String? origin_country,
   }) = _ProductionCompany;
 
   factory ProductionCompany.fromJson(Map<String, dynamic> json) =>
@@ -244,8 +248,10 @@ class ProductionCompany with _$ProductionCompany {
 
 @freezed
 class ProductionCountry with _$ProductionCountry {
-  const factory ProductionCountry({String? iso_3166_1, String? name}) =
-      _ProductionCountry;
+  const factory ProductionCountry({
+    @JsonKey(fromJson: _stringFromJson) String? iso_3166_1,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+  }) = _ProductionCountry;
 
   factory ProductionCountry.fromJson(Map<String, dynamic> json) =>
       _$ProductionCountryFromJson(json);
@@ -254,9 +260,9 @@ class ProductionCountry with _$ProductionCountry {
 @freezed
 class SpokenLanguage with _$SpokenLanguage {
   const factory SpokenLanguage({
-    String? english_name,
-    String? iso_639_1,
-    String? name,
+    @JsonKey(fromJson: _stringFromJson) String? english_name,
+    @JsonKey(fromJson: _stringFromJson) String? iso_639_1,
+    @JsonKey(fromJson: _stringFromJson) String? name,
   }) = _SpokenLanguage;
 
   factory SpokenLanguage.fromJson(Map<String, dynamic> json) =>
@@ -266,10 +272,10 @@ class SpokenLanguage with _$SpokenLanguage {
 @freezed
 class ReleaseDate with _$ReleaseDate {
   const factory ReleaseDate({
-    String? certification,
-    String? iso_3166_1,
-    String? release_date,
-    String? note,
+    @JsonKey(fromJson: _stringFromJson) String? certification,
+    @JsonKey(fromJson: _stringFromJson) String? iso_3166_1,
+    @JsonKey(fromJson: _stringFromJson) String? release_date,
+    @JsonKey(fromJson: _stringFromJson) String? note,
     @JsonKey(fromJson: _intFromJson) int? type,
   }) = _ReleaseDate;
 
@@ -281,11 +287,12 @@ class ReleaseDate with _$ReleaseDate {
 class EpisodeGroup with _$EpisodeGroup {
   const factory EpisodeGroup({
     @JsonKey(fromJson: _stringFromJson) String? id,
-    String? name,
-    String? description,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+    @JsonKey(fromJson: _stringFromJson) String? description,
     @JsonKey(fromJson: _intFromJson) int? episode_count,
     @JsonKey(fromJson: _intFromJson) int? group_count,
-    String? type,
+    @JsonKey(fromJson: _stringFromJson) String? type,
+    @JsonKey(fromJson: _networkFromJson, toJson: _networkToJson)
     Network? network,
   }) = _EpisodeGroup;
 
@@ -296,14 +303,14 @@ class EpisodeGroup with _$EpisodeGroup {
 @freezed
 class NextEpisodeToAir with _$NextEpisodeToAir {
   const factory NextEpisodeToAir({
-    String? air_date,
+    @JsonKey(fromJson: _stringFromJson) String? air_date,
     @JsonKey(fromJson: _intFromJson) int? episode_number,
     @JsonKey(fromJson: _intFromJson) int? id,
-    String? name,
-    String? overview,
-    String? production_code,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+    @JsonKey(fromJson: _stringFromJson) String? overview,
+    @JsonKey(fromJson: _stringFromJson) String? production_code,
     @JsonKey(fromJson: _intFromJson) int? season_number,
-    String? still_path,
+    @JsonKey(fromJson: _stringFromJson) String? still_path,
     @JsonKey(fromJson: _doubleFromJson) double? vote_average,
     @JsonKey(fromJson: _intFromJson) int? vote_count,
     @JsonKey(fromJson: _intFromJson) int? runtime,
@@ -326,6 +333,19 @@ int? _intFromJson(Object? value) {
   if (value is int) return value;
   if (value is num) return value.toInt();
   if (value is String) return int.tryParse(value);
+  return null;
+}
+
+bool? _boolFromJson(Object? value) {
+  if (value == null) return null;
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  if (value is String) {
+    final normalized = value.trim().toLowerCase();
+    if (normalized.isEmpty) return null;
+    if (['true', '1', 'yes', 'y'].contains(normalized)) return true;
+    if (['false', '0', 'no', 'n'].contains(normalized)) return false;
+  }
   return null;
 }
 
@@ -397,3 +417,49 @@ NextEpisodeToAir? _nextEpisodeFromJson(Object? value) {
 
 Map<String, dynamic>? _nextEpisodeToJson(NextEpisodeToAir? value) =>
     value?.toJson();
+
+List<EpisodeGroup> _episodeGroupsFromJson(Object? value) {
+  if (value is! List) return const [];
+  final groups = <EpisodeGroup>[];
+  for (final item in value) {
+    final group = _episodeGroupFromJson(item);
+    if (group != null) {
+      groups.add(group);
+    }
+  }
+  return groups;
+}
+
+List<Map<String, dynamic>>? _episodeGroupsToJson(List<EpisodeGroup>? value) =>
+    value?.map((item) => item.toJson()).toList();
+
+EpisodeGroup? _episodeGroupFromJson(Object? value) {
+  if (value is Map<String, dynamic>) {
+    if (value.isEmpty) return null;
+    return EpisodeGroup.fromJson(value);
+  }
+  if (value is Map) {
+    final map = Map<String, dynamic>.from(value);
+    if (map.isEmpty) return null;
+    return EpisodeGroup.fromJson(map);
+  }
+  return null;
+}
+
+Map<String, dynamic>? _episodeGroupToJson(EpisodeGroup? value) =>
+    value?.toJson();
+
+Network? _networkFromJson(Object? value) {
+  if (value is Map<String, dynamic>) {
+    if (value.isEmpty) return null;
+    return Network.fromJson(value);
+  }
+  if (value is Map) {
+    final map = Map<String, dynamic>.from(value);
+    if (map.isEmpty) return null;
+    return Network.fromJson(map);
+  }
+  return null;
+}
+
+Map<String, dynamic>? _networkToJson(Network? value) => value?.toJson();

@@ -26,6 +26,28 @@ import 'package:realm/realm.dart';
 
 part 'installed_plugin_model_cache.realm.dart';
 
+const _installedPluginCacheScopeSeparator = '::plugin-scope::';
+
+String buildInstalledPluginCacheId(String scopeKey, String pluginId) {
+  final normalizedScope = scopeKey.trim();
+  if (normalizedScope.isEmpty) return pluginId;
+  return '$normalizedScope$_installedPluginCacheScopeSeparator$pluginId';
+}
+
+String extractInstalledPluginId(String cacheId) {
+  final index = cacheId.indexOf(_installedPluginCacheScopeSeparator);
+  if (index < 0) return cacheId;
+  return cacheId.substring(index + _installedPluginCacheScopeSeparator.length);
+}
+
+bool matchesInstalledPluginScope(String cacheId, String scopeKey) {
+  final normalizedScope = scopeKey.trim();
+  if (normalizedScope.isEmpty) return false;
+  return cacheId.startsWith(
+    '$normalizedScope$_installedPluginCacheScopeSeparator',
+  );
+}
+
 @RealmModel()
 class _InstalledPluginModelCache {
   @PrimaryKey()

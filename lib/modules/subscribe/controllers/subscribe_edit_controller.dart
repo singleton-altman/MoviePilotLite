@@ -14,11 +14,13 @@ import 'package:moviepilot_mobile/modules/subscribe/controllers/subscribe_contro
 import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_media_enums.dart';
 import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_models.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
+import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
 
 /// 订阅编辑 Controller
 class SubscribeEditController extends GetxController {
   final _api = Get.find<ApiClient>();
+  final _appService = Get.find<AppService>();
   final _log = Get.find<AppLog>();
 
   /// 原始订阅项
@@ -269,6 +271,11 @@ class SubscribeEditController extends GetxController {
   @override
   void onReady() {
     super.onReady();
+    if (!_appService.canSubscribe) {
+      ToastUtil.info('当前帐号无订阅权限');
+      Future.microtask(Get.back);
+      return;
+    }
     _loadEnv();
     _ensureControllersLoaded();
     _siteController.load();

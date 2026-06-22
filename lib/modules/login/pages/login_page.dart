@@ -429,7 +429,7 @@ class LoginPage extends GetView<LoginController> {
                   padding: EdgeInsets.zero,
                   onPressed: controller.profiles.isEmpty
                       ? null
-                      : () => _showPicker(context, controller.profiles),
+                      : () => _showPicker(context),
                   child: Text(
                     '更多',
                     style: TextStyle(
@@ -524,9 +524,12 @@ class LoginPage extends GetView<LoginController> {
     );
   }
 
-  void _showPicker(BuildContext context, List<LoginProfile> profiles) {
-    showCupertinoModalBottomSheet<void>(
+  void _showPicker(BuildContext context) {
+    showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
       builder: (_) => const AccountPickerPage(),
     );
   }

@@ -1,16 +1,17 @@
 import 'dart:async';
-import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/modules/plugin/models/plugin_palette_cache_entry.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/services/realm_service.dart';
 import 'package:moviepilot_mobile/utils/image_cache_manager.dart';
-import 'package:palette_generator/palette_generator.dart';
+import 'palette_extract.dart';
+import 'package:realm/realm.dart';
 
 class PluginPaletteCache extends GetxController {
-  final _realm = Get.find<RealmService>().realm.value;
+  Realm get _realm => Get.find<RealmService>().realm;
 
   /// 缓存：iconUrl -> 主题色
   final RxMap<String, Color> _cache = <String, Color>{}.obs;
@@ -63,7 +64,10 @@ class PluginPaletteCache extends GetxController {
     _activeCount++;
 
     try {
-      // 构建请求头
+      if (kIsWeb) {
+        _cache[url] = defaultColor;
+        return;
+      }
       final headers = <String, String>{};
       // 获取cookie，如果没有提供则从AppService获取
       final imageCookie = Get.find<AppService>().cookie;
@@ -74,13 +78,7 @@ class PluginPaletteCache extends GetxController {
         url,
         headers: headers,
       );
-      final imageProvider = FileImage(File(file.path));
-      final palette = await PaletteGenerator.fromImageProvider(
-        imageProvider,
-        maximumColorCount: 6,
-        size: const Size(80, 80),
-      );
-      final color = palette.dominantColor?.color ?? defaultColor;
+      final color = await extractPaletteFromCachedFile(file, defaultColor);
       _cache[url] = color;
       _saveToRealm(url, color);
     } catch (error) {
@@ -98,18 +96,16 @@ class PluginPaletteCache extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    final realm = _realm;
-    if (realm == null) return;
-    for (final entry in realm.all<PluginPaletteCacheEntry>()) {
+    if (kIsWeb) return;
+    for (final entry in _realm.all<PluginPaletteCacheEntry>()) {
       _cache[entry.url] = Color(entry.colorValue);
     }
   }
 
   void _saveToRealm(String url, Color color) {
-    final realm = _realm;
-    if (realm == null) return;
-    realm.write(() {
-      realm.add(PluginPaletteCacheEntry(url, color.value), update: true);
+    if (kIsWeb) return;
+    _realm.write(() {
+      _realm.add(PluginPaletteCacheEntry(url, color.value), update: true);
     });
   }
 }

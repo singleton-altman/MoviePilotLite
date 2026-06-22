@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get/get_connect/http/src/utils/utils.dart';
 import 'package:moviepilot_mobile/modules/search/pages/search_mid_sheet.dart';
+import 'package:moviepilot_mobile/modules/search/services/search_keyword_hints_service.dart';
+import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
 
 import '../models/search_history.dart';
 import '../models/search_suggestion.dart';
 import '../repositories/search_history_repository.dart';
+
+class SearchInputPick {
+  const SearchInputPick({required this.keyword, this.sourceEntry});
+
+  final String keyword;
+  final SearchHistoryEntry? sourceEntry;
+}
 
 class SearchIndexController extends GetxController {
   SearchIndexController({SearchHistoryRepository? historyRepository})
@@ -23,14 +31,23 @@ class SearchIndexController extends GetxController {
   final RxBool isEditing = false.obs;
   final RxList<SearchHistoryEntry> histories = <SearchHistoryEntry>[].obs;
   final RxList<SearchSuggestionItem> suggestions = <SearchSuggestionItem>[].obs;
+  final RxBool hasSearchFocus = false.obs;
 
   late final Worker _keywordWorker;
   final SearchHistoryRepository _historyRepository;
+
+  final PageController recommendPagerController = PageController(
+    viewportFraction: 0.94,
+  );
+
+  static const int _maxHistorySuggestions = 12;
 
   @override
   void onInit() {
     super.onInit();
     textController.addListener(_handleTextChange);
+    focusNode.addListener(_syncSearchFocus);
+    _syncSearchFocus();
     _keywordWorker = debounce<String>(
       keyword,
       (_) => _refreshSuggestions(),
@@ -39,27 +56,58 @@ class SearchIndexController extends GetxController {
     loadHistories();
   }
 
+  void _syncSearchFocus() {
+    hasSearchFocus.value = focusNode.hasFocus;
+  }
+
   @override
   void onClose() {
     textController.removeListener(_handleTextChange);
+    focusNode.removeListener(_syncSearchFocus);
     textController.dispose();
     focusNode.dispose();
+    recommendPagerController.dispose();
     _keywordWorker.dispose();
     super.onClose();
   }
 
+  List<SearchInputPick> get historyInputSuggestions {
+    final q = keyword.value.trim().toLowerCase();
+    final hintSvc = Get.find<SearchKeywordHintsService>();
+    hintSvc.hints.length;
+    final hintStrings = hintSvc.hints;
+    final fromHistory = List<SearchHistoryEntry>.from(histories)
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    final seen = <String>{};
+    final out = <SearchInputPick>[];
+    void addPick(String kw, {SearchHistoryEntry? entry}) {
+      final k = kw.trim();
+      if (k.isEmpty) return;
+      final lo = k.toLowerCase();
+      if (!seen.add(lo)) return;
+      if (q.isNotEmpty && !lo.contains(q)) return;
+      out.add(SearchInputPick(keyword: k, sourceEntry: entry));
+    }
+
+    for (final e in fromHistory) {
+      if (out.length >= _maxHistorySuggestions) break;
+      addPick(e.keyword, entry: e);
+    }
+    for (final h in hintStrings) {
+      if (out.length >= _maxHistorySuggestions) break;
+      addPick(h);
+    }
+    return out;
+  }
+
+  void applyHistorySuggestion(SearchInputPick pick) {
+    fillKeyword(pick.keyword, focus: false);
+    focusNode.unfocus();
+    submit(pick.keyword);
+  }
+
   void loadHistories() {
     histories.assignAll(_historyRepository.load());
-  }
-
-  void clearHistories() {
-    _historyRepository.clearAll();
-    histories.clear();
-  }
-
-  void removeHistory(SearchHistoryEntry entry) {
-    _historyRepository.remove(entry.keyword);
-    histories.removeWhere((element) => element.id == entry.id);
   }
 
   void saveHistory(String term) {
@@ -67,7 +115,14 @@ class SearchIndexController extends GetxController {
     loadHistories();
   }
 
-  void submit([String? value]) => openMediaSearch(value ?? keyword.value);
+  void submit([String? value]) {
+    var term = (value ?? keyword.value).trim();
+    if (term.isEmpty) {
+      term = textController.text.trim();
+    }
+    if (term.isEmpty) return;
+    openMediaSearch(term);
+  }
 
   void openMediaSearch(
     String keyword, {
@@ -75,8 +130,10 @@ class SearchIndexController extends GetxController {
   }) async {
     final term = keyword.trim();
     if (term.isEmpty) return;
-    saveHistory(term);
     focusNode.unfocus();
+    try {
+      saveHistory(term);
+    } catch (_) {}
     switch (suggestion?.category) {
       case SearchSuggestionCategory.mediaTitle:
         Get.toNamed(
@@ -87,13 +144,13 @@ class SearchIndexController extends GetxController {
       case SearchSuggestionCategory.mediaCollection:
         Get.toNamed(
           '/media-search-list',
-          arguments: {'keyword': term, 'type': 'collection'},
+          parameters: {'keyword': term, 'type': 'collection'},
         );
         break;
       case SearchSuggestionCategory.actor:
         Get.toNamed(
           '/media-search-list',
-          arguments: {'keyword': term, 'type': 'person'},
+          parameters: {'keyword': term, 'type': 'person'},
         );
         break;
       case SearchSuggestionCategory.share:
@@ -106,8 +163,13 @@ class SearchIndexController extends GetxController {
         Get.toNamed('/subscribe-tv', parameters: {'keyword': term});
         break;
       case SearchSuggestionCategory.site:
+        if (!Get.find<AppService>().canSearch) {
+          ToastUtil.info('当前帐号无资源搜索权限');
+          return;
+        }
         final result = await Get.bottomSheet<({String area, List<int> sites})>(
           SiteSelectSheet(hasSegment: false),
+          isScrollControlled: true,
         );
         if (result == null) return;
         final (area, sites) = (result.area, result.sites);
@@ -120,6 +182,7 @@ class SearchIndexController extends GetxController {
           'area': area,
           'sites': sites.join(','),
           'title': term,
+          'type': 'title',
         };
         Get.toNamed('/search-media-result', parameters: params);
         break;
@@ -140,6 +203,13 @@ class SearchIndexController extends GetxController {
     if (focus) {
       focusNode.requestFocus();
     }
+  }
+
+  void requestSearchBarFocus() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!focusNode.canRequestFocus) return;
+      focusNode.requestFocus();
+    });
   }
 
   void _handleTextChange() {

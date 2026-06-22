@@ -2,9 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 class IosSharedSessionService {
-  static const _channel = MethodChannel(
-    'org.moviepilot/ios_shared_session',
-  );
+  static const _channel = MethodChannel('org.moviepilot/ios_shared_session');
 
   Future<void> syncSession({
     required String server,
@@ -26,6 +24,17 @@ class IosSharedSessionService {
     if (!_isSupportedPlatform) return;
     try {
       await _channel.invokeMethod<void>('clearSharedSession');
+    } catch (_) {}
+  }
+
+  Future<void> syncSiteWidgetPayload(String payload) async {
+    if (!_isSupportedPlatform) return;
+    final normalizedPayload = payload.trim();
+    if (normalizedPayload.isEmpty) return;
+    try {
+      await _channel.invokeMethod<void>('saveSiteWidgetPayload', {
+        'payload': normalizedPayload,
+      });
     } catch (_) {}
   }
 

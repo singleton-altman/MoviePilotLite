@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
+import 'package:moviepilot_mobile/modules/download/utils/search_result_raw_cache.dart';
 import 'package:moviepilot_mobile/modules/search_result/models/search_result_models.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
@@ -77,7 +78,9 @@ class SearchResultController extends GetxController {
       items
         ..clear()
         ..addAll(
-          list.whereType<Map<String, dynamic>>().map(SearchResultItem.fromJson),
+          list
+              .whereType<Map<String, dynamic>>()
+              .map(parseAndCacheSearchResultItem),
         );
     } catch (e, st) {
       _log.handle(e, stackTrace: st, message: '获取搜索结果失败');

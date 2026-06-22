@@ -6,6 +6,7 @@ import 'package:moviepilot_mobile/modules/recommend/models/recommend_api_item.da
 import 'package:moviepilot_mobile/modules/search/pages/search_mid_sheet.dart';
 import 'package:moviepilot_mobile/modules/subscribe/controllers/subscribe_service.dart';
 import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_models.dart';
+import 'package:moviepilot_mobile/services/app_service.dart';
 
 import 'package:moviepilot_mobile/utils/toast_util.dart';
 
@@ -25,33 +26,155 @@ class RecommendItemBaseCard extends GetView<SubscribeService> {
       child: Obx(() {
         final subscribeItem = controller.subscribeItems[item?.subscribeKey];
         final isSubscribed = subscribeItem != null && subscribeItem.id != null;
-        return CupertinoContextMenu.builder(
-          enableHapticFeedback: true,
-          builder: (context, menuState) {
-            return child;
-          },
-          actions: [
-            Material(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(
-                  item?.overview ?? '',
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
-                ),
+        final appService = Get.find<AppService>();
+        final menuActions = <Widget>[
+          Material(
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    item?.overview ?? '',
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (_sourceLabels.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          CupertinoIcons.link,
+                          size: 14,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Wrap(
+                            spacing: 4,
+                            runSpacing: 4,
+                            children: _buildSourceSpans(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
               ),
             ),
+          ),
+          if (appService.canSubscribe)
             _buildSubscribeAction(
               context,
               isSubscribed: isSubscribed,
               subscribeKey: item!.subscribeKey,
               subscribeItem: subscribeItem,
             ),
-            _buildSearchAction(context),
-          ],
+          if (appService.canSearch) _buildSearchAction(context),
+        ];
+        return CupertinoContextMenu.builder(
+          enableHapticFeedback: true,
+          builder: (context, menuState) {
+            return child;
+          },
+          actions: menuActions,
         );
       }),
     );
+  }
+
+  List<String> get _sourceLabels {
+    final labels = <String>[];
+
+    void addLabel(String value) {
+      if (!labels.contains(value)) {
+        labels.add(value);
+      }
+    }
+
+    final rawSource = item?.source?.trim().toLowerCase() ?? '';
+    if (rawSource.contains('douban')) addLabel('豆瓣');
+    if (rawSource.contains('imdb')) addLabel('IMDb');
+    if (rawSource.contains('bangumi')) addLabel('Bangumi');
+    if (rawSource.contains('tmdb') || rawSource.contains('themoviedb')) {
+      addLabel('TMDB');
+    }
+
+    if ((item?.douban_id ?? '').trim().isNotEmpty) addLabel('豆瓣');
+    if ((item?.imdb_id ?? '').trim().isNotEmpty) addLabel('IMDb');
+    if ((item?.bangumi_id ?? '').trim().isNotEmpty) addLabel('Bangumi');
+    if ((item?.tmdb_id ?? '').trim().isNotEmpty) addLabel('TMDB');
+
+    return labels;
+  }
+
+  List<Widget> _buildSourceSpans(BuildContext context) {
+    final displays = _sourceDisplays;
+    final widgets = <Widget>[];
+    for (var index = 0; index < displays.length; index++) {
+      final source = displays[index];
+      widgets.add(
+        Text(
+          source.label,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: source.color,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      );
+      if (index != displays.length - 1) {
+        widgets.add(
+          Text(
+            '/',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        );
+      }
+    }
+    return widgets;
+  }
+
+  List<_SourceDisplay> get _sourceDisplays {
+    final displays = <_SourceDisplay>[];
+
+    void addDisplay(String label, Color color) {
+      final exists = displays.any((item) => item.label == label);
+      if (!exists) {
+        displays.add(_SourceDisplay(label: label, color: color));
+      }
+    }
+
+    final rawSource = item?.source?.trim().toLowerCase() ?? '';
+    if (rawSource.contains('douban')) addDisplay('豆瓣', const Color(0xFF42A75C));
+    if (rawSource.contains('imdb')) addDisplay('IMDb', const Color(0xFFF5C518));
+    if (rawSource.contains('bangumi')) {
+      addDisplay('Bangumi', const Color(0xFFF09199));
+    }
+    if (rawSource.contains('tmdb') || rawSource.contains('themoviedb')) {
+      addDisplay('TMDB', const Color(0xFF01B4E4));
+    }
+
+    if ((item?.douban_id ?? '').trim().isNotEmpty) {
+      addDisplay('豆瓣', const Color(0xFF42A75C));
+    }
+    if ((item?.imdb_id ?? '').trim().isNotEmpty) {
+      addDisplay('IMDb', const Color(0xFFF5C518));
+    }
+    if ((item?.bangumi_id ?? '').trim().isNotEmpty) {
+      addDisplay('Bangumi', const Color(0xFFF09199));
+    }
+    if ((item?.tmdb_id ?? '').trim().isNotEmpty) {
+      addDisplay('TMDB', const Color(0xFF01B4E4));
+    }
+
+    return displays;
   }
 
   Widget _buildSubscribeAction(
@@ -172,11 +295,16 @@ class RecommendItemBaseCard extends GetView<SubscribeService> {
   }
 
   void _openSearch(BuildContext context) async {
+    if (!Get.find<AppService>().canSearch) {
+      ToastUtil.info('当前帐号无资源搜索权限');
+      return;
+    }
     final searchKey = item?.mediaKey;
     final detail = item;
     final season = item?.season;
     final result = await Get.bottomSheet<({String area, List<int> sites})>(
       SiteSelectSheet(hasSegment: true),
+      isScrollControlled: true,
     );
     if (result == null) return;
     final (area, sites) = (result.area, result.sites);
@@ -199,4 +327,11 @@ class RecommendItemBaseCard extends GetView<SubscribeService> {
     }
     Get.toNamed('/search-media-result', parameters: params);
   }
+}
+
+class _SourceDisplay {
+  const _SourceDisplay({required this.label, required this.color});
+
+  final String label;
+  final Color color;
 }

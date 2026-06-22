@@ -15,11 +15,14 @@ class SortPullDownWidget<T> extends StatelessWidget {
     required this.labelBuilder,
     required this.onDirectionChanged,
     required this.onValueChanged,
+    this.showDirectionSection = true,
     this.directionLabelAsc = '正序',
     this.directionLabelDesc = '逆序',
     this.sectionTitleSort = '排序方向',
     this.sectionTitleCondition = '排序条件',
   });
+
+  final bool showDirectionSection;
 
   /// 当前是否为正序（true=正序，false=逆序）
   final bool isAscending;
@@ -67,8 +70,10 @@ class SortPullDownWidget<T> extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(_displayDirectionIcon, size: 14, color: labelColor),
-            const SizedBox(width: 6),
+            if (showDirectionSection) ...[
+              Icon(_displayDirectionIcon, size: 14, color: labelColor),
+              const SizedBox(width: 6),
+            ],
             Text(
               _displayText,
               style: TextStyle(
@@ -95,6 +100,7 @@ class SortPullDownWidget<T> extends StatelessWidget {
         currentValue: currentValue,
         options: options,
         labelBuilder: labelBuilder,
+        showDirectionSection: showDirectionSection,
         onDirectionChanged: onDirectionChanged,
         onValueChanged: (value) {
           onValueChanged(value);
@@ -115,6 +121,7 @@ class _SortPullMenu<T> extends StatefulWidget {
     required this.currentValue,
     required this.options,
     required this.labelBuilder,
+    required this.showDirectionSection,
     required this.onDirectionChanged,
     required this.onValueChanged,
     required this.directionLabelAsc,
@@ -127,6 +134,7 @@ class _SortPullMenu<T> extends StatefulWidget {
   final T currentValue;
   final List<T> options;
   final String Function(T) labelBuilder;
+  final bool showDirectionSection;
   final ValueChanged<bool> onDirectionChanged;
   final ValueChanged<T> onValueChanged;
   final String directionLabelAsc;
@@ -149,10 +157,6 @@ class _SortPullMenuState<T> extends State<_SortPullMenu<T>> {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = CupertinoDynamicColor.resolve(
-      CupertinoColors.systemBackground,
-      context,
-    );
     final groupedBg = CupertinoDynamicColor.resolve(
       CupertinoColors.secondarySystemGroupedBackground,
       context,
@@ -176,90 +180,92 @@ class _SortPullMenuState<T> extends State<_SortPullMenu<T>> {
         builder: (context, scrollController) => ListView(
           padding: EdgeInsets.symmetric(horizontal: 16),
           children: [
-            Text(
-              widget.sectionTitleSort,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: secondaryColor,
+            if (widget.showDirectionSection) ...[
+              Text(
+                widget.sectionTitleSort,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: secondaryColor,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            CupertinoSlidingSegmentedControl<bool>(
-              groupValue: _isAscending,
-              thumbColor: primary,
-              backgroundColor: groupedBg,
-              padding: const EdgeInsets.symmetric(horizontal: 3),
-              onValueChanged: (value) {
-                if (value != null && value != _isAscending) {
-                  setState(() => _isAscending = value);
-                  widget.onDirectionChanged(value);
-                }
-              },
-              children: {
-                true: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        CupertinoIcons.arrow_up,
-                        size: 14,
-                        color: _isAscending
-                            ? CupertinoColors.white
-                            : secondaryColor,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        widget.directionLabelAsc,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+              const SizedBox(height: 8),
+              CupertinoSlidingSegmentedControl<bool>(
+                groupValue: _isAscending,
+                thumbColor: primary,
+                backgroundColor: groupedBg,
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                onValueChanged: (value) {
+                  if (value != null && value != _isAscending) {
+                    setState(() => _isAscending = value);
+                    widget.onDirectionChanged(value);
+                  }
+                },
+                children: {
+                  true: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          CupertinoIcons.arrow_up,
+                          size: 14,
                           color: _isAscending
                               ? CupertinoColors.white
-                              : labelColor,
+                              : secondaryColor,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 4),
+                        Text(
+                          widget.directionLabelAsc,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: _isAscending
+                                ? CupertinoColors.white
+                                : labelColor,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                false: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        CupertinoIcons.arrow_down,
-                        size: 14,
-                        color: !_isAscending
-                            ? CupertinoColors.white
-                            : secondaryColor,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        widget.directionLabelDesc,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                  false: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          CupertinoIcons.arrow_down,
+                          size: 14,
                           color: !_isAscending
                               ? CupertinoColors.white
-                              : labelColor,
+                              : secondaryColor,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 4),
+                        Text(
+                          widget.directionLabelDesc,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: !_isAscending
+                                ? CupertinoColors.white
+                                : labelColor,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              },
-            ),
-            const SizedBox(height: 8),
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
             Text(
               widget.sectionTitleCondition,
               style: TextStyle(

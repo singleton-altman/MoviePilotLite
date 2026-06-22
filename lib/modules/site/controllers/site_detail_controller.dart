@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:moviepilot_mobile/modules/site/models/site_icon_cache.dart';
@@ -8,7 +9,7 @@ import 'package:moviepilot_mobile/services/realm_service.dart';
 
 class SiteDetailController extends GetxController {
   final _apiClient = Get.find<ApiClient>();
-  final _realm = Get.find<RealmService>().realm.value;
+  final _realm = Get.find<RealmService>();
   final _log = Get.find<AppLog>();
 
   int? siteId;
@@ -82,10 +83,8 @@ class SiteDetailController extends GetxController {
     final siteUrl = site?.url ?? '';
     if (id == null) return;
 
-    if (siteUrl.isNotEmpty) {
-      final realm = _realm;
-      if (realm == null) return;
-      final cached = realm.find<SiteIconCache>(siteUrl);
+    if (!kIsWeb && siteUrl.isNotEmpty) {
+      final cached = _realm.realm.find<SiteIconCache>(siteUrl);
       if (cached != null && cached.iconBase64.isNotEmpty) {
         String base64 = cached.iconBase64.trim();
         if (base64.contains(',')) {
@@ -114,11 +113,9 @@ class SiteDetailController extends GetxController {
       }
       if (base64.isEmpty || iconBase64.value == base64) return;
       iconBase64.value = base64;
-      if (siteUrl.isNotEmpty) {
-        final realm = _realm;
-        if (realm == null) return;
-        realm.write(() {
-          realm.add(SiteIconCache(siteUrl, base64), update: true);
+      if (!kIsWeb && siteUrl.isNotEmpty) {
+        _realm.realm.write(() {
+          _realm.realm.add(SiteIconCache(siteUrl, base64), update: true);
         });
       }
     } catch (_) {}

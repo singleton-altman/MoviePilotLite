@@ -1,10 +1,14 @@
+import 'dart:typed_data';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:moviepilot_mobile/services/app_service.dart';
-import 'package:moviepilot_mobile/utils/image_cache_manager.dart';
 import 'package:get/get.dart';
+import 'package:moviepilot_mobile/services/api_client.dart';
+import 'package:moviepilot_mobile/utils/image_cache_manager.dart';
+import 'package:moviepilot_mobile/utils/image_request_headers.dart';
 
 /// 网络图片加载组件
 /// 基于 cached_network_image 和 flutter_cache_manager
@@ -68,13 +72,26 @@ class CachedImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 构建请求头
-    final headers = <String, String>{};
-    // 获取cookie，如果没有提供则从AppService获取
-    final imageCookie = cookie ?? Get.find<AppService>().cookie;
-    if (imageCookie != null && imageCookie.isNotEmpty) {
-      headers['cookie'] = imageCookie;
+    if (kIsWeb) {
+      return CachedNetworkImage(
+        imageUrl: imageUrl,
+        width: width,
+        height: height,
+        fit: fit,
+        cacheManager: cacheManager ?? AppImageCacheManager.instance,
+        memCacheWidth: memCacheWidth,
+        memCacheHeight: memCacheHeight,
+        fadeInDuration: fadeInDuration,
+        fadeOutDuration: fadeOutDuration,
+        errorWidget: (context, url, error) {
+          return errorWidget ?? _buildDefaultErrorWidget(error);
+        },
+        progressIndicatorBuilder: (context, url, progress) =>
+            placeholder ?? _buildProgressIndicator(progress),
+      );
     }
+
+    final headers = buildImageRequestHeaders(imageUrl, cookie: cookie);
 
     final cacheKey = _buildCacheKey(imageUrl);
 

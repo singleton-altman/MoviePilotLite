@@ -5,7 +5,7 @@ import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:moviepilot_mobile/modules/subscribe/controllers/subscribe_share_controller.dart';
 import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_models.dart';
 import 'package:moviepilot_mobile/modules/subscribe/widgets/shared_subscribe_detail_sheet.dart';
-import 'package:moviepilot_mobile/modules/subscribe/widgets/subscribe_popular_filter_bar.dart';
+import 'package:moviepilot_mobile/modules/subscribe/widgets/subscribe_list_floating_bar.dart';
 import 'package:moviepilot_mobile/modules/subscribe/widgets/subscribe_popular_filter_sheet.dart';
 import 'package:moviepilot_mobile/modules/subscribe/widgets/subscribe_share_item_card.dart';
 
@@ -53,24 +53,29 @@ class SubscribeSharePage extends GetView<SubscribeShareController> {
           ),
         ],
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton: Obx(
+        () => SubscribeListFloatingBar(
+          hasActiveFilters: controller.hasActiveFilters,
+          onFilterTap: () => _openFilterSheet(context),
+          keyword: controller.keyword.value,
+          onKeywordSubmitted: controller.updateKeyword,
+          sortValue: controller.sortType.value,
+          onSortChanged: controller.setSortType,
+        ),
+      ),
       body: CustomScrollView(
         controller: controller.scrollController,
         slivers: [
-          SliverToBoxAdapter(child: _buildSearchBar(context)),
+          _buildSliverContent(context),
           SliverToBoxAdapter(
-            child: Obx(
-              () => SubscribePopularFilterBar(
-                sortValue: controller.sortType.value,
-                onSortChanged: controller.setSortType,
-                genreLabel: controller.genreLabel,
-                onGenreTap: () => _openFilterSheet(context),
-                ratingLabel: controller.ratingLabel,
-                onRatingTap: () => _openFilterSheet(context),
-                onFilterTap: () => _openFilterSheet(context),
-              ),
+            child: SizedBox(
+              height:
+                  MediaQuery.paddingOf(context).bottom +
+                  SubscribeListFloatingBar.height +
+                  32,
             ),
           ),
-          _buildSliverContent(context),
         ],
       ),
     );
@@ -88,27 +93,6 @@ class SubscribeSharePage extends GetView<SubscribeShareController> {
         onApply: (genres, ratingMin) {
           controller.applyFilter(genres, ratingMin);
         },
-      ),
-    );
-  }
-
-  Widget _buildSearchBar(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(
-        top: 16,
-        bottom: 0,
-        left: _horizontalPadding,
-        right: _horizontalPadding,
-      ),
-      child: CupertinoSearchTextField(
-        controller: controller.searchController,
-        onSubmitted: controller.updateKeyword,
-        placeholder: '搜索订阅名称…',
-        backgroundColor: CupertinoDynamicColor.resolve(
-          CupertinoColors.tertiarySystemFill,
-          context,
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       ),
     );
   }
@@ -168,9 +152,9 @@ class SubscribeSharePage extends GetView<SubscribeShareController> {
       return SliverPadding(
         padding: const EdgeInsets.fromLTRB(
           _horizontalPadding,
-          0,
+          16,
           _horizontalPadding,
-          80,
+          0,
         ),
         sliver: SliverMainAxisGroup(
           slivers: [

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/modules/settings/models/system_env_model.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
@@ -76,7 +77,9 @@ class ImageUtil extends GetxService {
   /// https://xx.x.ddnsto.com/api/v1/system/cache/image?url=https%3A%2F%2Fimage.tmdb.org%2F...
   static String convertCacheImageUrl(String imageUrl, {String? baseUrl}) {
     if (imageUrl.isEmpty) return '';
-
+    if (kIsWeb) {
+      return imageUrl;
+    }
     // 已经是缓存代理地址：直接返回，避免重复包一层代理。
     if (imageUrl.contains('/api/v1/system/cache/image')) return imageUrl;
 
@@ -114,6 +117,9 @@ class ImageUtil extends GetxService {
   /// [pluginIcon] 插件图标：若以 http 开头，则通过 api/v1/system/img/1 代理；否则使用 baseUrl/plugin_icon/{pluginIcon}
   static String convertPluginIconUrl(String pluginIcon, {String? baseUrl}) {
     if (pluginIcon.isEmpty) return '';
+    if (kIsWeb) {
+      return pluginIcon;
+    }
     final imageUtil = Get.find<ImageUtil>();
     if (!pluginIcon.contains('douban') &&
         !imageUtil.globalCachedEnabled.value) {

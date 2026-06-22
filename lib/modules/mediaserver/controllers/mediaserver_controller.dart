@@ -381,7 +381,18 @@ class MediaServerController extends GetxController {
 
   /// 刷新最近添加媒体列表
   Future<void> refreshLatestMediaList() async {
-    await loadLatestMediaList(mediaServers.value.first.name);
+    final enabledServers = mediaServers.value.where((server) => server.enabled);
+    if (mediaServers.value.isEmpty) {
+      talker.warning('没有可用的媒体服务器');
+      latestMediaList.value = [];
+      return;
+    }
+    if (enabledServers.isEmpty) {
+      talker.warning('没有启用的媒体服务器');
+      latestMediaList.value = [];
+      return;
+    }
+    await loadLatestMediaList(enabledServers.first.name);
   }
 
   /// 加载正在播放的媒体
@@ -390,7 +401,7 @@ class MediaServerController extends GetxController {
       isLoading.value = true;
       talker.info('开始加载正在播放的媒体');
       final response = await apiClient.get<dynamic>(
-        '/api/v1/mediaserver/playing?server=${serverName}',
+        '/api/v1/mediaserver/playing?server=$serverName',
       );
       if (response.statusCode == 200) {
         final data = response.data!;

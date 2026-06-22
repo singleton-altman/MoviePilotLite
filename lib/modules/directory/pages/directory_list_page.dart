@@ -8,11 +8,43 @@ import 'package:moviepilot_mobile/modules/setting/models/setting_models.dart';
 import 'package:moviepilot_mobile/modules/directory/pages/directory_edit_page.dart';
 import 'package:moviepilot_mobile/theme/section.dart';
 import 'package:moviepilot_mobile/utils/file_storage_utils.dart';
+import 'package:moviepilot_mobile/utils/toast_util.dart';
 
 /// 目录列表页
 /// 纯展示列表，点击进入编辑页
 class DirectoryListPage extends GetView<DirectoryListController> {
   const DirectoryListPage({super.key});
+
+  Widget _buildStatusView(
+    BuildContext context, {
+    required String message,
+    VoidCallback? onRetry,
+  }) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+              ),
+            ),
+            if (onRetry != null) ...[
+              const SizedBox(height: 16),
+              CupertinoButton.filled(
+                onPressed: onRetry,
+                child: const Text('重试'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,77 +70,57 @@ class DirectoryListPage extends GetView<DirectoryListController> {
       ),
       body: SafeArea(
         child: Obx(() {
-          if (controller.errorText.value != null) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      controller.errorText.value ?? '',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: CupertinoColors.secondaryLabel.resolveFrom(
-                          context,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    CupertinoButton.filled(
-                      onPressed: controller.loadDirectories,
-                      child: const Text('重试'),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
-          if (controller.directories.isEmpty && !controller.isLoading.value) {
-            return Center(
-              child: Text(
-                '暂无目录配置',
-                style: TextStyle(
-                  color: CupertinoColors.secondaryLabel.resolveFrom(context),
-                ),
-              ),
-            );
-          }
           return CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               CupertinoSliverRefreshControl(
-                onRefresh: controller.loadDirectories,
+                onRefresh: () => controller.loadDirectories(force: true),
               ),
-              SliverPadding(
-                padding: const EdgeInsets.only(top: 8, bottom: 24),
-                sliver: SliverToBoxAdapter(
-                  child: controller.directories.isEmpty
-                      ? const SizedBox.shrink()
-                      : Section(
-                          margin: const EdgeInsets.symmetric(horizontal: 16),
-                          padding: EdgeInsets.zero,
-                          separatorBuilder: (ctx) => Divider(
-                            height: 1,
-                            thickness: 0.6,
-                            color: CupertinoColors.separator
-                                .resolveFrom(ctx)
-                                .withValues(alpha: 0.25),
+              if (controller.errorText.value != null)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _buildStatusView(
+                    context,
+                    message: controller.errorText.value ?? '',
+                    onRetry: () => controller.loadDirectories(force: true),
+                  ),
+                )
+              else if (controller.directories.isEmpty &&
+                  !controller.isLoading.value)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _buildStatusView(context, message: '暂无目录配置'),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.only(top: 8, bottom: 24),
+                  sliver: SliverToBoxAdapter(
+                    child: controller.directories.isEmpty
+                        ? const SizedBox.shrink()
+                        : Section(
+                            margin: const EdgeInsets.symmetric(horizontal: 16),
+                            padding: EdgeInsets.zero,
+                            separatorBuilder: (ctx) => Divider(
+                              height: 1,
+                              thickness: 0.6,
+                              color: CupertinoColors.separator
+                                  .resolveFrom(ctx)
+                                  .withValues(alpha: 0.25),
+                            ),
+                            children: [
+                              for (
+                                var i = 0;
+                                i < controller.directories.length;
+                                i++
+                              )
+                                _DirectoryListTile(
+                                  index: i,
+                                  directory: controller.directories[i],
+                                ),
+                            ],
                           ),
-                          children: [
-                            for (
-                              var i = 0;
-                              i < controller.directories.length;
-                              i++
-                            )
-                              _DirectoryListTile(
-                                index: i,
-                                directory: controller.directories[i],
-                              ),
-                          ],
-                        ),
+                  ),
                 ),
-              ),
             ],
           );
         }),
@@ -225,7 +237,7 @@ class _DirectoryListTile extends StatelessWidget {
           arguments: {'index': index},
         );
         if (ok == true) {
-          // no-op: listController 已更新并保存
+          ToastUtil.success('保存成功');
         }
       },
       child: Padding(

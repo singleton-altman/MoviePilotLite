@@ -63,7 +63,11 @@ If needed, you can further use the `web_scraper.py` file to scrape the web page 
 
 ## Cursor learned
 
+- Flutter web: browsers forbid setting the `Cookie` request header from JS for `fetch`/XHR (including `CachedNetworkImage` / `HttpFileService`).跨域时不要用全局 `withCredentials: true`（会触发 CORS 失败 → Dio `XMLHttpRequest onError`）；仅在 `Uri.base` 与 `dio.options.baseUrl` 同源时对 Dio 使用 `BrowserHttpClientAdapter(withCredentials: true)`。非代理图仍走 `CachedNetworkImage`；`flutter_cache_manager` 的 Web `HttpFileService` 用 `BrowserClient(withCredentials: false)` 以免拖垮 CORS。
+- MoviePilot v2：`/api/v1/system/img`、`/api/v1/system/cache/image` 使用 `verify_resource_token`，只认 Cookie名 `MoviePilot` 里的 **resource** JWT（`purpose=resource`），与登录 `access_token`（authentication）不同；Web 上对代理图用 `ApiClient.fetchResourceProxyImage`（Dio `extra.withCredentials: true` + `skipUnauthorizedHandling` 避免 403 误登出）。跨站时若服务端 Set-Cookie 为 `SameSite=Lax`，浏览器可能仍不带该 Cookie，需同源反代或服务端改为 `SameSite=None; Secure`。
 - iOS: if `UIBackgroundModes` includes `processing`, App Store requires `BGTaskSchedulerPermittedIdentifiers` listing every BGTask identifier the app registers. If the app does not use `BGTaskScheduler`, remove `processing` instead of adding placeholder identifiers.
+- CocoaPods: `jpush_flutter` pods may pin `JPush` to a newer version than snapshot `Podfile.lock` — run `TYPHOEUS_HTTP_VERSION=CURL_HTTP_VERSION_1_1 pod update JPush` (HTTP/2 CDN failures) and commit the updated lockfile.
+- 下载任务创建：WebUI 使用 `POST /api/v1/download/`（注意尾部斜杠），body 为 `torrent_in` + `media_in` + `downloader` + `save_path`（可为 null）；用户自定义 TMDB 时根级 `tmdbid` 与 `media_in.tmdb_id` 均须为 int。MoviePilot v2 schema：`MediaInfo.tmdb_id/tvdb_id/bangumi_id/collection_id` 为 int，`TorrentInfo.site_proxy/hit_and_run` 为 bool；`RecommendApiItem.toJson()` 会把 tmdb_id 等编成 String，提交前必须 `_normalizeMediaIn/_normalizeTorrentIn`。搜索结果用 `parseAndCacheSearchResultItem` 保留原始 JSON 再提交。
 - For website image paths, always use the correct relative path (e.g., 'images/filename.png') and ensure the images directory exists
 - For search results, ensure proper handling of different character encodings (UTF-8) for international queries
 - Add debug information to stderr while keeping the main output clean in stdout for better pipeline integration
@@ -91,12 +95,18 @@ If needed, you can further use the `web_scraper.py` file to scrape the web page 
 
 # Scratchpad
 
-## Current Task: Dashboard 页面编辑功能（隐藏/显示 + 换位）
+## Done: 已安装插件页（PluginPage）与插件市场同风格 bottom floating bar + visibleItems 缓存 + palette 预加载限制 + await loadFromCache
 
-[ ] 理清 DashboardConfig / DashboardOrder 与 displayedWidgets 的映射关系
-[ ] 设计并实现 Dashboard 编辑 UI（从 AppSettingPage 进入）
-[ ] 将编辑结果写回 /api/v1/user/config/Dashboard 与 /api/v1/user/config/DashboardOrder
-[ ] 确保隐藏状态下不会触发对应组件的定时请求（复用 _loadDataBasedOnConfig 逻辑）
-[ ] 本地持久化与远端配置保持兼容
+## Done: 下载接口 500（对齐 WebUI POST /api/v1/download/ + 原始 torrent_in/media_in）
 
-Previous: Fix App Store ITMS-90771（已完成）
+## Done: iOS CI 构建失败 — altman_downloader_control 移除 controller_adaptor，本地 DownloaderControllerAdaptor 适配
+
+## Done: 下载 startDownload — API detail 为 List 时 ToastUtil.error 类型错误（_downloadApiErrorMessage）
+
+## Current Task: GitHub Issue #74 子用户权限
+
+[X] 拆分资源搜索(search) vs TMDB/豆瓣目录搜索(media-search-list)
+[X] 订阅写操作统一校验 subscribe 权限
+[X] 系统消息仅超级管理员可访问/轮询
+
+Previous: Dashboard 页面编辑功能（暂缓）

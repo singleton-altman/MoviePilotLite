@@ -1,10 +1,24 @@
 import 'dart:convert';
-import 'dart:typed_data';
+import 'dart:ui';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:moviepilot_mobile/gen/assets.gen.dart';
+import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_widget_styles.dart';
+import 'package:moviepilot_mobile/modules/dashboard/widgets/cpu_widget.dart';
+import 'package:moviepilot_mobile/modules/dashboard/widgets/media_stats_widget.dart';
+import 'package:moviepilot_mobile/modules/dashboard/widgets/memory_widget.dart';
+import 'package:moviepilot_mobile/modules/dashboard/widgets/my_media_library_widget.dart';
+import 'package:moviepilot_mobile/modules/dashboard/widgets/network_traffic_widget.dart';
+import 'package:moviepilot_mobile/modules/dashboard/widgets/recent_added_widget.dart';
+import 'package:moviepilot_mobile/modules/dashboard/widgets/recently_added_widget.dart';
+import 'package:moviepilot_mobile/modules/dashboard/widgets/recently_playing_widget.dart';
+import 'package:moviepilot_mobile/modules/dashboard/widgets/real_time_speed_widget.dart';
+import 'package:moviepilot_mobile/modules/dashboard/widgets/schedule_widget.dart';
+import 'package:moviepilot_mobile/modules/dashboard/widgets/storage_widget.dart';
 import 'package:moviepilot_mobile/modules/dashboard/widgets/shortcut_popover.dart';
 import 'package:moviepilot_mobile/modules/network_test/controllers/network_test_controller.dart';
 import 'package:moviepilot_mobile/modules/network_test/pages/network_test_page.dart';
@@ -14,17 +28,18 @@ import 'package:moviepilot_mobile/modules/recognize/controllers/recognize_contro
 import 'package:moviepilot_mobile/modules/recognize/pages/recognize_page.dart';
 import 'package:moviepilot_mobile/modules/system_message/controllers/system_message_controller.dart';
 
-import 'package:moviepilot_mobile/services/realm_service.dart';
-import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/modules/login/models/login_profile.dart';
-import 'package:realm/realm.dart';
+import 'package:moviepilot_mobile/services/app_service.dart';
+import 'package:moviepilot_mobile/services/realm_service.dart';
+import 'package:moviepilot_mobile/utils/open_url.dart';
+import 'package:moviepilot_mobile/utils/size_formatter.dart';
 
 import '../controllers/dashboard_controller.dart';
-import '../widgets/dashboard_widgets.dart';
 
 class DashboardPage extends GetView<DashboardController> {
-  const DashboardPage({super.key});
-  Realm? get _realmService => Get.find<RealmService>().realm.value;
+  const DashboardPage({super.key, this.scrollController});
+
+  final ScrollController? scrollController;
 
   @override
   Widget build(BuildContext context) {
@@ -33,24 +48,24 @@ class DashboardPage extends GetView<DashboardController> {
       final hasDashboardBackground =
           appService.backgroundImageEnabled.value &&
           appService.backgroundImageBytes.value != null;
-      final topInset = hasDashboardBackground
-          ? MediaQuery.paddingOf(context).top + kToolbarHeight
-          : 0.0;
+      final topInset = MediaQuery.paddingOf(context).top + kToolbarHeight;
 
       return Scaffold(
-        extendBodyBehindAppBar: hasDashboardBackground,
-        appBar: _buildNavigationBar(
-          context,
-          transparent: hasDashboardBackground,
-        ),
+        extendBodyBehindAppBar: true,
+        appBar: _buildNavigationBar(context),
         body: Stack(
           fit: StackFit.expand,
           children: [
-            if (hasDashboardBackground)
-              Positioned.fill(child: _buildBackgroundImage(appService)),
+            Positioned.fill(
+              child: _buildPageBackground(
+                appService,
+                includeImage: hasDashboardBackground,
+              ),
+            ),
             Padding(
               padding: EdgeInsets.only(top: topInset),
               child: CustomScrollView(
+                controller: scrollController,
                 slivers: [
                   CupertinoSliverRefreshControl(
                     onRefresh: () async {
@@ -59,10 +74,10 @@ class DashboardPage extends GetView<DashboardController> {
                   ),
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: _buildWidgetGrid(
-                        context,
-                        translucentSections: hasDashboardBackground,
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [_buildStitchLayout(context)],
                       ),
                     ),
                   ),
@@ -114,25 +129,77 @@ class DashboardPage extends GetView<DashboardController> {
     );
   }
 
+  Widget _buildPageBackground(
+    AppService appService, {
+    required bool includeImage,
+  }) {
+    final palette = DashboardPalette.of(Get.context!);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Container(color: palette.pageBackground),
+        if (includeImage) _buildBackgroundImage(appService),
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  palette.overlay.withValues(
+                    alpha: palette.isDark ? 0.18 : 0.08,
+                  ),
+                  palette.pageBackgroundAlt,
+                  palette.pageBackground,
+                ],
+                stops: const [0, 0.68, 1],
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          top: -120,
+          right: -80,
+          child: IgnorePointer(
+            child: Container(
+              width: 280,
+              height: 280,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    palette.primary.withValues(
+                      alpha: palette.isDark ? 0.18 : 0.10,
+                    ),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   double _bottomSpacer(BuildContext context) {
     return 100;
   }
 
-  /// 获取最新的登录配置文件
-  LoginProfile? _getLatestLoginProfile() {
+  String? _dashboardBarAvatar() {
+    if (kIsWeb) {
+      final app = Get.find<AppService>();
+      final u = app.userInfo?.avatar;
+      if (u != null && u.isNotEmpty) return u;
+      return app.loginResponse?.avatar;
+    }
     try {
-      final realm = _realmService;
-      if (realm == null) return null;
-      final profiles = realm.all<LoginProfile>();
-      if (profiles.isEmpty) {
-        return null;
-      }
-      // 按更新时间排序，返回最新的登录配置
-      final sortedProfiles = profiles.toList()
+      final profiles = Get.find<RealmService>().realm.all<LoginProfile>();
+      if (profiles.isEmpty) return null;
+      final sorted = profiles.toList()
         ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-      return sortedProfiles.first;
-    } catch (e) {
-      // 如果获取失败，返回null
+      return sorted.first.avatar;
+    } catch (_) {
       return null;
     }
   }
@@ -158,124 +225,499 @@ class DashboardPage extends GetView<DashboardController> {
   }
 
   /// 构建导航栏
-  AppBar _buildNavigationBar(BuildContext context, {bool transparent = false}) {
-    // 获取最新的登录配置文件
-    final loginProfile = _getLatestLoginProfile();
+  AppBar _buildNavigationBar(BuildContext context) {
+    final avatarStr = _dashboardBarAvatar();
+    final palette = DashboardPalette.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isSuperuser = Get.find<AppService>().isSuperuser;
 
     return AppBar(
-      backgroundColor: transparent ? Colors.transparent : null,
-      elevation: transparent ? 0 : null,
-      scrolledUnderElevation: transparent ? 0 : null,
-      surfaceTintColor: transparent ? Colors.transparent : null,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      surfaceTintColor: Colors.transparent,
+      systemOverlayStyle: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+        statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+      ),
+      titleSpacing: 0,
       leading: Builder(
         builder: (buttonContext) => CupertinoButton(
           padding: EdgeInsets.zero,
           onPressed: () => _showShortcuts(buttonContext),
-          child: const Icon(CupertinoIcons.app_badge),
+          child: Icon(
+            CupertinoIcons.square_grid_2x2_fill,
+            size: 18,
+            color: palette.primary,
+          ),
         ),
       ),
-      title: Text(
+      title: const Text(
         'Dashboard',
         style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
       ),
+      centerTitle: false,
       actions: [
-        Builder(
-          builder: (context) {
-            if (!Get.isRegistered<SystemMessageController>()) {
-              return CupertinoButton(
-                padding: EdgeInsets.zero,
-                onPressed: () => Get.toNamed('/system-message'),
-                child: const Stack(children: [Icon(CupertinoIcons.mail)]),
-              );
-            }
-            return Obx(() {
-              final hasUnread =
-                  Get.find<SystemMessageController>().hasUnreadMessages.value;
-              return CupertinoButton(
-                padding: EdgeInsets.zero,
-                onPressed: () => Get.toNamed('/system-message'),
-                child: Stack(
-                  children: [
-                    const Icon(CupertinoIcons.mail),
-                    if (hasUnread)
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: CupertinoColors.systemRed,
-                            shape: BoxShape.circle,
+        if (isSuperuser)
+          Builder(
+            builder: (context) {
+              if (!Get.isRegistered<SystemMessageController>()) {
+                return CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  onPressed: () => Get.toNamed('/system-message'),
+                  child: _buildActionBadge(
+                    child: Icon(
+                      CupertinoIcons.dot_radiowaves_left_right,
+                      size: 18,
+                      color: palette.mutedText,
+                    ),
+                  ),
+                );
+              }
+              return Obx(() {
+                final hasUnread =
+                    Get.find<SystemMessageController>().hasUnreadMessages.value;
+                return CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  onPressed: () => Get.toNamed('/system-message'),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      _buildActionBadge(
+                        child: Icon(
+                          CupertinoIcons.dot_radiowaves_left_right,
+                          size: 18,
+                          color: palette.mutedText,
+                        ),
+                      ),
+                      if (hasUnread)
+                        Positioned(
+                          right: -1,
+                          top: -1,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: palette.primary,
+                              shape: BoxShape.circle,
+                            ),
                           ),
                         ),
-                      ),
-                  ],
-                ),
-              );
-            });
-          },
-        ),
+                    ],
+                  ),
+                );
+              });
+            },
+          ),
         CupertinoButton(
-          padding: EdgeInsets.symmetric(horizontal: 12),
+          padding: const EdgeInsets.only(left: 6, right: 12),
           onPressed: () => _showProfile(context),
-          child:
-              loginProfile != null &&
-                  loginProfile.avatar != null &&
-                  loginProfile.avatar!.isNotEmpty
-              ? () {
-                  final avatarBytes = _decodeAvatar(loginProfile.avatar!);
-                  if (avatarBytes.isNotEmpty) {
-                    return Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        image: DecorationImage(
-                          image: MemoryImage(avatarBytes),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    );
-                  } else {
-                    return const Icon(CupertinoIcons.person_circle);
-                  }
-                }()
-              : Assets.images.avatars.avatar1.image(width: 34, height: 34),
+          child: _buildDashboardAvatar(avatarStr, palette),
         ),
       ],
     );
   }
 
-  /// 构建组件网格
-  Widget _buildWidgetGrid(
-    BuildContext context, {
-    bool translucentSections = false,
-  }) {
-    return Obx(() {
-      final content = Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: controller.displayedWidgets
-            .map((widget) => _buildWidgetCard(context, widget))
-            .toList(),
+  Widget _buildDashboardAvatar(String? avatar, DashboardPaletteData palette) {
+    final avatarBytes = avatar == null || avatar.trim().isEmpty
+        ? Uint8List(0)
+        : _decodeAvatar(avatar);
+
+    if (avatarBytes.isEmpty) {
+      return ClipOval(
+        child: Assets.images.avatars.avatar1.image(
+          width: 36,
+          height: 36,
+          fit: BoxFit.cover,
+        ),
       );
-      if (!translucentSections) return content;
-      final theme = Theme.of(context);
-      final translucentCardColor = theme.cardColor.withValues(alpha: 0.7);
-      return Theme(
-        data: theme.copyWith(cardColor: translucentCardColor),
-        child: content,
+    }
+
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: palette.primary.withValues(alpha: 0.42)),
+        image: DecorationImage(
+          image: MemoryImage(avatarBytes),
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionBadge({required Widget child}) {
+    final palette = DashboardPalette.of(Get.context!);
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: palette.tileSurface,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: palette.tileBorder),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildStitchLayout(BuildContext context) {
+    return Obx(() {
+      final visible = controller.displayedWidgets.toSet();
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_showAny(visible, {'实时速率', '存储空间', 'CPU', '内存'}))
+            _buildServerStatusSection(context, visible),
+
+          if (_showAny(visible, {'媒体统计', '存储空间'}))
+            _buildLibraryCapacitySection(context),
+
+          if (visible.contains('最近添加'))
+            _buildOpenSection(
+              title: '最近添加',
+              actionLabel: '查看全部',
+              child: const RecentlyAddedWidget(),
+              onTapMore: () => Get.toNamed('/media-organize'),
+            ),
+          if (visible.contains('最近入库'))
+            _buildCardSection(
+              accentColor: DashboardPalette.of(context).warningAccent,
+              child: const RecentAddedWidget(),
+              onTapMore: () => Get.toNamed('/media-organize'),
+            ),
+          if (visible.contains('后台任务'))
+            _buildOpenSection(
+              title: '任务',
+              child: const ScheduleWidget(),
+              actionLabel: '查看全部',
+              onTapMore: () => Get.toNamed('/background-task-list'),
+            ),
+          if (visible.contains('我的媒体库'))
+            _buildOpenSection(
+              title: '媒体库',
+              child: MyMediaLibraryWidget(
+                onTap: (library) {
+                  WebUtil.open(url: library.link);
+                },
+              ),
+            ),
+          if (visible.contains('继续观看'))
+            _buildOpenSection(
+              title: '继续观看',
+              // actionLabel: '查看全部',
+              child: const RecentlyPlayingWidget(),
+            ),
+          if (visible.contains('网络流量') && !visible.contains('实时速率'))
+            _buildCardSection(
+              title: '网络流量',
+              accentColor: DashboardPalette.of(context).coolAccent,
+              child: const NetworkTrafficWidget(),
+              showBorder: false,
+            ),
+          if (visible.contains('媒体统计') && !visible.contains('存储空间'))
+            _buildCardSection(
+              title: '媒体统计',
+              accentColor: DashboardPalette.of(context).warningAccent,
+              child: const MediaStatsWidget(),
+            ),
+        ],
       );
     });
   }
 
-  /// 构建组件卡片
-  Widget _buildWidgetCard(BuildContext context, String widgetType) {
-    return DashboardWidgets.buildWidget(widgetType);
+  bool _showAny(Set<String> visible, Set<String> candidates) {
+    return candidates.any(visible.contains);
+  }
+
+  Widget _buildServerStatusSection(BuildContext context, Set<String> visible) {
+    final palette = DashboardPalette.of(context);
+    final cards = <Widget>[];
+    if (visible.contains('实时速率')) {
+      cards.add(const RealTimeSpeedWidget(compact: true));
+    }
+    if (visible.contains('存储空间')) {
+      cards.add(
+        GestureDetector(
+          onTap: () => Get.toNamed('/storage-list'),
+          child: const StorageWidget(compact: true),
+        ),
+      );
+    }
+    if (visible.contains('CPU')) {
+      cards.add(const CpuWidget(compact: true));
+    }
+    if (visible.contains('内存')) {
+      cards.add(const MemoryWidget(compact: true));
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle(
+            title: '状态',
+            action: DashboardInfoPill(
+              text: '运行正常',
+              color: palette.successAccent,
+              icon: CupertinoIcons.circle_fill,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: cards.map((card) {
+              return SizedBox(
+                width: (MediaQuery.sizeOf(context).width - 56) / 2,
+                child: card,
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLibraryCapacitySection(BuildContext context) {
+    return Obx(() {
+      final palette = DashboardPalette.of(context);
+      final storage = controller.storageData;
+      final stats = controller.statisticData.value;
+      final totalStorage = (storage['total_storage'] ?? 0.0) as double;
+      final movieCount = stats?.movie_count ?? 0;
+      final tvCount = stats?.tv_count ?? 0;
+      final episodeCount = stats?.episode_count ?? 0;
+
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 32),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: palette.tileBorder),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    palette.surface,
+                    Color.alphaBlend(
+                      palette.primary.withValues(
+                        alpha: palette.isDark ? 0.06 : 0.05,
+                      ),
+                      palette.pageBackgroundAlt,
+                    ),
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: palette.shadow,
+                    blurRadius: 24,
+                    offset: const Offset(0, 12),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        '媒体库容量',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 2,
+                          color: palette.mutedText,
+                        ),
+                      ),
+                      const Spacer(),
+                      Icon(
+                        CupertinoIcons.chart_bar_square_fill,
+                        color: palette.primary,
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    totalStorage > 0
+                        ? SizeFormatter.formatSize(totalStorage, 1)
+                        : '0 B',
+                    style: TextStyle(
+                      fontSize: 40,
+                      fontWeight: FontWeight.w800,
+                      color: palette.titleText,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Container(height: 1, color: palette.divider),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DashboardMiniStat(
+                          label: '电影',
+                          value: '$movieCount',
+                          valueColor: palette.titleText,
+                        ),
+                      ),
+                      Expanded(
+                        child: DashboardMiniStat(
+                          label: '剧集',
+                          value: '$tvCount',
+                          valueColor: palette.titleText,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                        ),
+                      ),
+                      Expanded(
+                        child: DashboardMiniStat(
+                          label: '集数',
+                          value: '$episodeCount',
+                          valueColor: palette.titleText,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    });
+  }
+
+  Widget _buildOpenSection({
+    required String title,
+    String? actionLabel,
+    required Widget child,
+    VoidCallback? onTapMore,
+  }) {
+    final palette = DashboardPalette.of(Get.context!);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle(
+            title: title,
+            action: actionLabel == null
+                ? null
+                : GestureDetector(
+                    onTap: onTapMore,
+                    child: Text(
+                      actionLabel,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1,
+                        color: palette.primary,
+                      ),
+                    ),
+                  ),
+          ),
+          const SizedBox(height: 16),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCardSection({
+    String title = '',
+    required Color accentColor,
+    required Widget child,
+    VoidCallback? onTapMore,
+    bool showBorder = true,
+  }) {
+    final palette = DashboardPalette.of(Get.context!);
+    return GestureDetector(
+      onTap: onTapMore,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (title.isNotEmpty) ...[
+              _buildSectionTitle(title: title),
+              const SizedBox(height: 16),
+            ],
+            if (showBorder)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: palette.tileBorder),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          palette.surface,
+                          Color.alphaBlend(
+                            accentColor.withValues(
+                              alpha: palette.isDark ? 0.05 : 0.04,
+                            ),
+                            palette.pageBackgroundAlt,
+                          ),
+                        ],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: palette.shadow,
+                          blurRadius: 22,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: child,
+                  ),
+                ),
+              ),
+            if (!showBorder) child,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle({required String title, Widget? action}) {
+    final context = Get.context!;
+    final theme = Theme.of(context);
+    final titleColor =
+        theme.textTheme.titleLarge?.color ?? theme.colorScheme.onSurface;
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.4,
+              color: titleColor,
+            ),
+          ),
+        ),
+        if (action != null) action,
+      ],
+    );
   }
 
   /// 显示捷径
   void _showShortcuts(BuildContext context) {
+    final isSuperuser = Get.find<AppService>().isSuperuser;
     final overlay = Overlay.of(context);
 
     // 计算按钮在屏幕中的位置，用于锚定菜单
@@ -325,12 +767,13 @@ class DashboardPage extends GetView<DashboardController> {
         subtitle: '健康检查',
         onTap: () => _showSystemHealthModal(context),
       ),
-      ShortcutItem(
-        icon: CupertinoIcons.chat_bubble_2_fill,
-        title: '消息',
-        subtitle: '消息中心',
-        onTap: () => Get.toNamed('/system-message'),
-      ),
+      if (isSuperuser)
+        ShortcutItem(
+          icon: CupertinoIcons.chat_bubble_2_fill,
+          title: '消息',
+          subtitle: '消息中心',
+          onTap: () => Get.toNamed('/system-message'),
+        ),
     ];
 
     late OverlayEntry entry;

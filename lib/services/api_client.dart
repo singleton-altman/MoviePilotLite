@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
@@ -8,6 +9,9 @@ import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:talker/talker.dart';
 import 'package:talker_dio_logger/talker_dio_logger.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
+import 'package:moviepilot_mobile/utils/dio_adapter_config_stub.dart'
+    if (dart.library.io) 'package:moviepilot_mobile/utils/dio_adapter_config_io.dart'
+    if (dart.library.js_interop) 'package:moviepilot_mobile/utils/dio_adapter_config_web.dart';
 import 'package:moviepilot_mobile/services/ios_shared_session_service.dart';
 import 'package:moviepilot_mobile/services/realm_service.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
@@ -41,7 +45,7 @@ class ApiHttpException implements Exception {
 class ApiClient extends g.GetxController {
   final _appService = g.Get.find<AppService>();
   final _iosSharedSessionService = g.Get.find<IosSharedSessionService>();
-  final _realmService = g.Get.find<RealmService>().realm.value;
+  final _realmService = g.Get.find<RealmService>();
   final _log = g.Get.find<AppLog>();
   late final Dio _dio;
   late final CookieJar _cookieJar;
@@ -79,13 +83,13 @@ class ApiClient extends g.GetxController {
         headers: const {'accept': 'application/json'},
       ),
     );
-    _dioReady = true;
-
     if ((_pendingBaseUrl ?? '').isNotEmpty) {
       _dio.options.baseUrl = _pendingBaseUrl!;
     } else if (_appService.hasBaseUrl) {
       _dio.options.baseUrl = _appService.baseUrl!;
     }
+    _dioReady = true;
+    configureDioHttpClientAdapter(_dio);
 
     final CookieJar cookieJar;
     if (kIsWeb) {
@@ -95,15 +99,23 @@ class ApiClient extends g.GetxController {
       cookieJar = PersistCookieJar(storage: FileStorage('${dir.path}/cookies'));
     }
     _cookieJar = cookieJar;
-    _dio.interceptors.add(CookieManager(_cookieJar));
+    if (!kIsWeb) {
+      _dio.interceptors.add(CookieManager(_cookieJar));
+    }
     _dio.interceptors.add(
       InterceptorsWrapper(
         onResponse: (response, handler) {
-          _handleUnauthorized(response.statusCode);
+          _maybeHandleUnauthorized(
+            response.requestOptions,
+            response.statusCode,
+          );
           handler.next(response);
         },
         onError: (error, handler) {
-          _handleUnauthorized(error.response?.statusCode);
+          _maybeHandleUnauthorized(
+            error.requestOptions,
+            error.response?.statusCode,
+          );
           handler.next(error);
         },
       ),
@@ -121,9 +133,104 @@ class ApiClient extends g.GetxController {
         ),
       ),
     );
+    if (kIsWeb) {
+      _dio.interceptors.add(
+        InterceptorsWrapper(
+          onResponse: (response, handler) {
+            final data = response.data;
+            if (data is! String) {
+              handler.next(response);
+              return;
+            }
+            final raw = data.trim();
+            final status = response.statusCode ?? 0;
+            if (status >= 400) {
+              handler.reject(
+                DioException(
+                  requestOptions: response.requestOptions,
+                  response: response,
+                  type: DioExceptionType.badResponse,
+                  message: raw.isEmpty ? 'HTTP $status' : raw,
+                ),
+              );
+              return;
+            }
+            if (raw.isEmpty) {
+              response.data = null;
+              handler.next(response);
+              return;
+            }
+            try {
+              final decoded = jsonDecode(raw);
+              if (decoded is Map<String, dynamic>) {
+                response.data = decoded;
+              } else if (decoded is Map) {
+                response.data = Map<String, dynamic>.from(decoded);
+              } else {
+                handler.reject(
+                  DioException(
+                    requestOptions: response.requestOptions,
+                    response: response,
+                    type: DioExceptionType.badResponse,
+                    message: 'Unexpected JSON root: ${decoded.runtimeType}',
+                  ),
+                );
+                return;
+              }
+            } catch (_) {
+              handler.reject(
+                DioException(
+                  requestOptions: response.requestOptions,
+                  response: response,
+                  type: DioExceptionType.badResponse,
+                  message: raw,
+                ),
+              );
+              return;
+            }
+            handler.next(response);
+          },
+        ),
+      );
+    }
   }
 
   Future<void> _ensureReady() => _ready;
+
+  void _maybeHandleUnauthorized(RequestOptions? opts, int? status) {
+    if (opts?.extra['skipUnauthorizedHandling'] == true) return;
+    _handleUnauthorized(status);
+  }
+
+  Future<Uint8List?> fetchResourceProxyImage(String absoluteUrl) async {
+    await _ensureReady();
+    if (absoluteUrl.isEmpty) return null;
+    try {
+      final r = await _dio.get<List<int>>(
+        absoluteUrl,
+        options: Options(
+          responseType: ResponseType.bytes,
+          followRedirects: true,
+          headers: {
+            if (token != null && token!.isNotEmpty)
+              'authorization': 'Bearer $token',
+          },
+          validateStatus: (s) => s == 200,
+          receiveTimeout: const Duration(seconds: 120),
+          extra: {
+            'skipUnauthorizedHandling': true,
+            if (kIsWeb) 'withCredentials': true,
+          },
+        ),
+      );
+      final data = r.data;
+      if (data == null || data.isEmpty) return null;
+      return Uint8List.fromList(data);
+    } catch (e) {
+      _log.warning('fetchResourceProxyImage failed: $e');
+      return null;
+    }
+  }
 
   String? token;
 
@@ -139,6 +246,13 @@ class ApiClient extends g.GetxController {
 
     if (preferCache && _isCookieCacheFresh(uri)) {
       return _cachedCookieHeader;
+    }
+
+    if (kIsWeb) {
+      final header = _appService.cookie?.trim();
+      final value = (header == null || header.isEmpty) ? null : header;
+      _cacheCookieHeader(uri, value);
+      return value;
     }
 
     final cookies = await _cookieJar.loadForRequest(uri);
@@ -188,6 +302,7 @@ class ApiClient extends g.GetxController {
     _pendingBaseUrl = baseUrl;
     if (_dioReady) {
       _dio.options.baseUrl = baseUrl;
+      configureDioHttpClientAdapter(_dio);
     }
     _log.info('设置 API baseUrl: $baseUrl');
   }
@@ -268,7 +383,12 @@ class ApiClient extends g.GetxController {
     final response = await _dio.post<T>(
       path,
       data: formData,
-      options: Options(receiveTimeout: Duration(seconds: timeout ?? 30)),
+      options: kIsWeb
+          ? Options(
+              receiveTimeout: Duration(seconds: timeout ?? 30),
+              validateStatus: (_) => true,
+            )
+          : Options(receiveTimeout: Duration(seconds: timeout ?? 30)),
     );
     _handleUnauthorized(response.statusCode);
     return response;
@@ -361,8 +481,8 @@ class ApiClient extends g.GetxController {
         'content-type': 'application/json',
         ...?headers,
       },
-      sendTimeout: Duration(seconds: timeout ?? 30),
-      receiveTimeout: Duration(seconds: timeout ?? 30),
+      sendTimeout: Duration(seconds: timeout ?? 120),
+      receiveTimeout: Duration(seconds: timeout ?? 120),
       validateStatus: (status) => true,
     );
     final response = await _dio.post<T>(path, data: data, options: options);
@@ -381,8 +501,8 @@ class ApiClient extends g.GetxController {
     final authToken = token ?? this.token;
     _log.info('API请求: $path, token: ${authToken != null ? '***' : 'null'}');
     final options = Options(
-      sendTimeout: Duration(seconds: timeout ?? 30),
-      receiveTimeout: Duration(seconds: timeout ?? 30),
+      sendTimeout: Duration(seconds: timeout ?? 120),
+      receiveTimeout: Duration(seconds: timeout ?? 120),
       headers: {
         if (authToken != null) 'authorization': 'Bearer $authToken',
         ...?headers,
@@ -504,18 +624,18 @@ class ApiClient extends g.GetxController {
       try {
         await _cookieJar.deleteAll();
       } catch (_) {}
-      try {
-        final realm = _realmService;
-        if (realm == null) return;
-        final profiles = realm.all<LoginProfile>().toList();
-        if (profiles.isNotEmpty) {
-          profiles.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-          final latest = profiles.first;
-          realm.write(() {
-            latest.accessToken = '';
-          });
-        }
-      } catch (_) {}
+      if (!kIsWeb) {
+        try {
+          final profiles = _realmService.realm.all<LoginProfile>().toList();
+          if (profiles.isNotEmpty) {
+            profiles.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+            final latest = profiles.first;
+            _realmService.realm.write(() {
+              latest.accessToken = '';
+            });
+          }
+        } catch (_) {}
+      }
       await _iosSharedSessionService.clearSession();
     } finally {
       _authClearing = false;

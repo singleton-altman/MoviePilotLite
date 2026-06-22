@@ -7,10 +7,20 @@ class BottomSheetWidget extends StatelessWidget {
     this.header,
     this.scrollController,
     this.builder,
+    this.snap = true,
+    this.snapSizes = const [0.5, 0.7, 0.8],
+    this.initialChildSize = 0.7,
+    this.minChildSize = 0.3,
+    this.maxChildSize = 0.8,
   });
   final Widget? child;
   final Widget? header;
   final DraggableScrollableController? scrollController;
+  final bool snap;
+  final List<double> snapSizes;
+  final double initialChildSize;
+  final double minChildSize;
+  final double maxChildSize;
   final Widget Function(
     BuildContext context,
     ScrollController scrollController,
@@ -22,11 +32,11 @@ class BottomSheetWidget extends StatelessWidget {
     final cardColor = theme.scaffoldBackgroundColor;
     return DraggableScrollableSheet(
       controller: scrollController,
-      snap: true,
-      snapSizes: const [0.5, 0.7, 0.8],
-      initialChildSize: 0.7,
-      minChildSize: 0.3,
-      maxChildSize: 0.8,
+      snap: snap,
+      snapSizes: snapSizes,
+      initialChildSize: initialChildSize,
+      minChildSize: minChildSize,
+      maxChildSize: maxChildSize,
       expand: false,
       builder: (context, scrollController) => Container(
         decoration: BoxDecoration(color: cardColor),

@@ -8,6 +8,7 @@ private enum SharedSessionConfig {
   static let appGroup = "group.com.altman.moviepilot.shared"
   static let serverKey = "shared_server_url"
   static let tokenKey = "shared_access_token"
+  static let siteWidgetPayloadKey = "shared_site_widget_payload"
 }
 
 private let appWidgetLog = Logger(subsystem: "com.altman.moviepilot", category: "app_widget_route")
@@ -45,6 +46,16 @@ private let appWidgetLog = Logger(subsystem: "com.altman.moviepilot", category: 
           result(nil)
         case "clearSharedSession":
           self.clearSharedSession()
+          result(nil)
+        case "saveSiteWidgetPayload":
+          guard
+            let arguments = call.arguments as? [String: Any],
+            let payload = arguments["payload"] as? String
+          else {
+            result(FlutterError(code: "bad_args", message: "Missing site widget payload", details: nil))
+            return
+          }
+          self.saveSiteWidgetPayload(payload)
           result(nil)
         case "reloadWidgets":
           WidgetCenter.shared.reloadAllTimelines()
@@ -142,6 +153,13 @@ private let appWidgetLog = Logger(subsystem: "com.altman.moviepilot", category: 
     guard let defaults = UserDefaults(suiteName: SharedSessionConfig.appGroup) else { return }
     defaults.removeObject(forKey: SharedSessionConfig.serverKey)
     defaults.removeObject(forKey: SharedSessionConfig.tokenKey)
+    defaults.removeObject(forKey: SharedSessionConfig.siteWidgetPayloadKey)
+    WidgetCenter.shared.reloadAllTimelines()
+  }
+
+  private func saveSiteWidgetPayload(_ payload: String) {
+    guard let defaults = UserDefaults(suiteName: SharedSessionConfig.appGroup) else { return }
+    defaults.set(payload, forKey: SharedSessionConfig.siteWidgetPayloadKey)
     WidgetCenter.shared.reloadAllTimelines()
   }
 
@@ -170,6 +188,18 @@ private let appWidgetLog = Logger(subsystem: "com.altman.moviepilot", category: 
     }
     if url.path.lowercased() == "/subscribe-calendar" {
       return "moviepilot://subscribe-calendar"
+    }
+    if url.host?.lowercased() == "site-overview" {
+      return "moviepilot://site-overview"
+    }
+    if url.path.lowercased() == "/site-overview" {
+      return "moviepilot://site-overview"
+    }
+    if url.host?.lowercased() == "system-message" {
+      return "moviepilot://system-message"
+    }
+    if url.path.lowercased() == "/system-message" {
+      return "moviepilot://system-message"
     }
     return nil
   }

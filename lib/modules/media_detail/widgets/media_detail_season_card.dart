@@ -17,6 +17,7 @@ class MediaDetailSeasonCard extends StatelessWidget {
     required this.seasonEpisodeCount,
     required this.seasonVoteAverage,
     required this.seasonName,
+    this.compact = false,
   });
   final SeasonInfo season;
   final bool isSubscribed;
@@ -27,6 +28,7 @@ class MediaDetailSeasonCard extends StatelessWidget {
   final String seasonEpisodeCount;
   final String seasonVoteAverage;
   final String seasonName;
+  final bool compact;
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -44,6 +46,89 @@ class MediaDetailSeasonCard extends StatelessWidget {
         : (seasonEpisodeCount.contains('集')
               ? seasonEpisodeCount
               : '$seasonEpisodeCount 集');
+
+    if (compact) {
+      final titleText = seasonTitle.isNotEmpty ? seasonTitle : seasonName;
+      return Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withOpacity(0.08)),
+        ),
+        child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: CachedImage(
+                    imageUrl: posterUrl,
+                    fit: BoxFit.cover,
+                    width: 52,
+                    height: 72,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          if (voteText != null) ...[
+                          _compactRatingBadge(theme, voteText),
+                          const SizedBox(width: 8),
+                          ],
+                        Expanded(
+                          child: Text(
+                            titleText,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: [
+                          _pill(
+                            airDate,
+                            background: Colors.white.withOpacity(0.18),
+                          ),
+                          if (episodeText.isNotEmpty)
+                            _pill(
+                              episodeText,
+                              background: Colors.white.withOpacity(0.18),
+                            ),
+                          _pill(
+                            isSubscribed ? '已订阅' : '未订阅',
+                            background: isSubscribed
+                                ? CupertinoColors.systemRed.withOpacity(0.95)
+                                : Colors.blueGrey.withOpacity(0.8),
+                          ),
+                          if (isMissing)
+                            _pill(
+                              '缺失',
+                              background:
+                                  theme.colorScheme.error.withOpacity(0.95),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+        ),
+      );
+    }
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(25),
@@ -154,18 +239,65 @@ class MediaDetailSeasonCard extends StatelessWidget {
   }
 
   Widget _pill(String text, {required Color background}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(14),
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 24),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            softWrap: false,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
       ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
+    );
+  }
+
+  Widget _compactRatingBadge(ThemeData theme, String voteText) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 24),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(999),
+          color: const Color(0xFF7C4DFF).withOpacity(0.18),
+          border: Border.all(
+            color: const Color(0xFF7C4DFF).withOpacity(0.28),
+            width: 0.8,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                CupertinoIcons.star_fill,
+                size: 12,
+                color: const Color(0xFFBFA8FF),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                voteText,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontSize: 11,
+                  height: 1.0,
+                  color: const Color(0xFFDED2FF),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

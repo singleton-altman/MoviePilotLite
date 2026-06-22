@@ -1,8 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
-import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_section.dart';
+import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_widget_styles.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import '../controllers/dashboard_controller.dart';
 
@@ -12,75 +11,120 @@ class RecentAddedWidget extends StatelessWidget {
 
   Widget _buildInfo(BuildContext context) {
     final controller = Get.find<DashboardController>();
+    final palette = DashboardPalette.of(context);
     return Obx(() {
       final transferData = controller.transferData;
-      // 计算总入库量
       final totalCount = transferData.fold(0, (sum, item) => sum + item);
-
-      // 准备图表数据
+      final peakCount = transferData.isEmpty
+          ? 0
+          : transferData.reduce((a, b) => a > b ? a : b);
+      final avgCount = transferData.isEmpty
+          ? 0
+          : totalCount / transferData.length;
       final chartData = _prepareChartData(transferData);
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
-          // 柱状图（使用 Syncfusion Flutter Charts）
+          Row(
+            children: [
+              DashboardInfoPill(
+                text: '入库趋势',
+                color: palette.warningAccent,
+                icon: CupertinoIcons.chart_bar_alt_fill,
+              ),
+              const Spacer(),
+              Text(
+                '最近 7 天',
+                style: TextStyle(fontSize: 12, color: palette.mutedText),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
           SizedBox(
-            height: 180,
+            height: 172,
             child: SfCartesianChart(
+              margin: EdgeInsets.zero,
+              plotAreaBorderWidth: 0,
+              backgroundColor: Colors.transparent,
               primaryXAxis: CategoryAxis(
                 isVisible: false,
                 majorGridLines: const MajorGridLines(width: 0),
                 axisLine: const AxisLine(width: 0),
-                labelStyle: const TextStyle(fontSize: 10),
               ),
               primaryYAxis: NumericAxis(
-                isVisible: true,
+                isVisible: false,
                 majorGridLines: const MajorGridLines(width: 0),
                 axisLine: const AxisLine(width: 0),
-                labelStyle: const TextStyle(fontSize: 10),
               ),
-              plotAreaBorderWidth: 0,
               series: <ColumnSeries<Map<String, dynamic>, String>>[
                 ColumnSeries<Map<String, dynamic>, String>(
                   dataSource: chartData,
-                  xValueMapper: (data, index) {
-                    return index.toString();
-                  },
+                  xValueMapper: (data, index) => 'D$index',
                   yValueMapper: (data, _) => data['count'] as int,
-                  borderRadius: const BorderRadius.all(Radius.circular(4)),
-                  color: Theme.of(context).colorScheme.primary,
-                  dataLabelSettings: const DataLabelSettings(
-                    isVisible: true,
-                    textStyle: TextStyle(fontSize: 10),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(6),
                   ),
+                  spacing: 0.28,
+                  pointColorMapper: (data, _) {
+                    final value = data['count'] as int;
+                    return value == peakCount
+                        ? palette.primary
+                        : palette.primary.withValues(alpha: 0.48);
+                  },
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
-          // 总入库量
+          const SizedBox(height: 8),
           Row(
             children: [
               Text(
-                totalCount.toString(),
+                '7天前',
                 style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.primary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: palette.faintText,
                 ),
               ),
-              const SizedBox(width: 8),
+              const Spacer(),
               Text(
-                '最近一周入库了 $totalCount 部影片 😊',
+                '今天',
                 style: TextStyle(
-                  fontSize: 14,
-                  color: CupertinoColors.systemGrey,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: palette.faintText,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: DashboardMiniStat(
+                  label: '总入库',
+                  value: '$totalCount',
+                  valueColor: palette.titleText,
+                ),
+              ),
+              Expanded(
+                child: DashboardMiniStat(
+                  label: '日均',
+                  value: avgCount.toStringAsFixed(1),
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                ),
+              ),
+              Expanded(
+                child: DashboardMiniStat(
+                  label: '峰值',
+                  value: '$peakCount',
+                  valueColor: palette.primary,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                ),
+              ),
+            ],
+          ),
         ],
       );
     });
@@ -88,21 +132,11 @@ class RecentAddedWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DashboardSection(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      title: '最近入库',
-      icon: CupertinoIcons.clock,
-      onTapMore: () {
-        Get.toNamed('/media-organize');
-      },
-      child: _buildInfo(context),
-    );
+    return _buildInfo(context);
   }
 
-  // 准备图表数据
   List<Map<String, dynamic>> _prepareChartData(List<int> transferData) {
     final data = List<int>.from(transferData);
-    // 准备图表数据
     return data.asMap().entries.map((entry) {
       return {'day': entry.key, 'count': entry.value};
     }).toList();

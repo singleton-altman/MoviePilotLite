@@ -382,21 +382,27 @@ class DashboardController extends GetxController {
 
   /// 刷新所有数据
   Future<void> refreshData() async {
-    talker.info('开始刷新所有数据');
-    await _loadDataBasedOnConfig();
-    if (displayedWidgets.contains('我的媒体库')) {
-      await mediaServerController.loadMediaLibraries();
+    try {
+      talker.info('开始刷新所有数据');
+      await _loadDataBasedOnConfig();
+      if (displayedWidgets.contains('我的媒体库')) {
+        await mediaServerController.loadMediaLibraries();
+      }
+      if (displayedWidgets.contains('最近添加')) {
+        await mediaServerController.refreshLatestMediaList();
+      }
+      final enabledMediaServers = mediaServerController.mediaServers.value
+          .where((server) => server.enabled)
+          .toList();
+      if (displayedWidgets.contains('继续观看') && enabledMediaServers.isNotEmpty) {
+        await mediaServerController.loadPlayingMedia(
+          enabledMediaServers.first.name,
+        );
+      }
+      talker.info('所有数据刷新完成');
+    } catch (e, st) {
+      talker.handle(e, stackTrace: st, message: '刷新所有数据失败');
     }
-    if (displayedWidgets.contains('最近添加')) {
-      await mediaServerController.refreshLatestMediaList();
-    }
-    if (displayedWidgets.contains('继续观看') &&
-        mediaServerController.mediaServers.value.isNotEmpty) {
-      await mediaServerController.loadPlayingMedia(
-        mediaServerController.mediaServers.value.first.name,
-      );
-    }
-    talker.info('所有数据刷新完成');
   }
 
   /// 执行后台任务；不关注返回值，提交后即提示任务已提交
@@ -498,6 +504,8 @@ class DashboardController extends GetxController {
         );
       }
       await Future.wait(futures);
+    } catch (e, st) {
+      talker.handle(e, stackTrace: st, message: '加载数据失败');
     } finally {
       _isLoadingDashboardData = false;
     }

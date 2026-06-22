@@ -1,8 +1,13 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:moviepilot_mobile/modules/login/models/login_profile.dart';
+import 'package:moviepilot_mobile/modules/login/controllers/login_controller.dart';
 import 'package:moviepilot_mobile/modules/login/repositories/auth_repository.dart';
 import 'package:moviepilot_mobile/modules/profile/models/user_info.dart';
+import 'package:moviepilot_mobile/modules/site/controllers/site_controller.dart';
 import 'package:moviepilot_mobile/modules/system_message/controllers/system_message_controller.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/services/ios_shared_session_service.dart';
@@ -11,7 +16,7 @@ import 'package:moviepilot_mobile/services/realm_service.dart';
 /// Profile 控制器：负责当前登录用户 / 登录档案的展示与后续扩展
 class ProfileController extends GetxController {
   final _appService = Get.find<AppService>();
-  final _realmService = Get.find<RealmService>().realm.value;
+  final _realmService = Get.find<RealmService>();
   final _authRepository = Get.find<AuthRepository>();
   final _iosSharedSessionService = Get.find<IosSharedSessionService>();
   final _talker = Get.find<AppLog>();
@@ -28,7 +33,7 @@ class ProfileController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    loadCurrentProfile();
+    unawaited(loadCurrentProfile());
   }
 
   @override
@@ -39,12 +44,15 @@ class ProfileController extends GetxController {
   }
 
   /// 从 Realm 中读取最近使用的登录配置
-  void loadCurrentProfile() {
+  Future<void> loadCurrentProfile() async {
     try {
       isLoading.value = true;
-      final realm = _realmService;
-      if (realm == null) return;
-      final profiles = realm.all<LoginProfile>().toList();
+      final List<LoginProfile> profiles;
+      if (kIsWeb) {
+        profiles = await _authRepository.getProfilesAsync();
+      } else {
+        profiles = _realmService.realm.all<LoginProfile>().toList();
+      }
       if (profiles.isEmpty) {
         currentProfile.value = null;
         return;
@@ -58,10 +66,12 @@ class ProfileController extends GetxController {
 
   /// 获取当前用户的最新信息（优先从接口拉取）
   Future<void> loadCurrentUserInfo() async {
-    // 根据最近使用的登录档案获取用户信息
-    final realm = _realmService;
-    if (realm == null) return;
-    final profiles = realm.all<LoginProfile>().toList();
+    final List<LoginProfile> profiles;
+    if (kIsWeb) {
+      profiles = await _authRepository.getProfilesAsync();
+    } else {
+      profiles = _realmService.realm.all<LoginProfile>().toList();
+    }
     if (profiles.isEmpty) {
       currentUserInfo.value = null;
       return;
@@ -96,6 +106,12 @@ class ProfileController extends GetxController {
     _appService.clearCookie();
     _appService.clearLoginState();
     await _iosSharedSessionService.clearSession();
+    if (Get.isRegistered<SiteController>()) {
+      Get.delete<SiteController>(force: true);
+    }
+    if (Get.isRegistered<LoginController>()) {
+      Get.find<LoginController>().resetForLogout();
+    }
 
     currentProfile.value = null;
     currentUserInfo.value = null;

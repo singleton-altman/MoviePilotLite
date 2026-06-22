@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_section.dart';
+import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_widget_styles.dart';
 import 'package:moviepilot_mobile/modules/dashboard/widgets/mixed_img_widget.dart';
 import 'package:moviepilot_mobile/modules/mediaserver/controllers/mediaserver_controller.dart';
 import 'package:moviepilot_mobile/modules/mediaserver/models/library_model.dart';
@@ -18,22 +18,24 @@ class MyMediaLibraryWidget extends StatelessWidget {
       final libraries = mediaServerController.mediaLibraries.value;
 
       if (libraries.isEmpty) {
-        return const Center(child: Text('暂无媒体库数据'));
+        return const DashboardEmptyState(
+          icon: CupertinoIcons.collections,
+          title: '暂无媒体库数据',
+          subtitle: '连接媒体服务器后会显示在这里',
+        );
       }
 
       return SizedBox(
-        height: 160,
+        height: 184,
         width: double.infinity,
-        child: ListView.builder(
+        child: ListView.separated(
           scrollDirection: Axis.horizontal,
           shrinkWrap: true,
           itemCount: libraries.length,
+          separatorBuilder: (context, index) => const SizedBox(width: 14),
           itemBuilder: (context, index) {
             final library = libraries[index];
-            return Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: SizedBox(width: 240, child: _buildLibraryCard(library)),
-            );
+            return SizedBox(width: 256, child: _buildLibraryCard(library));
           },
         ),
       );
@@ -42,104 +44,78 @@ class MyMediaLibraryWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DashboardSection(
-      title: '我的媒体库',
-      icon: CupertinoIcons.collections,
-      child: _buildInfo(context),
-    );
+    return _buildInfo(context);
   }
 
   Widget _buildLibraryCard(MediaLibrary library) {
+    final palette = DashboardPalette.of(Get.context!);
     return InkWell(
       onTap: () => onTap?.call(library),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: CupertinoColors.systemGrey.withValues(alpha: 0.1),
-              spreadRadius: 1,
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
+      borderRadius: BorderRadius.circular(22),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
         child: Stack(
           fit: StackFit.expand,
           children: [
             _buildLibraryImage(library),
-            // 渐变遮罩，确保文字清晰可见
-            Container(
+            DecoratedBox(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.transparent,
-                    Colors.black.withValues(alpha: 0.7),
+                    Colors.black.withValues(alpha: 0.08),
+                    Colors.black.withValues(alpha: 0.16),
+                    Colors.black.withValues(alpha: 0.82),
                   ],
-                  stops: const [0.4, 1.0],
+                  stops: const [0.0, 0.48, 1.0],
                 ),
               ),
             ),
-            // 文本信息显示在图片上方
-            Padding(
-              padding: const EdgeInsets.all(16),
+            Positioned(
+              top: 12,
+              left: 12,
+              child: DashboardInfoPill(
+                text: library.type.toUpperCase(),
+                color: Colors.white,
+                backgroundColor: palette.overlay.withValues(alpha: 0.62),
+              ),
+            ),
+            Positioned(
+              right: 12,
+              top: 12,
+              child: DashboardInfoPill(
+                text: library.server_type.toUpperCase(),
+                color: palette.warningAccent,
+                backgroundColor: palette.overlay.withValues(alpha: 0.6),
+              ),
+            ),
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 16,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Text(
                     library.name,
                     style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
                       color: Colors.white,
-                      shadows: [
-                        Shadow(
-                          blurRadius: 2,
-                          color: Colors.black,
-                          offset: Offset(1, 1),
-                        ),
-                      ],
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Text(
-                        library.type,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Colors.white70,
-                          shadows: [
-                            Shadow(
-                              blurRadius: 2,
-                              color: Colors.black,
-                              offset: Offset(1, 1),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        library.server_type,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.white60,
-                          shadows: [
-                            Shadow(
-                              blurRadius: 2,
-                              color: Colors.black,
-                              offset: Offset(1, 1),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 6),
+                  Text(
+                    '${library.type} · ${library.server_type}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withValues(alpha: 0.7),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -154,7 +130,6 @@ class MyMediaLibraryWidget extends StatelessWidget {
     final imageUrls = library.image_list?.isNotEmpty == true
         ? library.image_list!
         : [library.image ?? ''];
-    // 封面图作为背景
     return MixedImgWidget(
       imageUrls: imageUrls
           .map((e) => ImageUtil.convertInternalImageUrl(e))
