@@ -1,26 +1,40 @@
-import 'package:realm/realm.dart';
+/// Site user data (latest snapshot) local cache, keyed by domain.
+class SiteUserDataCache {
+  final String domain;
+  final String username;
+  final String userid;
+  final String userLevel;
+  final String joinAt;
+  final double bonus;
+  final int upload;
+  final int download;
+  final double ratio;
+  final int seeding;
+  final int leeching;
+  final int seedingSize;
+  final int leechingSize;
+  final int messageUnread;
+  final String errMsg;
+  final String updatedDay;
+  final String updatedTime;
 
-part 'site_userdata_cache.realm.dart';
-
-/// 站点用户数据（latest）本地缓存，按 domain 关联
-@RealmModel()
-class _SiteUserDataCache {
-  @PrimaryKey()
-  late String domain;
-  late String username;
-  late String userid;
-  late String userLevel;
-  late String joinAt;
-  late double bonus;
-  late int upload;
-  late int download;
-  late double ratio;
-  late int seeding;
-  late int leeching;
-  late int seedingSize;
-  late int leechingSize;
-  late int messageUnread;
-  late String errMsg;
-  late String updatedDay;
-  late String updatedTime;
+  const SiteUserDataCache({
+    required this.domain,
+    required this.username,
+    required this.userid,
+    required this.userLevel,
+    required this.joinAt,
+    required this.bonus,
+    required this.upload,
+    required this.download,
+    required this.ratio,
+    required this.seeding,
+    required this.leeching,
+    required this.seedingSize,
+    required this.leechingSize,
+    required this.messageUnread,
+    required this.errMsg,
+    required this.updatedDay,
+    required this.updatedTime,
+  });
 }

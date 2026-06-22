@@ -293,14 +293,23 @@ MetaInfo _$MetaInfoFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$MetaInfo {
+  @JsonKey(fromJson: _boolFromJson)
   bool? get isfile => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get org_string => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get title => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get subtitle => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get type => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get name => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get cn_name => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get en_name => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get year => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _intFromJson)
   int? get total_season => throw _privateConstructorUsedError;
@@ -314,17 +323,27 @@ mixin _$MetaInfo {
   int? get begin_episode => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _intFromJson)
   int? get end_episode => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get season_episode => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _intListFromJson, toJson: _intListToJson)
   List<int>? get episode_list => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get part => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get resource_type => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get resource_effect => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get resource_pix => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get resource_team => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get video_encode => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get audio_encode => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get edition => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get web_source => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _stringListFromJson, toJson: _stringListToJson)
   List<String>? get apply_words => throw _privateConstructorUsedError;
@@ -345,33 +364,33 @@ abstract class $MetaInfoCopyWith<$Res> {
       _$MetaInfoCopyWithImpl<$Res, MetaInfo>;
   @useResult
   $Res call({
-    bool? isfile,
-    String? org_string,
-    String? title,
-    String? subtitle,
-    String? type,
-    String? name,
-    String? cn_name,
-    String? en_name,
-    String? year,
+    @JsonKey(fromJson: _boolFromJson) bool? isfile,
+    @JsonKey(fromJson: _stringFromJson) String? org_string,
+    @JsonKey(fromJson: _stringFromJson) String? title,
+    @JsonKey(fromJson: _stringFromJson) String? subtitle,
+    @JsonKey(fromJson: _stringFromJson) String? type,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+    @JsonKey(fromJson: _stringFromJson) String? cn_name,
+    @JsonKey(fromJson: _stringFromJson) String? en_name,
+    @JsonKey(fromJson: _stringFromJson) String? year,
     @JsonKey(fromJson: _intFromJson) int? total_season,
     @JsonKey(fromJson: _intFromJson) int? begin_season,
     @JsonKey(fromJson: _intFromJson) int? end_season,
     @JsonKey(fromJson: _intFromJson) int? total_episode,
     @JsonKey(fromJson: _intFromJson) int? begin_episode,
     @JsonKey(fromJson: _intFromJson) int? end_episode,
-    String? season_episode,
+    @JsonKey(fromJson: _stringFromJson) String? season_episode,
     @JsonKey(fromJson: _intListFromJson, toJson: _intListToJson)
     List<int>? episode_list,
-    String? part,
-    String? resource_type,
-    String? resource_effect,
-    String? resource_pix,
-    String? resource_team,
-    String? video_encode,
-    String? audio_encode,
-    String? edition,
-    String? web_source,
+    @JsonKey(fromJson: _stringFromJson) String? part,
+    @JsonKey(fromJson: _stringFromJson) String? resource_type,
+    @JsonKey(fromJson: _stringFromJson) String? resource_effect,
+    @JsonKey(fromJson: _stringFromJson) String? resource_pix,
+    @JsonKey(fromJson: _stringFromJson) String? resource_team,
+    @JsonKey(fromJson: _stringFromJson) String? video_encode,
+    @JsonKey(fromJson: _stringFromJson) String? audio_encode,
+    @JsonKey(fromJson: _stringFromJson) String? edition,
+    @JsonKey(fromJson: _stringFromJson) String? web_source,
     @JsonKey(fromJson: _stringListFromJson, toJson: _stringListToJson)
     List<String>? apply_words,
   });
@@ -546,33 +565,33 @@ abstract class _$$MetaInfoImplCopyWith<$Res>
   @override
   @useResult
   $Res call({
-    bool? isfile,
-    String? org_string,
-    String? title,
-    String? subtitle,
-    String? type,
-    String? name,
-    String? cn_name,
-    String? en_name,
-    String? year,
+    @JsonKey(fromJson: _boolFromJson) bool? isfile,
+    @JsonKey(fromJson: _stringFromJson) String? org_string,
+    @JsonKey(fromJson: _stringFromJson) String? title,
+    @JsonKey(fromJson: _stringFromJson) String? subtitle,
+    @JsonKey(fromJson: _stringFromJson) String? type,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+    @JsonKey(fromJson: _stringFromJson) String? cn_name,
+    @JsonKey(fromJson: _stringFromJson) String? en_name,
+    @JsonKey(fromJson: _stringFromJson) String? year,
     @JsonKey(fromJson: _intFromJson) int? total_season,
     @JsonKey(fromJson: _intFromJson) int? begin_season,
     @JsonKey(fromJson: _intFromJson) int? end_season,
     @JsonKey(fromJson: _intFromJson) int? total_episode,
     @JsonKey(fromJson: _intFromJson) int? begin_episode,
     @JsonKey(fromJson: _intFromJson) int? end_episode,
-    String? season_episode,
+    @JsonKey(fromJson: _stringFromJson) String? season_episode,
     @JsonKey(fromJson: _intListFromJson, toJson: _intListToJson)
     List<int>? episode_list,
-    String? part,
-    String? resource_type,
-    String? resource_effect,
-    String? resource_pix,
-    String? resource_team,
-    String? video_encode,
-    String? audio_encode,
-    String? edition,
-    String? web_source,
+    @JsonKey(fromJson: _stringFromJson) String? part,
+    @JsonKey(fromJson: _stringFromJson) String? resource_type,
+    @JsonKey(fromJson: _stringFromJson) String? resource_effect,
+    @JsonKey(fromJson: _stringFromJson) String? resource_pix,
+    @JsonKey(fromJson: _stringFromJson) String? resource_team,
+    @JsonKey(fromJson: _stringFromJson) String? video_encode,
+    @JsonKey(fromJson: _stringFromJson) String? audio_encode,
+    @JsonKey(fromJson: _stringFromJson) String? edition,
+    @JsonKey(fromJson: _stringFromJson) String? web_source,
     @JsonKey(fromJson: _stringListFromJson, toJson: _stringListToJson)
     List<String>? apply_words,
   });
@@ -739,33 +758,33 @@ class __$$MetaInfoImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$MetaInfoImpl implements _MetaInfo {
   const _$MetaInfoImpl({
-    this.isfile,
-    this.org_string,
-    this.title,
-    this.subtitle,
-    this.type,
-    this.name,
-    this.cn_name,
-    this.en_name,
-    this.year,
+    @JsonKey(fromJson: _boolFromJson) this.isfile,
+    @JsonKey(fromJson: _stringFromJson) this.org_string,
+    @JsonKey(fromJson: _stringFromJson) this.title,
+    @JsonKey(fromJson: _stringFromJson) this.subtitle,
+    @JsonKey(fromJson: _stringFromJson) this.type,
+    @JsonKey(fromJson: _stringFromJson) this.name,
+    @JsonKey(fromJson: _stringFromJson) this.cn_name,
+    @JsonKey(fromJson: _stringFromJson) this.en_name,
+    @JsonKey(fromJson: _stringFromJson) this.year,
     @JsonKey(fromJson: _intFromJson) this.total_season,
     @JsonKey(fromJson: _intFromJson) this.begin_season,
     @JsonKey(fromJson: _intFromJson) this.end_season,
     @JsonKey(fromJson: _intFromJson) this.total_episode,
     @JsonKey(fromJson: _intFromJson) this.begin_episode,
     @JsonKey(fromJson: _intFromJson) this.end_episode,
-    this.season_episode,
+    @JsonKey(fromJson: _stringFromJson) this.season_episode,
     @JsonKey(fromJson: _intListFromJson, toJson: _intListToJson)
     final List<int>? episode_list,
-    this.part,
-    this.resource_type,
-    this.resource_effect,
-    this.resource_pix,
-    this.resource_team,
-    this.video_encode,
-    this.audio_encode,
-    this.edition,
-    this.web_source,
+    @JsonKey(fromJson: _stringFromJson) this.part,
+    @JsonKey(fromJson: _stringFromJson) this.resource_type,
+    @JsonKey(fromJson: _stringFromJson) this.resource_effect,
+    @JsonKey(fromJson: _stringFromJson) this.resource_pix,
+    @JsonKey(fromJson: _stringFromJson) this.resource_team,
+    @JsonKey(fromJson: _stringFromJson) this.video_encode,
+    @JsonKey(fromJson: _stringFromJson) this.audio_encode,
+    @JsonKey(fromJson: _stringFromJson) this.edition,
+    @JsonKey(fromJson: _stringFromJson) this.web_source,
     @JsonKey(fromJson: _stringListFromJson, toJson: _stringListToJson)
     final List<String>? apply_words,
   }) : _episode_list = episode_list,
@@ -775,22 +794,31 @@ class _$MetaInfoImpl implements _MetaInfo {
       _$$MetaInfoImplFromJson(json);
 
   @override
+  @JsonKey(fromJson: _boolFromJson)
   final bool? isfile;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? org_string;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? title;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? subtitle;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? type;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? name;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? cn_name;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? en_name;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? year;
   @override
   @JsonKey(fromJson: _intFromJson)
@@ -811,6 +839,7 @@ class _$MetaInfoImpl implements _MetaInfo {
   @JsonKey(fromJson: _intFromJson)
   final int? end_episode;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? season_episode;
   final List<int>? _episode_list;
   @override
@@ -824,22 +853,31 @@ class _$MetaInfoImpl implements _MetaInfo {
   }
 
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? part;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? resource_type;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? resource_effect;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? resource_pix;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? resource_team;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? video_encode;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? audio_encode;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? edition;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? web_source;
   final List<String>? _apply_words;
   @override
@@ -962,33 +1000,33 @@ class _$MetaInfoImpl implements _MetaInfo {
 
 abstract class _MetaInfo implements MetaInfo {
   const factory _MetaInfo({
-    final bool? isfile,
-    final String? org_string,
-    final String? title,
-    final String? subtitle,
-    final String? type,
-    final String? name,
-    final String? cn_name,
-    final String? en_name,
-    final String? year,
+    @JsonKey(fromJson: _boolFromJson) final bool? isfile,
+    @JsonKey(fromJson: _stringFromJson) final String? org_string,
+    @JsonKey(fromJson: _stringFromJson) final String? title,
+    @JsonKey(fromJson: _stringFromJson) final String? subtitle,
+    @JsonKey(fromJson: _stringFromJson) final String? type,
+    @JsonKey(fromJson: _stringFromJson) final String? name,
+    @JsonKey(fromJson: _stringFromJson) final String? cn_name,
+    @JsonKey(fromJson: _stringFromJson) final String? en_name,
+    @JsonKey(fromJson: _stringFromJson) final String? year,
     @JsonKey(fromJson: _intFromJson) final int? total_season,
     @JsonKey(fromJson: _intFromJson) final int? begin_season,
     @JsonKey(fromJson: _intFromJson) final int? end_season,
     @JsonKey(fromJson: _intFromJson) final int? total_episode,
     @JsonKey(fromJson: _intFromJson) final int? begin_episode,
     @JsonKey(fromJson: _intFromJson) final int? end_episode,
-    final String? season_episode,
+    @JsonKey(fromJson: _stringFromJson) final String? season_episode,
     @JsonKey(fromJson: _intListFromJson, toJson: _intListToJson)
     final List<int>? episode_list,
-    final String? part,
-    final String? resource_type,
-    final String? resource_effect,
-    final String? resource_pix,
-    final String? resource_team,
-    final String? video_encode,
-    final String? audio_encode,
-    final String? edition,
-    final String? web_source,
+    @JsonKey(fromJson: _stringFromJson) final String? part,
+    @JsonKey(fromJson: _stringFromJson) final String? resource_type,
+    @JsonKey(fromJson: _stringFromJson) final String? resource_effect,
+    @JsonKey(fromJson: _stringFromJson) final String? resource_pix,
+    @JsonKey(fromJson: _stringFromJson) final String? resource_team,
+    @JsonKey(fromJson: _stringFromJson) final String? video_encode,
+    @JsonKey(fromJson: _stringFromJson) final String? audio_encode,
+    @JsonKey(fromJson: _stringFromJson) final String? edition,
+    @JsonKey(fromJson: _stringFromJson) final String? web_source,
     @JsonKey(fromJson: _stringListFromJson, toJson: _stringListToJson)
     final List<String>? apply_words,
   }) = _$MetaInfoImpl;
@@ -997,22 +1035,31 @@ abstract class _MetaInfo implements MetaInfo {
       _$MetaInfoImpl.fromJson;
 
   @override
+  @JsonKey(fromJson: _boolFromJson)
   bool? get isfile;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get org_string;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get title;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get subtitle;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get type;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get name;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get cn_name;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get en_name;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get year;
   @override
   @JsonKey(fromJson: _intFromJson)
@@ -1033,27 +1080,37 @@ abstract class _MetaInfo implements MetaInfo {
   @JsonKey(fromJson: _intFromJson)
   int? get end_episode;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get season_episode;
   @override
   @JsonKey(fromJson: _intListFromJson, toJson: _intListToJson)
   List<int>? get episode_list;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get part;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get resource_type;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get resource_effect;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get resource_pix;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get resource_team;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get video_encode;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get audio_encode;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get edition;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get web_source;
   @override
   @JsonKey(fromJson: _stringListFromJson, toJson: _stringListToJson)
@@ -1073,16 +1130,23 @@ MediaInfo _$MediaInfoFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$MediaInfo {
+  @JsonKey(fromJson: _stringFromJson)
   String? get source => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get type => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get title => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get en_title => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get year => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get title_year => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _intFromJson)
   int? get season => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _intFromJson)
   int? get tmdb_id => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get imdb_id => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _intFromJson)
   int? get tvdb_id => throw _privateConstructorUsedError;
@@ -1092,16 +1156,25 @@ mixin _$MediaInfo {
   int? get bangumi_id => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _intFromJson)
   int? get collection_id => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get mediaid_prefix => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get media_id => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get original_language => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get original_title => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get release_date => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get backdrop_path => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get poster_path => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _doubleFromJson)
   double? get vote_average => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get overview => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get category => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _seasonsFromJson, toJson: _seasonsToJson)
   List<SeasonEpisodes>? get seasons => throw _privateConstructorUsedError;
@@ -1110,16 +1183,21 @@ mixin _$MediaInfo {
   List<String>? get names => throw _privateConstructorUsedError;
   List<Actor>? get actors => throw _privateConstructorUsedError;
   List<Director>? get directors => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get detail_link => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _boolFromJson)
   bool? get adult => throw _privateConstructorUsedError;
   List<CreatedBy>? get created_by => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _intListFromJson, toJson: _intListToJson)
   List<int>? get episode_run_time => throw _privateConstructorUsedError;
   List<Genre>? get genres => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get first_air_date => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get homepage => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _stringListFromJson, toJson: _stringListToJson)
   List<String>? get languages => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get last_air_date => throw _privateConstructorUsedError;
   List<Network>? get networks => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _intFromJson)
@@ -1128,6 +1206,7 @@ mixin _$MediaInfo {
   int? get number_of_seasons => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _stringListFromJson, toJson: _stringListToJson)
   List<String>? get origin_country => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get original_name => throw _privateConstructorUsedError;
   List<ProductionCompany>? get production_companies =>
       throw _privateConstructorUsedError;
@@ -1136,7 +1215,9 @@ mixin _$MediaInfo {
   List<SpokenLanguage>? get spoken_languages =>
       throw _privateConstructorUsedError;
   List<ReleaseDate>? get release_dates => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get status => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get tagline => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _intListFromJson, toJson: _intListToJson)
   List<int>? get genre_ids => throw _privateConstructorUsedError;
@@ -1149,7 +1230,9 @@ mixin _$MediaInfo {
   @JsonKey(fromJson: _nextEpisodeFromJson, toJson: _nextEpisodeToJson)
   NextEpisodeToAir? get next_episode_to_air =>
       throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _episodeGroupsFromJson, toJson: _episodeGroupsToJson)
   List<EpisodeGroup>? get episode_groups => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _episodeGroupFromJson, toJson: _episodeGroupToJson)
   EpisodeGroup? get episode_group => throw _privateConstructorUsedError;
 
   /// Serializes this MediaInfo to a JSON map.
@@ -1168,29 +1251,29 @@ abstract class $MediaInfoCopyWith<$Res> {
       _$MediaInfoCopyWithImpl<$Res, MediaInfo>;
   @useResult
   $Res call({
-    String? source,
-    String? type,
-    String? title,
-    String? en_title,
-    String? year,
-    String? title_year,
+    @JsonKey(fromJson: _stringFromJson) String? source,
+    @JsonKey(fromJson: _stringFromJson) String? type,
+    @JsonKey(fromJson: _stringFromJson) String? title,
+    @JsonKey(fromJson: _stringFromJson) String? en_title,
+    @JsonKey(fromJson: _stringFromJson) String? year,
+    @JsonKey(fromJson: _stringFromJson) String? title_year,
     @JsonKey(fromJson: _intFromJson) int? season,
     @JsonKey(fromJson: _intFromJson) int? tmdb_id,
-    String? imdb_id,
+    @JsonKey(fromJson: _stringFromJson) String? imdb_id,
     @JsonKey(fromJson: _intFromJson) int? tvdb_id,
     @JsonKey(fromJson: _intFromJson) int? douban_id,
     @JsonKey(fromJson: _intFromJson) int? bangumi_id,
     @JsonKey(fromJson: _intFromJson) int? collection_id,
-    String? mediaid_prefix,
-    String? media_id,
-    String? original_language,
-    String? original_title,
-    String? release_date,
-    String? backdrop_path,
-    String? poster_path,
+    @JsonKey(fromJson: _stringFromJson) String? mediaid_prefix,
+    @JsonKey(fromJson: _stringFromJson) String? media_id,
+    @JsonKey(fromJson: _stringFromJson) String? original_language,
+    @JsonKey(fromJson: _stringFromJson) String? original_title,
+    @JsonKey(fromJson: _stringFromJson) String? release_date,
+    @JsonKey(fromJson: _stringFromJson) String? backdrop_path,
+    @JsonKey(fromJson: _stringFromJson) String? poster_path,
     @JsonKey(fromJson: _doubleFromJson) double? vote_average,
-    String? overview,
-    String? category,
+    @JsonKey(fromJson: _stringFromJson) String? overview,
+    @JsonKey(fromJson: _stringFromJson) String? category,
     @JsonKey(fromJson: _seasonsFromJson, toJson: _seasonsToJson)
     List<SeasonEpisodes>? seasons,
     List<SeasonInfo>? season_info,
@@ -1198,29 +1281,29 @@ abstract class $MediaInfoCopyWith<$Res> {
     List<String>? names,
     List<Actor>? actors,
     List<Director>? directors,
-    String? detail_link,
-    bool? adult,
+    @JsonKey(fromJson: _stringFromJson) String? detail_link,
+    @JsonKey(fromJson: _boolFromJson) bool? adult,
     List<CreatedBy>? created_by,
     @JsonKey(fromJson: _intListFromJson, toJson: _intListToJson)
     List<int>? episode_run_time,
     List<Genre>? genres,
-    String? first_air_date,
-    String? homepage,
+    @JsonKey(fromJson: _stringFromJson) String? first_air_date,
+    @JsonKey(fromJson: _stringFromJson) String? homepage,
     @JsonKey(fromJson: _stringListFromJson, toJson: _stringListToJson)
     List<String>? languages,
-    String? last_air_date,
+    @JsonKey(fromJson: _stringFromJson) String? last_air_date,
     List<Network>? networks,
     @JsonKey(fromJson: _intFromJson) int? number_of_episodes,
     @JsonKey(fromJson: _intFromJson) int? number_of_seasons,
     @JsonKey(fromJson: _stringListFromJson, toJson: _stringListToJson)
     List<String>? origin_country,
-    String? original_name,
+    @JsonKey(fromJson: _stringFromJson) String? original_name,
     List<ProductionCompany>? production_companies,
     List<ProductionCountry>? production_countries,
     List<SpokenLanguage>? spoken_languages,
     List<ReleaseDate>? release_dates,
-    String? status,
-    String? tagline,
+    @JsonKey(fromJson: _stringFromJson) String? status,
+    @JsonKey(fromJson: _stringFromJson) String? tagline,
     @JsonKey(fromJson: _intListFromJson, toJson: _intListToJson)
     List<int>? genre_ids,
     @JsonKey(fromJson: _intFromJson) int? vote_count,
@@ -1228,7 +1311,9 @@ abstract class $MediaInfoCopyWith<$Res> {
     @JsonKey(fromJson: _intFromJson) int? runtime,
     @JsonKey(fromJson: _nextEpisodeFromJson, toJson: _nextEpisodeToJson)
     NextEpisodeToAir? next_episode_to_air,
+    @JsonKey(fromJson: _episodeGroupsFromJson, toJson: _episodeGroupsToJson)
     List<EpisodeGroup>? episode_groups,
+    @JsonKey(fromJson: _episodeGroupFromJson, toJson: _episodeGroupToJson)
     EpisodeGroup? episode_group,
   });
 
@@ -1575,29 +1660,29 @@ abstract class _$$MediaInfoImplCopyWith<$Res>
   @override
   @useResult
   $Res call({
-    String? source,
-    String? type,
-    String? title,
-    String? en_title,
-    String? year,
-    String? title_year,
+    @JsonKey(fromJson: _stringFromJson) String? source,
+    @JsonKey(fromJson: _stringFromJson) String? type,
+    @JsonKey(fromJson: _stringFromJson) String? title,
+    @JsonKey(fromJson: _stringFromJson) String? en_title,
+    @JsonKey(fromJson: _stringFromJson) String? year,
+    @JsonKey(fromJson: _stringFromJson) String? title_year,
     @JsonKey(fromJson: _intFromJson) int? season,
     @JsonKey(fromJson: _intFromJson) int? tmdb_id,
-    String? imdb_id,
+    @JsonKey(fromJson: _stringFromJson) String? imdb_id,
     @JsonKey(fromJson: _intFromJson) int? tvdb_id,
     @JsonKey(fromJson: _intFromJson) int? douban_id,
     @JsonKey(fromJson: _intFromJson) int? bangumi_id,
     @JsonKey(fromJson: _intFromJson) int? collection_id,
-    String? mediaid_prefix,
-    String? media_id,
-    String? original_language,
-    String? original_title,
-    String? release_date,
-    String? backdrop_path,
-    String? poster_path,
+    @JsonKey(fromJson: _stringFromJson) String? mediaid_prefix,
+    @JsonKey(fromJson: _stringFromJson) String? media_id,
+    @JsonKey(fromJson: _stringFromJson) String? original_language,
+    @JsonKey(fromJson: _stringFromJson) String? original_title,
+    @JsonKey(fromJson: _stringFromJson) String? release_date,
+    @JsonKey(fromJson: _stringFromJson) String? backdrop_path,
+    @JsonKey(fromJson: _stringFromJson) String? poster_path,
     @JsonKey(fromJson: _doubleFromJson) double? vote_average,
-    String? overview,
-    String? category,
+    @JsonKey(fromJson: _stringFromJson) String? overview,
+    @JsonKey(fromJson: _stringFromJson) String? category,
     @JsonKey(fromJson: _seasonsFromJson, toJson: _seasonsToJson)
     List<SeasonEpisodes>? seasons,
     List<SeasonInfo>? season_info,
@@ -1605,29 +1690,29 @@ abstract class _$$MediaInfoImplCopyWith<$Res>
     List<String>? names,
     List<Actor>? actors,
     List<Director>? directors,
-    String? detail_link,
-    bool? adult,
+    @JsonKey(fromJson: _stringFromJson) String? detail_link,
+    @JsonKey(fromJson: _boolFromJson) bool? adult,
     List<CreatedBy>? created_by,
     @JsonKey(fromJson: _intListFromJson, toJson: _intListToJson)
     List<int>? episode_run_time,
     List<Genre>? genres,
-    String? first_air_date,
-    String? homepage,
+    @JsonKey(fromJson: _stringFromJson) String? first_air_date,
+    @JsonKey(fromJson: _stringFromJson) String? homepage,
     @JsonKey(fromJson: _stringListFromJson, toJson: _stringListToJson)
     List<String>? languages,
-    String? last_air_date,
+    @JsonKey(fromJson: _stringFromJson) String? last_air_date,
     List<Network>? networks,
     @JsonKey(fromJson: _intFromJson) int? number_of_episodes,
     @JsonKey(fromJson: _intFromJson) int? number_of_seasons,
     @JsonKey(fromJson: _stringListFromJson, toJson: _stringListToJson)
     List<String>? origin_country,
-    String? original_name,
+    @JsonKey(fromJson: _stringFromJson) String? original_name,
     List<ProductionCompany>? production_companies,
     List<ProductionCountry>? production_countries,
     List<SpokenLanguage>? spoken_languages,
     List<ReleaseDate>? release_dates,
-    String? status,
-    String? tagline,
+    @JsonKey(fromJson: _stringFromJson) String? status,
+    @JsonKey(fromJson: _stringFromJson) String? tagline,
     @JsonKey(fromJson: _intListFromJson, toJson: _intListToJson)
     List<int>? genre_ids,
     @JsonKey(fromJson: _intFromJson) int? vote_count,
@@ -1635,7 +1720,9 @@ abstract class _$$MediaInfoImplCopyWith<$Res>
     @JsonKey(fromJson: _intFromJson) int? runtime,
     @JsonKey(fromJson: _nextEpisodeFromJson, toJson: _nextEpisodeToJson)
     NextEpisodeToAir? next_episode_to_air,
+    @JsonKey(fromJson: _episodeGroupsFromJson, toJson: _episodeGroupsToJson)
     List<EpisodeGroup>? episode_groups,
+    @JsonKey(fromJson: _episodeGroupFromJson, toJson: _episodeGroupToJson)
     EpisodeGroup? episode_group,
   });
 
@@ -1946,29 +2033,29 @@ class __$$MediaInfoImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$MediaInfoImpl implements _MediaInfo {
   const _$MediaInfoImpl({
-    this.source,
-    this.type,
-    this.title,
-    this.en_title,
-    this.year,
-    this.title_year,
+    @JsonKey(fromJson: _stringFromJson) this.source,
+    @JsonKey(fromJson: _stringFromJson) this.type,
+    @JsonKey(fromJson: _stringFromJson) this.title,
+    @JsonKey(fromJson: _stringFromJson) this.en_title,
+    @JsonKey(fromJson: _stringFromJson) this.year,
+    @JsonKey(fromJson: _stringFromJson) this.title_year,
     @JsonKey(fromJson: _intFromJson) this.season,
     @JsonKey(fromJson: _intFromJson) this.tmdb_id,
-    this.imdb_id,
+    @JsonKey(fromJson: _stringFromJson) this.imdb_id,
     @JsonKey(fromJson: _intFromJson) this.tvdb_id,
     @JsonKey(fromJson: _intFromJson) this.douban_id,
     @JsonKey(fromJson: _intFromJson) this.bangumi_id,
     @JsonKey(fromJson: _intFromJson) this.collection_id,
-    this.mediaid_prefix,
-    this.media_id,
-    this.original_language,
-    this.original_title,
-    this.release_date,
-    this.backdrop_path,
-    this.poster_path,
+    @JsonKey(fromJson: _stringFromJson) this.mediaid_prefix,
+    @JsonKey(fromJson: _stringFromJson) this.media_id,
+    @JsonKey(fromJson: _stringFromJson) this.original_language,
+    @JsonKey(fromJson: _stringFromJson) this.original_title,
+    @JsonKey(fromJson: _stringFromJson) this.release_date,
+    @JsonKey(fromJson: _stringFromJson) this.backdrop_path,
+    @JsonKey(fromJson: _stringFromJson) this.poster_path,
     @JsonKey(fromJson: _doubleFromJson) this.vote_average,
-    this.overview,
-    this.category,
+    @JsonKey(fromJson: _stringFromJson) this.overview,
+    @JsonKey(fromJson: _stringFromJson) this.category,
     @JsonKey(fromJson: _seasonsFromJson, toJson: _seasonsToJson)
     final List<SeasonEpisodes>? seasons,
     final List<SeasonInfo>? season_info,
@@ -1976,29 +2063,29 @@ class _$MediaInfoImpl implements _MediaInfo {
     final List<String>? names,
     final List<Actor>? actors,
     final List<Director>? directors,
-    this.detail_link,
-    this.adult,
+    @JsonKey(fromJson: _stringFromJson) this.detail_link,
+    @JsonKey(fromJson: _boolFromJson) this.adult,
     final List<CreatedBy>? created_by,
     @JsonKey(fromJson: _intListFromJson, toJson: _intListToJson)
     final List<int>? episode_run_time,
     final List<Genre>? genres,
-    this.first_air_date,
-    this.homepage,
+    @JsonKey(fromJson: _stringFromJson) this.first_air_date,
+    @JsonKey(fromJson: _stringFromJson) this.homepage,
     @JsonKey(fromJson: _stringListFromJson, toJson: _stringListToJson)
     final List<String>? languages,
-    this.last_air_date,
+    @JsonKey(fromJson: _stringFromJson) this.last_air_date,
     final List<Network>? networks,
     @JsonKey(fromJson: _intFromJson) this.number_of_episodes,
     @JsonKey(fromJson: _intFromJson) this.number_of_seasons,
     @JsonKey(fromJson: _stringListFromJson, toJson: _stringListToJson)
     final List<String>? origin_country,
-    this.original_name,
+    @JsonKey(fromJson: _stringFromJson) this.original_name,
     final List<ProductionCompany>? production_companies,
     final List<ProductionCountry>? production_countries,
     final List<SpokenLanguage>? spoken_languages,
     final List<ReleaseDate>? release_dates,
-    this.status,
-    this.tagline,
+    @JsonKey(fromJson: _stringFromJson) this.status,
+    @JsonKey(fromJson: _stringFromJson) this.tagline,
     @JsonKey(fromJson: _intListFromJson, toJson: _intListToJson)
     final List<int>? genre_ids,
     @JsonKey(fromJson: _intFromJson) this.vote_count,
@@ -2006,7 +2093,9 @@ class _$MediaInfoImpl implements _MediaInfo {
     @JsonKey(fromJson: _intFromJson) this.runtime,
     @JsonKey(fromJson: _nextEpisodeFromJson, toJson: _nextEpisodeToJson)
     this.next_episode_to_air,
+    @JsonKey(fromJson: _episodeGroupsFromJson, toJson: _episodeGroupsToJson)
     final List<EpisodeGroup>? episode_groups,
+    @JsonKey(fromJson: _episodeGroupFromJson, toJson: _episodeGroupToJson)
     this.episode_group,
   }) : _seasons = seasons,
        _season_info = season_info,
@@ -2030,16 +2119,22 @@ class _$MediaInfoImpl implements _MediaInfo {
       _$$MediaInfoImplFromJson(json);
 
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? source;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? type;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? title;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? en_title;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? year;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? title_year;
   @override
   @JsonKey(fromJson: _intFromJson)
@@ -2048,6 +2143,7 @@ class _$MediaInfoImpl implements _MediaInfo {
   @JsonKey(fromJson: _intFromJson)
   final int? tmdb_id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? imdb_id;
   @override
   @JsonKey(fromJson: _intFromJson)
@@ -2062,25 +2158,34 @@ class _$MediaInfoImpl implements _MediaInfo {
   @JsonKey(fromJson: _intFromJson)
   final int? collection_id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? mediaid_prefix;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? media_id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? original_language;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? original_title;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? release_date;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? backdrop_path;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? poster_path;
   @override
   @JsonKey(fromJson: _doubleFromJson)
   final double? vote_average;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? overview;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? category;
   final List<SeasonEpisodes>? _seasons;
   @override
@@ -2135,8 +2240,10 @@ class _$MediaInfoImpl implements _MediaInfo {
   }
 
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? detail_link;
   @override
+  @JsonKey(fromJson: _boolFromJson)
   final bool? adult;
   final List<CreatedBy>? _created_by;
   @override
@@ -2171,8 +2278,10 @@ class _$MediaInfoImpl implements _MediaInfo {
   }
 
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? first_air_date;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? homepage;
   final List<String>? _languages;
   @override
@@ -2186,6 +2295,7 @@ class _$MediaInfoImpl implements _MediaInfo {
   }
 
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? last_air_date;
   final List<Network>? _networks;
   @override
@@ -2215,6 +2325,7 @@ class _$MediaInfoImpl implements _MediaInfo {
   }
 
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? original_name;
   final List<ProductionCompany>? _production_companies;
   @override
@@ -2260,8 +2371,10 @@ class _$MediaInfoImpl implements _MediaInfo {
   }
 
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? status;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? tagline;
   final List<int>? _genre_ids;
   @override
@@ -2288,6 +2401,7 @@ class _$MediaInfoImpl implements _MediaInfo {
   final NextEpisodeToAir? next_episode_to_air;
   final List<EpisodeGroup>? _episode_groups;
   @override
+  @JsonKey(fromJson: _episodeGroupsFromJson, toJson: _episodeGroupsToJson)
   List<EpisodeGroup>? get episode_groups {
     final value = _episode_groups;
     if (value == null) return null;
@@ -2297,6 +2411,7 @@ class _$MediaInfoImpl implements _MediaInfo {
   }
 
   @override
+  @JsonKey(fromJson: _episodeGroupFromJson, toJson: _episodeGroupToJson)
   final EpisodeGroup? episode_group;
 
   @override
@@ -2505,29 +2620,29 @@ class _$MediaInfoImpl implements _MediaInfo {
 
 abstract class _MediaInfo implements MediaInfo {
   const factory _MediaInfo({
-    final String? source,
-    final String? type,
-    final String? title,
-    final String? en_title,
-    final String? year,
-    final String? title_year,
+    @JsonKey(fromJson: _stringFromJson) final String? source,
+    @JsonKey(fromJson: _stringFromJson) final String? type,
+    @JsonKey(fromJson: _stringFromJson) final String? title,
+    @JsonKey(fromJson: _stringFromJson) final String? en_title,
+    @JsonKey(fromJson: _stringFromJson) final String? year,
+    @JsonKey(fromJson: _stringFromJson) final String? title_year,
     @JsonKey(fromJson: _intFromJson) final int? season,
     @JsonKey(fromJson: _intFromJson) final int? tmdb_id,
-    final String? imdb_id,
+    @JsonKey(fromJson: _stringFromJson) final String? imdb_id,
     @JsonKey(fromJson: _intFromJson) final int? tvdb_id,
     @JsonKey(fromJson: _intFromJson) final int? douban_id,
     @JsonKey(fromJson: _intFromJson) final int? bangumi_id,
     @JsonKey(fromJson: _intFromJson) final int? collection_id,
-    final String? mediaid_prefix,
-    final String? media_id,
-    final String? original_language,
-    final String? original_title,
-    final String? release_date,
-    final String? backdrop_path,
-    final String? poster_path,
+    @JsonKey(fromJson: _stringFromJson) final String? mediaid_prefix,
+    @JsonKey(fromJson: _stringFromJson) final String? media_id,
+    @JsonKey(fromJson: _stringFromJson) final String? original_language,
+    @JsonKey(fromJson: _stringFromJson) final String? original_title,
+    @JsonKey(fromJson: _stringFromJson) final String? release_date,
+    @JsonKey(fromJson: _stringFromJson) final String? backdrop_path,
+    @JsonKey(fromJson: _stringFromJson) final String? poster_path,
     @JsonKey(fromJson: _doubleFromJson) final double? vote_average,
-    final String? overview,
-    final String? category,
+    @JsonKey(fromJson: _stringFromJson) final String? overview,
+    @JsonKey(fromJson: _stringFromJson) final String? category,
     @JsonKey(fromJson: _seasonsFromJson, toJson: _seasonsToJson)
     final List<SeasonEpisodes>? seasons,
     final List<SeasonInfo>? season_info,
@@ -2535,29 +2650,29 @@ abstract class _MediaInfo implements MediaInfo {
     final List<String>? names,
     final List<Actor>? actors,
     final List<Director>? directors,
-    final String? detail_link,
-    final bool? adult,
+    @JsonKey(fromJson: _stringFromJson) final String? detail_link,
+    @JsonKey(fromJson: _boolFromJson) final bool? adult,
     final List<CreatedBy>? created_by,
     @JsonKey(fromJson: _intListFromJson, toJson: _intListToJson)
     final List<int>? episode_run_time,
     final List<Genre>? genres,
-    final String? first_air_date,
-    final String? homepage,
+    @JsonKey(fromJson: _stringFromJson) final String? first_air_date,
+    @JsonKey(fromJson: _stringFromJson) final String? homepage,
     @JsonKey(fromJson: _stringListFromJson, toJson: _stringListToJson)
     final List<String>? languages,
-    final String? last_air_date,
+    @JsonKey(fromJson: _stringFromJson) final String? last_air_date,
     final List<Network>? networks,
     @JsonKey(fromJson: _intFromJson) final int? number_of_episodes,
     @JsonKey(fromJson: _intFromJson) final int? number_of_seasons,
     @JsonKey(fromJson: _stringListFromJson, toJson: _stringListToJson)
     final List<String>? origin_country,
-    final String? original_name,
+    @JsonKey(fromJson: _stringFromJson) final String? original_name,
     final List<ProductionCompany>? production_companies,
     final List<ProductionCountry>? production_countries,
     final List<SpokenLanguage>? spoken_languages,
     final List<ReleaseDate>? release_dates,
-    final String? status,
-    final String? tagline,
+    @JsonKey(fromJson: _stringFromJson) final String? status,
+    @JsonKey(fromJson: _stringFromJson) final String? tagline,
     @JsonKey(fromJson: _intListFromJson, toJson: _intListToJson)
     final List<int>? genre_ids,
     @JsonKey(fromJson: _intFromJson) final int? vote_count,
@@ -2565,7 +2680,9 @@ abstract class _MediaInfo implements MediaInfo {
     @JsonKey(fromJson: _intFromJson) final int? runtime,
     @JsonKey(fromJson: _nextEpisodeFromJson, toJson: _nextEpisodeToJson)
     final NextEpisodeToAir? next_episode_to_air,
+    @JsonKey(fromJson: _episodeGroupsFromJson, toJson: _episodeGroupsToJson)
     final List<EpisodeGroup>? episode_groups,
+    @JsonKey(fromJson: _episodeGroupFromJson, toJson: _episodeGroupToJson)
     final EpisodeGroup? episode_group,
   }) = _$MediaInfoImpl;
 
@@ -2573,16 +2690,22 @@ abstract class _MediaInfo implements MediaInfo {
       _$MediaInfoImpl.fromJson;
 
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get source;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get type;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get title;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get en_title;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get year;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get title_year;
   @override
   @JsonKey(fromJson: _intFromJson)
@@ -2591,6 +2714,7 @@ abstract class _MediaInfo implements MediaInfo {
   @JsonKey(fromJson: _intFromJson)
   int? get tmdb_id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get imdb_id;
   @override
   @JsonKey(fromJson: _intFromJson)
@@ -2605,25 +2729,34 @@ abstract class _MediaInfo implements MediaInfo {
   @JsonKey(fromJson: _intFromJson)
   int? get collection_id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get mediaid_prefix;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get media_id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get original_language;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get original_title;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get release_date;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get backdrop_path;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get poster_path;
   @override
   @JsonKey(fromJson: _doubleFromJson)
   double? get vote_average;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get overview;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get category;
   @override
   @JsonKey(fromJson: _seasonsFromJson, toJson: _seasonsToJson)
@@ -2638,8 +2771,10 @@ abstract class _MediaInfo implements MediaInfo {
   @override
   List<Director>? get directors;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get detail_link;
   @override
+  @JsonKey(fromJson: _boolFromJson)
   bool? get adult;
   @override
   List<CreatedBy>? get created_by;
@@ -2649,13 +2784,16 @@ abstract class _MediaInfo implements MediaInfo {
   @override
   List<Genre>? get genres;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get first_air_date;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get homepage;
   @override
   @JsonKey(fromJson: _stringListFromJson, toJson: _stringListToJson)
   List<String>? get languages;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get last_air_date;
   @override
   List<Network>? get networks;
@@ -2669,6 +2807,7 @@ abstract class _MediaInfo implements MediaInfo {
   @JsonKey(fromJson: _stringListFromJson, toJson: _stringListToJson)
   List<String>? get origin_country;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get original_name;
   @override
   List<ProductionCompany>? get production_companies;
@@ -2679,8 +2818,10 @@ abstract class _MediaInfo implements MediaInfo {
   @override
   List<ReleaseDate>? get release_dates;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get status;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get tagline;
   @override
   @JsonKey(fromJson: _intListFromJson, toJson: _intListToJson)
@@ -2698,8 +2839,10 @@ abstract class _MediaInfo implements MediaInfo {
   @JsonKey(fromJson: _nextEpisodeFromJson, toJson: _nextEpisodeToJson)
   NextEpisodeToAir? get next_episode_to_air;
   @override
+  @JsonKey(fromJson: _episodeGroupsFromJson, toJson: _episodeGroupsToJson)
   List<EpisodeGroup>? get episode_groups;
   @override
+  @JsonKey(fromJson: _episodeGroupFromJson, toJson: _episodeGroupToJson)
   EpisodeGroup? get episode_group;
 
   /// Create a copy of MediaInfo
@@ -2899,13 +3042,17 @@ SeasonInfo _$SeasonInfoFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$SeasonInfo {
+  @JsonKey(fromJson: _stringFromJson)
   String? get air_date => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _intFromJson)
   int? get episode_count => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _intFromJson)
   int? get id => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get name => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get overview => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get poster_path => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _intFromJson)
   int? get season_number => throw _privateConstructorUsedError;
@@ -2930,12 +3077,12 @@ abstract class $SeasonInfoCopyWith<$Res> {
   ) = _$SeasonInfoCopyWithImpl<$Res, SeasonInfo>;
   @useResult
   $Res call({
-    String? air_date,
+    @JsonKey(fromJson: _stringFromJson) String? air_date,
     @JsonKey(fromJson: _intFromJson) int? episode_count,
     @JsonKey(fromJson: _intFromJson) int? id,
-    String? name,
-    String? overview,
-    String? poster_path,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+    @JsonKey(fromJson: _stringFromJson) String? overview,
+    @JsonKey(fromJson: _stringFromJson) String? poster_path,
     @JsonKey(fromJson: _intFromJson) int? season_number,
     @JsonKey(fromJson: _doubleFromJson) double? vote_average,
   });
@@ -3015,12 +3162,12 @@ abstract class _$$SeasonInfoImplCopyWith<$Res>
   @override
   @useResult
   $Res call({
-    String? air_date,
+    @JsonKey(fromJson: _stringFromJson) String? air_date,
     @JsonKey(fromJson: _intFromJson) int? episode_count,
     @JsonKey(fromJson: _intFromJson) int? id,
-    String? name,
-    String? overview,
-    String? poster_path,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+    @JsonKey(fromJson: _stringFromJson) String? overview,
+    @JsonKey(fromJson: _stringFromJson) String? poster_path,
     @JsonKey(fromJson: _intFromJson) int? season_number,
     @JsonKey(fromJson: _doubleFromJson) double? vote_average,
   });
@@ -3092,12 +3239,12 @@ class __$$SeasonInfoImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$SeasonInfoImpl implements _SeasonInfo {
   const _$SeasonInfoImpl({
-    this.air_date,
+    @JsonKey(fromJson: _stringFromJson) this.air_date,
     @JsonKey(fromJson: _intFromJson) this.episode_count,
     @JsonKey(fromJson: _intFromJson) this.id,
-    this.name,
-    this.overview,
-    this.poster_path,
+    @JsonKey(fromJson: _stringFromJson) this.name,
+    @JsonKey(fromJson: _stringFromJson) this.overview,
+    @JsonKey(fromJson: _stringFromJson) this.poster_path,
     @JsonKey(fromJson: _intFromJson) this.season_number,
     @JsonKey(fromJson: _doubleFromJson) this.vote_average,
   });
@@ -3106,6 +3253,7 @@ class _$SeasonInfoImpl implements _SeasonInfo {
       _$$SeasonInfoImplFromJson(json);
 
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? air_date;
   @override
   @JsonKey(fromJson: _intFromJson)
@@ -3114,10 +3262,13 @@ class _$SeasonInfoImpl implements _SeasonInfo {
   @JsonKey(fromJson: _intFromJson)
   final int? id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? name;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? overview;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? poster_path;
   @override
   @JsonKey(fromJson: _intFromJson)
@@ -3182,12 +3333,12 @@ class _$SeasonInfoImpl implements _SeasonInfo {
 
 abstract class _SeasonInfo implements SeasonInfo {
   const factory _SeasonInfo({
-    final String? air_date,
+    @JsonKey(fromJson: _stringFromJson) final String? air_date,
     @JsonKey(fromJson: _intFromJson) final int? episode_count,
     @JsonKey(fromJson: _intFromJson) final int? id,
-    final String? name,
-    final String? overview,
-    final String? poster_path,
+    @JsonKey(fromJson: _stringFromJson) final String? name,
+    @JsonKey(fromJson: _stringFromJson) final String? overview,
+    @JsonKey(fromJson: _stringFromJson) final String? poster_path,
     @JsonKey(fromJson: _intFromJson) final int? season_number,
     @JsonKey(fromJson: _doubleFromJson) final double? vote_average,
   }) = _$SeasonInfoImpl;
@@ -3196,6 +3347,7 @@ abstract class _SeasonInfo implements SeasonInfo {
       _$SeasonInfoImpl.fromJson;
 
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get air_date;
   @override
   @JsonKey(fromJson: _intFromJson)
@@ -3204,10 +3356,13 @@ abstract class _SeasonInfo implements SeasonInfo {
   @JsonKey(fromJson: _intFromJson)
   int? get id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get name;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get overview;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get poster_path;
   @override
   @JsonKey(fromJson: _intFromJson)
@@ -3230,19 +3385,27 @@ Actor _$ActorFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$Actor {
+  @JsonKey(fromJson: _stringFromJson)
   String? get source => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _boolFromJson)
   bool? get adult => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _intFromJson)
   int? get gender => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _intFromJson)
   int? get id => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get known_for_department => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get name => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get original_name => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _doubleFromJson)
   double? get popularity => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get profile_path => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get character => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get credit_id => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _intFromJson)
   int? get order => throw _privateConstructorUsedError;
@@ -3262,17 +3425,17 @@ abstract class $ActorCopyWith<$Res> {
       _$ActorCopyWithImpl<$Res, Actor>;
   @useResult
   $Res call({
-    String? source,
-    bool? adult,
+    @JsonKey(fromJson: _stringFromJson) String? source,
+    @JsonKey(fromJson: _boolFromJson) bool? adult,
     @JsonKey(fromJson: _intFromJson) int? gender,
     @JsonKey(fromJson: _intFromJson) int? id,
-    String? known_for_department,
-    String? name,
-    String? original_name,
+    @JsonKey(fromJson: _stringFromJson) String? known_for_department,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+    @JsonKey(fromJson: _stringFromJson) String? original_name,
     @JsonKey(fromJson: _doubleFromJson) double? popularity,
-    String? profile_path,
-    String? character,
-    String? credit_id,
+    @JsonKey(fromJson: _stringFromJson) String? profile_path,
+    @JsonKey(fromJson: _stringFromJson) String? character,
+    @JsonKey(fromJson: _stringFromJson) String? credit_id,
     @JsonKey(fromJson: _intFromJson) int? order,
   });
 }
@@ -3370,17 +3533,17 @@ abstract class _$$ActorImplCopyWith<$Res> implements $ActorCopyWith<$Res> {
   @override
   @useResult
   $Res call({
-    String? source,
-    bool? adult,
+    @JsonKey(fromJson: _stringFromJson) String? source,
+    @JsonKey(fromJson: _boolFromJson) bool? adult,
     @JsonKey(fromJson: _intFromJson) int? gender,
     @JsonKey(fromJson: _intFromJson) int? id,
-    String? known_for_department,
-    String? name,
-    String? original_name,
+    @JsonKey(fromJson: _stringFromJson) String? known_for_department,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+    @JsonKey(fromJson: _stringFromJson) String? original_name,
     @JsonKey(fromJson: _doubleFromJson) double? popularity,
-    String? profile_path,
-    String? character,
-    String? credit_id,
+    @JsonKey(fromJson: _stringFromJson) String? profile_path,
+    @JsonKey(fromJson: _stringFromJson) String? character,
+    @JsonKey(fromJson: _stringFromJson) String? credit_id,
     @JsonKey(fromJson: _intFromJson) int? order,
   });
 }
@@ -3471,17 +3634,17 @@ class __$$ActorImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$ActorImpl implements _Actor {
   const _$ActorImpl({
-    this.source,
-    this.adult,
+    @JsonKey(fromJson: _stringFromJson) this.source,
+    @JsonKey(fromJson: _boolFromJson) this.adult,
     @JsonKey(fromJson: _intFromJson) this.gender,
     @JsonKey(fromJson: _intFromJson) this.id,
-    this.known_for_department,
-    this.name,
-    this.original_name,
+    @JsonKey(fromJson: _stringFromJson) this.known_for_department,
+    @JsonKey(fromJson: _stringFromJson) this.name,
+    @JsonKey(fromJson: _stringFromJson) this.original_name,
     @JsonKey(fromJson: _doubleFromJson) this.popularity,
-    this.profile_path,
-    this.character,
-    this.credit_id,
+    @JsonKey(fromJson: _stringFromJson) this.profile_path,
+    @JsonKey(fromJson: _stringFromJson) this.character,
+    @JsonKey(fromJson: _stringFromJson) this.credit_id,
     @JsonKey(fromJson: _intFromJson) this.order,
   });
 
@@ -3489,8 +3652,10 @@ class _$ActorImpl implements _Actor {
       _$$ActorImplFromJson(json);
 
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? source;
   @override
+  @JsonKey(fromJson: _boolFromJson)
   final bool? adult;
   @override
   @JsonKey(fromJson: _intFromJson)
@@ -3499,19 +3664,25 @@ class _$ActorImpl implements _Actor {
   @JsonKey(fromJson: _intFromJson)
   final int? id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? known_for_department;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? name;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? original_name;
   @override
   @JsonKey(fromJson: _doubleFromJson)
   final double? popularity;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? profile_path;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? character;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? credit_id;
   @override
   @JsonKey(fromJson: _intFromJson)
@@ -3581,25 +3752,27 @@ class _$ActorImpl implements _Actor {
 
 abstract class _Actor implements Actor {
   const factory _Actor({
-    final String? source,
-    final bool? adult,
+    @JsonKey(fromJson: _stringFromJson) final String? source,
+    @JsonKey(fromJson: _boolFromJson) final bool? adult,
     @JsonKey(fromJson: _intFromJson) final int? gender,
     @JsonKey(fromJson: _intFromJson) final int? id,
-    final String? known_for_department,
-    final String? name,
-    final String? original_name,
+    @JsonKey(fromJson: _stringFromJson) final String? known_for_department,
+    @JsonKey(fromJson: _stringFromJson) final String? name,
+    @JsonKey(fromJson: _stringFromJson) final String? original_name,
     @JsonKey(fromJson: _doubleFromJson) final double? popularity,
-    final String? profile_path,
-    final String? character,
-    final String? credit_id,
+    @JsonKey(fromJson: _stringFromJson) final String? profile_path,
+    @JsonKey(fromJson: _stringFromJson) final String? character,
+    @JsonKey(fromJson: _stringFromJson) final String? credit_id,
     @JsonKey(fromJson: _intFromJson) final int? order,
   }) = _$ActorImpl;
 
   factory _Actor.fromJson(Map<String, dynamic> json) = _$ActorImpl.fromJson;
 
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get source;
   @override
+  @JsonKey(fromJson: _boolFromJson)
   bool? get adult;
   @override
   @JsonKey(fromJson: _intFromJson)
@@ -3608,19 +3781,25 @@ abstract class _Actor implements Actor {
   @JsonKey(fromJson: _intFromJson)
   int? get id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get known_for_department;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get name;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get original_name;
   @override
   @JsonKey(fromJson: _doubleFromJson)
   double? get popularity;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get profile_path;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get character;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get credit_id;
   @override
   @JsonKey(fromJson: _intFromJson)
@@ -3640,18 +3819,25 @@ Director _$DirectorFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$Director {
+  @JsonKey(fromJson: _boolFromJson)
   bool? get adult => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _intFromJson)
   int? get gender => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _intFromJson)
   int? get id => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get name => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get original_name => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get credit_id => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get known_for_department => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get job => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _doubleFromJson)
   double? get popularity => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get profile_path => throw _privateConstructorUsedError;
 
   /// Serializes this Director to a JSON map.
@@ -3670,16 +3856,16 @@ abstract class $DirectorCopyWith<$Res> {
       _$DirectorCopyWithImpl<$Res, Director>;
   @useResult
   $Res call({
-    bool? adult,
+    @JsonKey(fromJson: _boolFromJson) bool? adult,
     @JsonKey(fromJson: _intFromJson) int? gender,
     @JsonKey(fromJson: _intFromJson) int? id,
-    String? name,
-    String? original_name,
-    String? credit_id,
-    String? known_for_department,
-    String? job,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+    @JsonKey(fromJson: _stringFromJson) String? original_name,
+    @JsonKey(fromJson: _stringFromJson) String? credit_id,
+    @JsonKey(fromJson: _stringFromJson) String? known_for_department,
+    @JsonKey(fromJson: _stringFromJson) String? job,
     @JsonKey(fromJson: _doubleFromJson) double? popularity,
-    String? profile_path,
+    @JsonKey(fromJson: _stringFromJson) String? profile_path,
   });
 }
 
@@ -3767,16 +3953,16 @@ abstract class _$$DirectorImplCopyWith<$Res>
   @override
   @useResult
   $Res call({
-    bool? adult,
+    @JsonKey(fromJson: _boolFromJson) bool? adult,
     @JsonKey(fromJson: _intFromJson) int? gender,
     @JsonKey(fromJson: _intFromJson) int? id,
-    String? name,
-    String? original_name,
-    String? credit_id,
-    String? known_for_department,
-    String? job,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+    @JsonKey(fromJson: _stringFromJson) String? original_name,
+    @JsonKey(fromJson: _stringFromJson) String? credit_id,
+    @JsonKey(fromJson: _stringFromJson) String? known_for_department,
+    @JsonKey(fromJson: _stringFromJson) String? job,
     @JsonKey(fromJson: _doubleFromJson) double? popularity,
-    String? profile_path,
+    @JsonKey(fromJson: _stringFromJson) String? profile_path,
   });
 }
 
@@ -3856,22 +4042,23 @@ class __$$DirectorImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$DirectorImpl implements _Director {
   const _$DirectorImpl({
-    this.adult,
+    @JsonKey(fromJson: _boolFromJson) this.adult,
     @JsonKey(fromJson: _intFromJson) this.gender,
     @JsonKey(fromJson: _intFromJson) this.id,
-    this.name,
-    this.original_name,
-    this.credit_id,
-    this.known_for_department,
-    this.job,
+    @JsonKey(fromJson: _stringFromJson) this.name,
+    @JsonKey(fromJson: _stringFromJson) this.original_name,
+    @JsonKey(fromJson: _stringFromJson) this.credit_id,
+    @JsonKey(fromJson: _stringFromJson) this.known_for_department,
+    @JsonKey(fromJson: _stringFromJson) this.job,
     @JsonKey(fromJson: _doubleFromJson) this.popularity,
-    this.profile_path,
+    @JsonKey(fromJson: _stringFromJson) this.profile_path,
   });
 
   factory _$DirectorImpl.fromJson(Map<String, dynamic> json) =>
       _$$DirectorImplFromJson(json);
 
   @override
+  @JsonKey(fromJson: _boolFromJson)
   final bool? adult;
   @override
   @JsonKey(fromJson: _intFromJson)
@@ -3880,19 +4067,25 @@ class _$DirectorImpl implements _Director {
   @JsonKey(fromJson: _intFromJson)
   final int? id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? name;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? original_name;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? credit_id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? known_for_department;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? job;
   @override
   @JsonKey(fromJson: _doubleFromJson)
   final double? popularity;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? profile_path;
 
   @override
@@ -3954,22 +4147,23 @@ class _$DirectorImpl implements _Director {
 
 abstract class _Director implements Director {
   const factory _Director({
-    final bool? adult,
+    @JsonKey(fromJson: _boolFromJson) final bool? adult,
     @JsonKey(fromJson: _intFromJson) final int? gender,
     @JsonKey(fromJson: _intFromJson) final int? id,
-    final String? name,
-    final String? original_name,
-    final String? credit_id,
-    final String? known_for_department,
-    final String? job,
+    @JsonKey(fromJson: _stringFromJson) final String? name,
+    @JsonKey(fromJson: _stringFromJson) final String? original_name,
+    @JsonKey(fromJson: _stringFromJson) final String? credit_id,
+    @JsonKey(fromJson: _stringFromJson) final String? known_for_department,
+    @JsonKey(fromJson: _stringFromJson) final String? job,
     @JsonKey(fromJson: _doubleFromJson) final double? popularity,
-    final String? profile_path,
+    @JsonKey(fromJson: _stringFromJson) final String? profile_path,
   }) = _$DirectorImpl;
 
   factory _Director.fromJson(Map<String, dynamic> json) =
       _$DirectorImpl.fromJson;
 
   @override
+  @JsonKey(fromJson: _boolFromJson)
   bool? get adult;
   @override
   @JsonKey(fromJson: _intFromJson)
@@ -3978,19 +4172,25 @@ abstract class _Director implements Director {
   @JsonKey(fromJson: _intFromJson)
   int? get id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get name;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get original_name;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get credit_id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get known_for_department;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get job;
   @override
   @JsonKey(fromJson: _doubleFromJson)
   double? get popularity;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get profile_path;
 
   /// Create a copy of Director
@@ -4009,11 +4209,15 @@ CreatedBy _$CreatedByFromJson(Map<String, dynamic> json) {
 mixin _$CreatedBy {
   @JsonKey(fromJson: _intFromJson)
   int? get id => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get credit_id => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get name => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get original_name => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _intFromJson)
   int? get gender => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get profile_path => throw _privateConstructorUsedError;
 
   /// Serializes this CreatedBy to a JSON map.
@@ -4033,11 +4237,11 @@ abstract class $CreatedByCopyWith<$Res> {
   @useResult
   $Res call({
     @JsonKey(fromJson: _intFromJson) int? id,
-    String? credit_id,
-    String? name,
-    String? original_name,
+    @JsonKey(fromJson: _stringFromJson) String? credit_id,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+    @JsonKey(fromJson: _stringFromJson) String? original_name,
     @JsonKey(fromJson: _intFromJson) int? gender,
-    String? profile_path,
+    @JsonKey(fromJson: _stringFromJson) String? profile_path,
   });
 }
 
@@ -4106,11 +4310,11 @@ abstract class _$$CreatedByImplCopyWith<$Res>
   @useResult
   $Res call({
     @JsonKey(fromJson: _intFromJson) int? id,
-    String? credit_id,
-    String? name,
-    String? original_name,
+    @JsonKey(fromJson: _stringFromJson) String? credit_id,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+    @JsonKey(fromJson: _stringFromJson) String? original_name,
     @JsonKey(fromJson: _intFromJson) int? gender,
-    String? profile_path,
+    @JsonKey(fromJson: _stringFromJson) String? profile_path,
   });
 }
 
@@ -4171,11 +4375,11 @@ class __$$CreatedByImplCopyWithImpl<$Res>
 class _$CreatedByImpl implements _CreatedBy {
   const _$CreatedByImpl({
     @JsonKey(fromJson: _intFromJson) this.id,
-    this.credit_id,
-    this.name,
-    this.original_name,
+    @JsonKey(fromJson: _stringFromJson) this.credit_id,
+    @JsonKey(fromJson: _stringFromJson) this.name,
+    @JsonKey(fromJson: _stringFromJson) this.original_name,
     @JsonKey(fromJson: _intFromJson) this.gender,
-    this.profile_path,
+    @JsonKey(fromJson: _stringFromJson) this.profile_path,
   });
 
   factory _$CreatedByImpl.fromJson(Map<String, dynamic> json) =>
@@ -4185,15 +4389,19 @@ class _$CreatedByImpl implements _CreatedBy {
   @JsonKey(fromJson: _intFromJson)
   final int? id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? credit_id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? name;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? original_name;
   @override
   @JsonKey(fromJson: _intFromJson)
   final int? gender;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? profile_path;
 
   @override
@@ -4246,11 +4454,11 @@ class _$CreatedByImpl implements _CreatedBy {
 abstract class _CreatedBy implements CreatedBy {
   const factory _CreatedBy({
     @JsonKey(fromJson: _intFromJson) final int? id,
-    final String? credit_id,
-    final String? name,
-    final String? original_name,
+    @JsonKey(fromJson: _stringFromJson) final String? credit_id,
+    @JsonKey(fromJson: _stringFromJson) final String? name,
+    @JsonKey(fromJson: _stringFromJson) final String? original_name,
     @JsonKey(fromJson: _intFromJson) final int? gender,
-    final String? profile_path,
+    @JsonKey(fromJson: _stringFromJson) final String? profile_path,
   }) = _$CreatedByImpl;
 
   factory _CreatedBy.fromJson(Map<String, dynamic> json) =
@@ -4260,15 +4468,19 @@ abstract class _CreatedBy implements CreatedBy {
   @JsonKey(fromJson: _intFromJson)
   int? get id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get credit_id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get name;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get original_name;
   @override
   @JsonKey(fromJson: _intFromJson)
   int? get gender;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get profile_path;
 
   /// Create a copy of CreatedBy
@@ -4287,6 +4499,7 @@ Genre _$GenreFromJson(Map<String, dynamic> json) {
 mixin _$Genre {
   @JsonKey(fromJson: _intFromJson)
   int? get id => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get name => throw _privateConstructorUsedError;
 
   /// Serializes this Genre to a JSON map.
@@ -4303,7 +4516,10 @@ abstract class $GenreCopyWith<$Res> {
   factory $GenreCopyWith(Genre value, $Res Function(Genre) then) =
       _$GenreCopyWithImpl<$Res, Genre>;
   @useResult
-  $Res call({@JsonKey(fromJson: _intFromJson) int? id, String? name});
+  $Res call({
+    @JsonKey(fromJson: _intFromJson) int? id,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+  });
 }
 
 /// @nodoc
@@ -4345,7 +4561,10 @@ abstract class _$$GenreImplCopyWith<$Res> implements $GenreCopyWith<$Res> {
   ) = __$$GenreImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({@JsonKey(fromJson: _intFromJson) int? id, String? name});
+  $Res call({
+    @JsonKey(fromJson: _intFromJson) int? id,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+  });
 }
 
 /// @nodoc
@@ -4380,7 +4599,10 @@ class __$$GenreImplCopyWithImpl<$Res>
 /// @nodoc
 @JsonSerializable()
 class _$GenreImpl implements _Genre {
-  const _$GenreImpl({@JsonKey(fromJson: _intFromJson) this.id, this.name});
+  const _$GenreImpl({
+    @JsonKey(fromJson: _intFromJson) this.id,
+    @JsonKey(fromJson: _stringFromJson) this.name,
+  });
 
   factory _$GenreImpl.fromJson(Map<String, dynamic> json) =>
       _$$GenreImplFromJson(json);
@@ -4389,6 +4611,7 @@ class _$GenreImpl implements _Genre {
   @JsonKey(fromJson: _intFromJson)
   final int? id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? name;
 
   @override
@@ -4426,7 +4649,7 @@ class _$GenreImpl implements _Genre {
 abstract class _Genre implements Genre {
   const factory _Genre({
     @JsonKey(fromJson: _intFromJson) final int? id,
-    final String? name,
+    @JsonKey(fromJson: _stringFromJson) final String? name,
   }) = _$GenreImpl;
 
   factory _Genre.fromJson(Map<String, dynamic> json) = _$GenreImpl.fromJson;
@@ -4435,6 +4658,7 @@ abstract class _Genre implements Genre {
   @JsonKey(fromJson: _intFromJson)
   int? get id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get name;
 
   /// Create a copy of Genre
@@ -4453,8 +4677,11 @@ Network _$NetworkFromJson(Map<String, dynamic> json) {
 mixin _$Network {
   @JsonKey(fromJson: _intFromJson)
   int? get id => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get logo_path => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get name => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get origin_country => throw _privateConstructorUsedError;
 
   /// Serializes this Network to a JSON map.
@@ -4473,9 +4700,9 @@ abstract class $NetworkCopyWith<$Res> {
   @useResult
   $Res call({
     @JsonKey(fromJson: _intFromJson) int? id,
-    String? logo_path,
-    String? name,
-    String? origin_country,
+    @JsonKey(fromJson: _stringFromJson) String? logo_path,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+    @JsonKey(fromJson: _stringFromJson) String? origin_country,
   });
 }
 
@@ -4533,9 +4760,9 @@ abstract class _$$NetworkImplCopyWith<$Res> implements $NetworkCopyWith<$Res> {
   @useResult
   $Res call({
     @JsonKey(fromJson: _intFromJson) int? id,
-    String? logo_path,
-    String? name,
-    String? origin_country,
+    @JsonKey(fromJson: _stringFromJson) String? logo_path,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+    @JsonKey(fromJson: _stringFromJson) String? origin_country,
   });
 }
 
@@ -4586,9 +4813,9 @@ class __$$NetworkImplCopyWithImpl<$Res>
 class _$NetworkImpl implements _Network {
   const _$NetworkImpl({
     @JsonKey(fromJson: _intFromJson) this.id,
-    this.logo_path,
-    this.name,
-    this.origin_country,
+    @JsonKey(fromJson: _stringFromJson) this.logo_path,
+    @JsonKey(fromJson: _stringFromJson) this.name,
+    @JsonKey(fromJson: _stringFromJson) this.origin_country,
   });
 
   factory _$NetworkImpl.fromJson(Map<String, dynamic> json) =>
@@ -4598,10 +4825,13 @@ class _$NetworkImpl implements _Network {
   @JsonKey(fromJson: _intFromJson)
   final int? id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? logo_path;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? name;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? origin_country;
 
   @override
@@ -4644,9 +4874,9 @@ class _$NetworkImpl implements _Network {
 abstract class _Network implements Network {
   const factory _Network({
     @JsonKey(fromJson: _intFromJson) final int? id,
-    final String? logo_path,
-    final String? name,
-    final String? origin_country,
+    @JsonKey(fromJson: _stringFromJson) final String? logo_path,
+    @JsonKey(fromJson: _stringFromJson) final String? name,
+    @JsonKey(fromJson: _stringFromJson) final String? origin_country,
   }) = _$NetworkImpl;
 
   factory _Network.fromJson(Map<String, dynamic> json) = _$NetworkImpl.fromJson;
@@ -4655,10 +4885,13 @@ abstract class _Network implements Network {
   @JsonKey(fromJson: _intFromJson)
   int? get id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get logo_path;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get name;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get origin_country;
 
   /// Create a copy of Network
@@ -4677,8 +4910,11 @@ ProductionCompany _$ProductionCompanyFromJson(Map<String, dynamic> json) {
 mixin _$ProductionCompany {
   @JsonKey(fromJson: _intFromJson)
   int? get id => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get logo_path => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get name => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get origin_country => throw _privateConstructorUsedError;
 
   /// Serializes this ProductionCompany to a JSON map.
@@ -4700,9 +4936,9 @@ abstract class $ProductionCompanyCopyWith<$Res> {
   @useResult
   $Res call({
     @JsonKey(fromJson: _intFromJson) int? id,
-    String? logo_path,
-    String? name,
-    String? origin_country,
+    @JsonKey(fromJson: _stringFromJson) String? logo_path,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+    @JsonKey(fromJson: _stringFromJson) String? origin_country,
   });
 }
 
@@ -4761,9 +4997,9 @@ abstract class _$$ProductionCompanyImplCopyWith<$Res>
   @useResult
   $Res call({
     @JsonKey(fromJson: _intFromJson) int? id,
-    String? logo_path,
-    String? name,
-    String? origin_country,
+    @JsonKey(fromJson: _stringFromJson) String? logo_path,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+    @JsonKey(fromJson: _stringFromJson) String? origin_country,
   });
 }
 
@@ -4814,9 +5050,9 @@ class __$$ProductionCompanyImplCopyWithImpl<$Res>
 class _$ProductionCompanyImpl implements _ProductionCompany {
   const _$ProductionCompanyImpl({
     @JsonKey(fromJson: _intFromJson) this.id,
-    this.logo_path,
-    this.name,
-    this.origin_country,
+    @JsonKey(fromJson: _stringFromJson) this.logo_path,
+    @JsonKey(fromJson: _stringFromJson) this.name,
+    @JsonKey(fromJson: _stringFromJson) this.origin_country,
   });
 
   factory _$ProductionCompanyImpl.fromJson(Map<String, dynamic> json) =>
@@ -4826,10 +5062,13 @@ class _$ProductionCompanyImpl implements _ProductionCompany {
   @JsonKey(fromJson: _intFromJson)
   final int? id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? logo_path;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? name;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? origin_country;
 
   @override
@@ -4875,9 +5114,9 @@ class _$ProductionCompanyImpl implements _ProductionCompany {
 abstract class _ProductionCompany implements ProductionCompany {
   const factory _ProductionCompany({
     @JsonKey(fromJson: _intFromJson) final int? id,
-    final String? logo_path,
-    final String? name,
-    final String? origin_country,
+    @JsonKey(fromJson: _stringFromJson) final String? logo_path,
+    @JsonKey(fromJson: _stringFromJson) final String? name,
+    @JsonKey(fromJson: _stringFromJson) final String? origin_country,
   }) = _$ProductionCompanyImpl;
 
   factory _ProductionCompany.fromJson(Map<String, dynamic> json) =
@@ -4887,10 +5126,13 @@ abstract class _ProductionCompany implements ProductionCompany {
   @JsonKey(fromJson: _intFromJson)
   int? get id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get logo_path;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get name;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get origin_country;
 
   /// Create a copy of ProductionCompany
@@ -4907,7 +5149,9 @@ ProductionCountry _$ProductionCountryFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$ProductionCountry {
+  @JsonKey(fromJson: _stringFromJson)
   String? get iso_3166_1 => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get name => throw _privateConstructorUsedError;
 
   /// Serializes this ProductionCountry to a JSON map.
@@ -4927,7 +5171,10 @@ abstract class $ProductionCountryCopyWith<$Res> {
     $Res Function(ProductionCountry) then,
   ) = _$ProductionCountryCopyWithImpl<$Res, ProductionCountry>;
   @useResult
-  $Res call({String? iso_3166_1, String? name});
+  $Res call({
+    @JsonKey(fromJson: _stringFromJson) String? iso_3166_1,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+  });
 }
 
 /// @nodoc
@@ -4970,7 +5217,10 @@ abstract class _$$ProductionCountryImplCopyWith<$Res>
   ) = __$$ProductionCountryImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String? iso_3166_1, String? name});
+  $Res call({
+    @JsonKey(fromJson: _stringFromJson) String? iso_3166_1,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+  });
 }
 
 /// @nodoc
@@ -5005,14 +5255,19 @@ class __$$ProductionCountryImplCopyWithImpl<$Res>
 /// @nodoc
 @JsonSerializable()
 class _$ProductionCountryImpl implements _ProductionCountry {
-  const _$ProductionCountryImpl({this.iso_3166_1, this.name});
+  const _$ProductionCountryImpl({
+    @JsonKey(fromJson: _stringFromJson) this.iso_3166_1,
+    @JsonKey(fromJson: _stringFromJson) this.name,
+  });
 
   factory _$ProductionCountryImpl.fromJson(Map<String, dynamic> json) =>
       _$$ProductionCountryImplFromJson(json);
 
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? iso_3166_1;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? name;
 
   @override
@@ -5053,16 +5308,18 @@ class _$ProductionCountryImpl implements _ProductionCountry {
 
 abstract class _ProductionCountry implements ProductionCountry {
   const factory _ProductionCountry({
-    final String? iso_3166_1,
-    final String? name,
+    @JsonKey(fromJson: _stringFromJson) final String? iso_3166_1,
+    @JsonKey(fromJson: _stringFromJson) final String? name,
   }) = _$ProductionCountryImpl;
 
   factory _ProductionCountry.fromJson(Map<String, dynamic> json) =
       _$ProductionCountryImpl.fromJson;
 
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get iso_3166_1;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get name;
 
   /// Create a copy of ProductionCountry
@@ -5079,8 +5336,11 @@ SpokenLanguage _$SpokenLanguageFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$SpokenLanguage {
+  @JsonKey(fromJson: _stringFromJson)
   String? get english_name => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get iso_639_1 => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get name => throw _privateConstructorUsedError;
 
   /// Serializes this SpokenLanguage to a JSON map.
@@ -5100,7 +5360,11 @@ abstract class $SpokenLanguageCopyWith<$Res> {
     $Res Function(SpokenLanguage) then,
   ) = _$SpokenLanguageCopyWithImpl<$Res, SpokenLanguage>;
   @useResult
-  $Res call({String? english_name, String? iso_639_1, String? name});
+  $Res call({
+    @JsonKey(fromJson: _stringFromJson) String? english_name,
+    @JsonKey(fromJson: _stringFromJson) String? iso_639_1,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+  });
 }
 
 /// @nodoc
@@ -5151,7 +5415,11 @@ abstract class _$$SpokenLanguageImplCopyWith<$Res>
   ) = __$$SpokenLanguageImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String? english_name, String? iso_639_1, String? name});
+  $Res call({
+    @JsonKey(fromJson: _stringFromJson) String? english_name,
+    @JsonKey(fromJson: _stringFromJson) String? iso_639_1,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+  });
 }
 
 /// @nodoc
@@ -5194,16 +5462,23 @@ class __$$SpokenLanguageImplCopyWithImpl<$Res>
 /// @nodoc
 @JsonSerializable()
 class _$SpokenLanguageImpl implements _SpokenLanguage {
-  const _$SpokenLanguageImpl({this.english_name, this.iso_639_1, this.name});
+  const _$SpokenLanguageImpl({
+    @JsonKey(fromJson: _stringFromJson) this.english_name,
+    @JsonKey(fromJson: _stringFromJson) this.iso_639_1,
+    @JsonKey(fromJson: _stringFromJson) this.name,
+  });
 
   factory _$SpokenLanguageImpl.fromJson(Map<String, dynamic> json) =>
       _$$SpokenLanguageImplFromJson(json);
 
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? english_name;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? iso_639_1;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? name;
 
   @override
@@ -5246,19 +5521,22 @@ class _$SpokenLanguageImpl implements _SpokenLanguage {
 
 abstract class _SpokenLanguage implements SpokenLanguage {
   const factory _SpokenLanguage({
-    final String? english_name,
-    final String? iso_639_1,
-    final String? name,
+    @JsonKey(fromJson: _stringFromJson) final String? english_name,
+    @JsonKey(fromJson: _stringFromJson) final String? iso_639_1,
+    @JsonKey(fromJson: _stringFromJson) final String? name,
   }) = _$SpokenLanguageImpl;
 
   factory _SpokenLanguage.fromJson(Map<String, dynamic> json) =
       _$SpokenLanguageImpl.fromJson;
 
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get english_name;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get iso_639_1;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get name;
 
   /// Create a copy of SpokenLanguage
@@ -5275,9 +5553,13 @@ ReleaseDate _$ReleaseDateFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$ReleaseDate {
+  @JsonKey(fromJson: _stringFromJson)
   String? get certification => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get iso_3166_1 => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get release_date => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get note => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _intFromJson)
   int? get type => throw _privateConstructorUsedError;
@@ -5300,10 +5582,10 @@ abstract class $ReleaseDateCopyWith<$Res> {
   ) = _$ReleaseDateCopyWithImpl<$Res, ReleaseDate>;
   @useResult
   $Res call({
-    String? certification,
-    String? iso_3166_1,
-    String? release_date,
-    String? note,
+    @JsonKey(fromJson: _stringFromJson) String? certification,
+    @JsonKey(fromJson: _stringFromJson) String? iso_3166_1,
+    @JsonKey(fromJson: _stringFromJson) String? release_date,
+    @JsonKey(fromJson: _stringFromJson) String? note,
     @JsonKey(fromJson: _intFromJson) int? type,
   });
 }
@@ -5367,10 +5649,10 @@ abstract class _$$ReleaseDateImplCopyWith<$Res>
   @override
   @useResult
   $Res call({
-    String? certification,
-    String? iso_3166_1,
-    String? release_date,
-    String? note,
+    @JsonKey(fromJson: _stringFromJson) String? certification,
+    @JsonKey(fromJson: _stringFromJson) String? iso_3166_1,
+    @JsonKey(fromJson: _stringFromJson) String? release_date,
+    @JsonKey(fromJson: _stringFromJson) String? note,
     @JsonKey(fromJson: _intFromJson) int? type,
   });
 }
@@ -5426,10 +5708,10 @@ class __$$ReleaseDateImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$ReleaseDateImpl implements _ReleaseDate {
   const _$ReleaseDateImpl({
-    this.certification,
-    this.iso_3166_1,
-    this.release_date,
-    this.note,
+    @JsonKey(fromJson: _stringFromJson) this.certification,
+    @JsonKey(fromJson: _stringFromJson) this.iso_3166_1,
+    @JsonKey(fromJson: _stringFromJson) this.release_date,
+    @JsonKey(fromJson: _stringFromJson) this.note,
     @JsonKey(fromJson: _intFromJson) this.type,
   });
 
@@ -5437,12 +5719,16 @@ class _$ReleaseDateImpl implements _ReleaseDate {
       _$$ReleaseDateImplFromJson(json);
 
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? certification;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? iso_3166_1;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? release_date;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? note;
   @override
   @JsonKey(fromJson: _intFromJson)
@@ -5495,10 +5781,10 @@ class _$ReleaseDateImpl implements _ReleaseDate {
 
 abstract class _ReleaseDate implements ReleaseDate {
   const factory _ReleaseDate({
-    final String? certification,
-    final String? iso_3166_1,
-    final String? release_date,
-    final String? note,
+    @JsonKey(fromJson: _stringFromJson) final String? certification,
+    @JsonKey(fromJson: _stringFromJson) final String? iso_3166_1,
+    @JsonKey(fromJson: _stringFromJson) final String? release_date,
+    @JsonKey(fromJson: _stringFromJson) final String? note,
     @JsonKey(fromJson: _intFromJson) final int? type,
   }) = _$ReleaseDateImpl;
 
@@ -5506,12 +5792,16 @@ abstract class _ReleaseDate implements ReleaseDate {
       _$ReleaseDateImpl.fromJson;
 
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get certification;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get iso_3166_1;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get release_date;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get note;
   @override
   @JsonKey(fromJson: _intFromJson)
@@ -5533,13 +5823,17 @@ EpisodeGroup _$EpisodeGroupFromJson(Map<String, dynamic> json) {
 mixin _$EpisodeGroup {
   @JsonKey(fromJson: _stringFromJson)
   String? get id => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get name => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get description => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _intFromJson)
   int? get episode_count => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _intFromJson)
   int? get group_count => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get type => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _networkFromJson, toJson: _networkToJson)
   Network? get network => throw _privateConstructorUsedError;
 
   /// Serializes this EpisodeGroup to a JSON map.
@@ -5561,11 +5855,12 @@ abstract class $EpisodeGroupCopyWith<$Res> {
   @useResult
   $Res call({
     @JsonKey(fromJson: _stringFromJson) String? id,
-    String? name,
-    String? description,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+    @JsonKey(fromJson: _stringFromJson) String? description,
     @JsonKey(fromJson: _intFromJson) int? episode_count,
     @JsonKey(fromJson: _intFromJson) int? group_count,
-    String? type,
+    @JsonKey(fromJson: _stringFromJson) String? type,
+    @JsonKey(fromJson: _networkFromJson, toJson: _networkToJson)
     Network? network,
   });
 
@@ -5656,11 +5951,12 @@ abstract class _$$EpisodeGroupImplCopyWith<$Res>
   @useResult
   $Res call({
     @JsonKey(fromJson: _stringFromJson) String? id,
-    String? name,
-    String? description,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+    @JsonKey(fromJson: _stringFromJson) String? description,
     @JsonKey(fromJson: _intFromJson) int? episode_count,
     @JsonKey(fromJson: _intFromJson) int? group_count,
-    String? type,
+    @JsonKey(fromJson: _stringFromJson) String? type,
+    @JsonKey(fromJson: _networkFromJson, toJson: _networkToJson)
     Network? network,
   });
 
@@ -5730,12 +6026,12 @@ class __$$EpisodeGroupImplCopyWithImpl<$Res>
 class _$EpisodeGroupImpl implements _EpisodeGroup {
   const _$EpisodeGroupImpl({
     @JsonKey(fromJson: _stringFromJson) this.id,
-    this.name,
-    this.description,
+    @JsonKey(fromJson: _stringFromJson) this.name,
+    @JsonKey(fromJson: _stringFromJson) this.description,
     @JsonKey(fromJson: _intFromJson) this.episode_count,
     @JsonKey(fromJson: _intFromJson) this.group_count,
-    this.type,
-    this.network,
+    @JsonKey(fromJson: _stringFromJson) this.type,
+    @JsonKey(fromJson: _networkFromJson, toJson: _networkToJson) this.network,
   });
 
   factory _$EpisodeGroupImpl.fromJson(Map<String, dynamic> json) =>
@@ -5745,8 +6041,10 @@ class _$EpisodeGroupImpl implements _EpisodeGroup {
   @JsonKey(fromJson: _stringFromJson)
   final String? id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? name;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? description;
   @override
   @JsonKey(fromJson: _intFromJson)
@@ -5755,8 +6053,10 @@ class _$EpisodeGroupImpl implements _EpisodeGroup {
   @JsonKey(fromJson: _intFromJson)
   final int? group_count;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? type;
   @override
+  @JsonKey(fromJson: _networkFromJson, toJson: _networkToJson)
   final Network? network;
 
   @override
@@ -5811,11 +6111,12 @@ class _$EpisodeGroupImpl implements _EpisodeGroup {
 abstract class _EpisodeGroup implements EpisodeGroup {
   const factory _EpisodeGroup({
     @JsonKey(fromJson: _stringFromJson) final String? id,
-    final String? name,
-    final String? description,
+    @JsonKey(fromJson: _stringFromJson) final String? name,
+    @JsonKey(fromJson: _stringFromJson) final String? description,
     @JsonKey(fromJson: _intFromJson) final int? episode_count,
     @JsonKey(fromJson: _intFromJson) final int? group_count,
-    final String? type,
+    @JsonKey(fromJson: _stringFromJson) final String? type,
+    @JsonKey(fromJson: _networkFromJson, toJson: _networkToJson)
     final Network? network,
   }) = _$EpisodeGroupImpl;
 
@@ -5826,8 +6127,10 @@ abstract class _EpisodeGroup implements EpisodeGroup {
   @JsonKey(fromJson: _stringFromJson)
   String? get id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get name;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get description;
   @override
   @JsonKey(fromJson: _intFromJson)
@@ -5836,8 +6139,10 @@ abstract class _EpisodeGroup implements EpisodeGroup {
   @JsonKey(fromJson: _intFromJson)
   int? get group_count;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get type;
   @override
+  @JsonKey(fromJson: _networkFromJson, toJson: _networkToJson)
   Network? get network;
 
   /// Create a copy of EpisodeGroup
@@ -5854,16 +6159,21 @@ NextEpisodeToAir _$NextEpisodeToAirFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$NextEpisodeToAir {
+  @JsonKey(fromJson: _stringFromJson)
   String? get air_date => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _intFromJson)
   int? get episode_number => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _intFromJson)
   int? get id => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get name => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get overview => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get production_code => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _intFromJson)
   int? get season_number => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _stringFromJson)
   String? get still_path => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _doubleFromJson)
   double? get vote_average => throw _privateConstructorUsedError;
@@ -5890,14 +6200,14 @@ abstract class $NextEpisodeToAirCopyWith<$Res> {
   ) = _$NextEpisodeToAirCopyWithImpl<$Res, NextEpisodeToAir>;
   @useResult
   $Res call({
-    String? air_date,
+    @JsonKey(fromJson: _stringFromJson) String? air_date,
     @JsonKey(fromJson: _intFromJson) int? episode_number,
     @JsonKey(fromJson: _intFromJson) int? id,
-    String? name,
-    String? overview,
-    String? production_code,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+    @JsonKey(fromJson: _stringFromJson) String? overview,
+    @JsonKey(fromJson: _stringFromJson) String? production_code,
     @JsonKey(fromJson: _intFromJson) int? season_number,
-    String? still_path,
+    @JsonKey(fromJson: _stringFromJson) String? still_path,
     @JsonKey(fromJson: _doubleFromJson) double? vote_average,
     @JsonKey(fromJson: _intFromJson) int? vote_count,
     @JsonKey(fromJson: _intFromJson) int? runtime,
@@ -5993,14 +6303,14 @@ abstract class _$$NextEpisodeToAirImplCopyWith<$Res>
   @override
   @useResult
   $Res call({
-    String? air_date,
+    @JsonKey(fromJson: _stringFromJson) String? air_date,
     @JsonKey(fromJson: _intFromJson) int? episode_number,
     @JsonKey(fromJson: _intFromJson) int? id,
-    String? name,
-    String? overview,
-    String? production_code,
+    @JsonKey(fromJson: _stringFromJson) String? name,
+    @JsonKey(fromJson: _stringFromJson) String? overview,
+    @JsonKey(fromJson: _stringFromJson) String? production_code,
     @JsonKey(fromJson: _intFromJson) int? season_number,
-    String? still_path,
+    @JsonKey(fromJson: _stringFromJson) String? still_path,
     @JsonKey(fromJson: _doubleFromJson) double? vote_average,
     @JsonKey(fromJson: _intFromJson) int? vote_count,
     @JsonKey(fromJson: _intFromJson) int? runtime,
@@ -6088,14 +6398,14 @@ class __$$NextEpisodeToAirImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$NextEpisodeToAirImpl implements _NextEpisodeToAir {
   const _$NextEpisodeToAirImpl({
-    this.air_date,
+    @JsonKey(fromJson: _stringFromJson) this.air_date,
     @JsonKey(fromJson: _intFromJson) this.episode_number,
     @JsonKey(fromJson: _intFromJson) this.id,
-    this.name,
-    this.overview,
-    this.production_code,
+    @JsonKey(fromJson: _stringFromJson) this.name,
+    @JsonKey(fromJson: _stringFromJson) this.overview,
+    @JsonKey(fromJson: _stringFromJson) this.production_code,
     @JsonKey(fromJson: _intFromJson) this.season_number,
-    this.still_path,
+    @JsonKey(fromJson: _stringFromJson) this.still_path,
     @JsonKey(fromJson: _doubleFromJson) this.vote_average,
     @JsonKey(fromJson: _intFromJson) this.vote_count,
     @JsonKey(fromJson: _intFromJson) this.runtime,
@@ -6105,6 +6415,7 @@ class _$NextEpisodeToAirImpl implements _NextEpisodeToAir {
       _$$NextEpisodeToAirImplFromJson(json);
 
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? air_date;
   @override
   @JsonKey(fromJson: _intFromJson)
@@ -6113,15 +6424,19 @@ class _$NextEpisodeToAirImpl implements _NextEpisodeToAir {
   @JsonKey(fromJson: _intFromJson)
   final int? id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? name;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? overview;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? production_code;
   @override
   @JsonKey(fromJson: _intFromJson)
   final int? season_number;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   final String? still_path;
   @override
   @JsonKey(fromJson: _doubleFromJson)
@@ -6200,14 +6515,14 @@ class _$NextEpisodeToAirImpl implements _NextEpisodeToAir {
 
 abstract class _NextEpisodeToAir implements NextEpisodeToAir {
   const factory _NextEpisodeToAir({
-    final String? air_date,
+    @JsonKey(fromJson: _stringFromJson) final String? air_date,
     @JsonKey(fromJson: _intFromJson) final int? episode_number,
     @JsonKey(fromJson: _intFromJson) final int? id,
-    final String? name,
-    final String? overview,
-    final String? production_code,
+    @JsonKey(fromJson: _stringFromJson) final String? name,
+    @JsonKey(fromJson: _stringFromJson) final String? overview,
+    @JsonKey(fromJson: _stringFromJson) final String? production_code,
     @JsonKey(fromJson: _intFromJson) final int? season_number,
-    final String? still_path,
+    @JsonKey(fromJson: _stringFromJson) final String? still_path,
     @JsonKey(fromJson: _doubleFromJson) final double? vote_average,
     @JsonKey(fromJson: _intFromJson) final int? vote_count,
     @JsonKey(fromJson: _intFromJson) final int? runtime,
@@ -6217,6 +6532,7 @@ abstract class _NextEpisodeToAir implements NextEpisodeToAir {
       _$NextEpisodeToAirImpl.fromJson;
 
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get air_date;
   @override
   @JsonKey(fromJson: _intFromJson)
@@ -6225,15 +6541,19 @@ abstract class _NextEpisodeToAir implements NextEpisodeToAir {
   @JsonKey(fromJson: _intFromJson)
   int? get id;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get name;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get overview;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get production_code;
   @override
   @JsonKey(fromJson: _intFromJson)
   int? get season_number;
   @override
+  @JsonKey(fromJson: _stringFromJson)
   String? get still_path;
   @override
   @JsonKey(fromJson: _doubleFromJson)

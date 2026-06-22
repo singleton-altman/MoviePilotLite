@@ -1,0 +1,2 @@
+- Uses `freezed` and `json_serializable` for robust, immutable data modeling and JSON serialization.
+- Relies on `GetX` for state management, dependency injection, and routing.

@@ -1,0 +1,2 @@
+- Theme colors and dimensions are defined as static constants within the `AppTheme` class to ensure global consistency.
+- Localization keys are defined as abstract getters in the base `AppLocalizations` class and implemented in language-specific subclasses.

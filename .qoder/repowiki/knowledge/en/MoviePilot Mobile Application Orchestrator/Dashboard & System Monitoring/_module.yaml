@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: moviepilot_app/dashboard
+title: Dashboard & System Monitoring
+scope:
+    - lib/modules/dashboard/
+source_files: []
+depends_on: []
+related_to: []

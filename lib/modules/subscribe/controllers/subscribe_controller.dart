@@ -11,7 +11,7 @@ import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_models.dart
 import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_submit_resp.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
-import 'package:moviepilot_mobile/services/realm_service.dart';
+import 'package:moviepilot_mobile/services/database_service.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
 
 /// 订阅类型：电视剧 / 电影
@@ -116,12 +116,32 @@ class SubscribeController extends GetxController {
     return normalized.toLowerCase();
   }
 
-  String? _latestProfileUsername() {
-    if (kIsWeb || !Get.isRegistered<RealmService>()) return null;
+  Future<String?> _latestProfileUsername() async {
+    if (!Get.isRegistered<DatabaseService>()) return null;
     try {
-      final profiles =
-          Get.find<RealmService>().realm.all<LoginProfile>().toList()
-            ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      final rows = await Get.find<DatabaseService>().db.loginProfileDao.getAll();
+      if (rows.isEmpty) return null;
+      final profiles = rows
+          .map(
+            (r) => LoginProfile(
+              id: r.id,
+              server: r.server,
+              username: r.username,
+              password: r.password,
+              accessToken: r.accessToken,
+              tokenType: r.tokenType,
+              superUser: r.superUser,
+              userId: r.userId,
+              userName: r.userName,
+              avatar: r.avatar,
+              level: r.level,
+              permissionsJson: r.permissionsJson,
+              wizard: r.wizard,
+              updatedAt: r.updatedAt,
+            ),
+          )
+          .toList()
+        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       if (profiles.isEmpty) return null;
       return _normalizeUsername(profiles.first.username);
     } catch (_) {
@@ -129,10 +149,10 @@ class SubscribeController extends GetxController {
     }
   }
 
-  Set<String> _currentUsernames() {
+  Future<Set<String>> _currentUsernames() async {
     final usernames = <String>{};
 
-    final profileUsername = _latestProfileUsername();
+    final profileUsername = await _latestProfileUsername();
     if (profileUsername != null) {
       usernames.add(profileUsername);
     }
@@ -176,7 +196,7 @@ class SubscribeController extends GetxController {
       }
       _refreshUserCookie();
       final list = _extractList(response.data);
-      final currentUsernames = _currentUsernames();
+      final currentUsernames = await _currentUsernames();
       final parsed = list
           .whereType<Map<String, dynamic>>()
           .map(SubscribeItem.fromJson)

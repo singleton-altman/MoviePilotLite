@@ -1,30 +1,48 @@
-import 'package:realm/realm.dart';
+/// Site info local cache for fast startup display.
+class SiteModelCache {
+  final int id;
+  final String name;
+  final String domain;
+  final String url;
+  final int pri;
+  final String rss;
+  final String cookie;
+  final String ua;
+  final String apikey;
+  final String token;
+  final int proxy;
+  final String filter;
+  final int render;
+  final int public;
+  final String note;
+  final int timeout;
+  final int limitInterval;
+  final int limitCount;
+  final int limitSeconds;
+  final bool isActive;
+  final String downloader;
 
-part 'site_model_cache.realm.dart';
-
-/// 站点信息本地缓存，用于加速启动时先展示
-@RealmModel()
-class _SiteModelCache {
-  @PrimaryKey()
-  late int id;
-  late String name;
-  late String domain;
-  late String url;
-  late int pri;
-  late String rss;
-  late String cookie;
-  late String ua;
-  late String apikey;
-  late String token;
-  late int proxy;
-  late String filter;
-  late int render;
-  late int public;
-  late String note;
-  late int timeout;
-  late int limitInterval;
-  late int limitCount;
-  late int limitSeconds;
-  late bool isActive;
-  late String downloader;
+  const SiteModelCache({
+    required this.id,
+    required this.name,
+    required this.domain,
+    required this.url,
+    required this.pri,
+    required this.rss,
+    required this.cookie,
+    required this.ua,
+    required this.apikey,
+    required this.token,
+    required this.proxy,
+    required this.filter,
+    required this.render,
+    required this.public,
+    required this.note,
+    required this.timeout,
+    required this.limitInterval,
+    required this.limitCount,
+    required this.limitSeconds,
+    required this.isActive,
+    required this.downloader,
+  });
 }

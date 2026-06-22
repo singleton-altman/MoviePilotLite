@@ -1,0 +1,5 @@
+- The module is structured into three independent sub-features: `server_log`, `system_health`, and `system_message`, each following a Controller-Page-Widget pattern.
+- `server_log` utilizes Server-Sent Events (SSE) via `ApiClient.streamLines` to stream and parse raw log entries in real-time, with client-side filtering and idle-state detection.
+- `system_health` implements a resilient health-check mechanism that first attempts to fetch a dynamic module list, then falls back to probing multiple standardized health endpoints, finally executing individual module tests.
+- `system_message` manages a bidirectional communication channel using polling (due to SSE limitations) for message retrieval and persistent storage of read states via `SharedPreferences`.
+- Data models in `system_message` leverage `freezed` and `json_serializable` for immutable, type-safe JSON parsing with custom converters for heterogeneous date formats.

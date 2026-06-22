@@ -1,0 +1,1 @@
+Uses FlutterGen for compile-time asset code generation (`assets.gen.dart`) and Talker for structured in-app logging (`app_log.dart`).

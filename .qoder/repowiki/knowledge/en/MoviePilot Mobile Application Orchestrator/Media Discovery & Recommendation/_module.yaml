@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: moviepilot_app/media_discovery
+title: Media Discovery & Recommendation
+scope:
+    - lib/modules/discover/
+    - lib/modules/recommend/
+source_files: []
+depends_on: []
+related_to: []

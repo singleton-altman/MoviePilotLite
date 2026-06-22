@@ -1,0 +1,1 @@
+Manages user media subscriptions for movies and TV series, including creation, editing, filtering, sharing, and status tracking.

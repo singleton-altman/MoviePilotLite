@@ -11,12 +11,10 @@ import 'package:moviepilot_mobile/modules/site/controllers/site_controller.dart'
 import 'package:moviepilot_mobile/modules/system_message/controllers/system_message_controller.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/services/ios_shared_session_service.dart';
-import 'package:moviepilot_mobile/services/realm_service.dart';
 
 /// Profile 控制器：负责当前登录用户 / 登录档案的展示与后续扩展
 class ProfileController extends GetxController {
   final _appService = Get.find<AppService>();
-  final _realmService = Get.find<RealmService>();
   final _authRepository = Get.find<AuthRepository>();
   final _iosSharedSessionService = Get.find<IosSharedSessionService>();
   final _talker = Get.find<AppLog>();
@@ -43,16 +41,11 @@ class ProfileController extends GetxController {
     loadCurrentUserInfo();
   }
 
-  /// 从 Realm 中读取最近使用的登录配置
+  /// Read latest login profile from the database.
   Future<void> loadCurrentProfile() async {
     try {
       isLoading.value = true;
-      final List<LoginProfile> profiles;
-      if (kIsWeb) {
-        profiles = await _authRepository.getProfilesAsync();
-      } else {
-        profiles = _realmService.realm.all<LoginProfile>().toList();
-      }
+      final profiles = await _authRepository.getProfilesAsync();
       if (profiles.isEmpty) {
         currentProfile.value = null;
         return;
@@ -64,14 +57,9 @@ class ProfileController extends GetxController {
     }
   }
 
-  /// 获取当前用户的最新信息（优先从接口拉取）
+  /// Get current user info (from API first, then DB)
   Future<void> loadCurrentUserInfo() async {
-    final List<LoginProfile> profiles;
-    if (kIsWeb) {
-      profiles = await _authRepository.getProfilesAsync();
-    } else {
-      profiles = _realmService.realm.all<LoginProfile>().toList();
-    }
+    final profiles = await _authRepository.getProfilesAsync();
     if (profiles.isEmpty) {
       currentUserInfo.value = null;
       return;

@@ -1,0 +1,2 @@
+- Lazy dependency injection using `Get.lazyPut` or `BindingsBuilder` within route definitions to optimize memory usage.
+- Consistent application of `permissionGuards()` middleware to all routes requiring authenticated or authorized access.

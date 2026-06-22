@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: moviepilot_app/download_area
+title: Download Management & Downloader Integration
+scope:
+    - lib/modules/download/
+    - lib/modules/downloader/
+source_files: []
+depends_on: []
+related_to: []

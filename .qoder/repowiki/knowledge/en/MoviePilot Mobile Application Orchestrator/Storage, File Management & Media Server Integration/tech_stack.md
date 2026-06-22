@@ -1,0 +1,2 @@
+- Uses `get` (GetX) for state management (`Rx`, `GetView`, `Get.find`) and dependency injection.
+- Uses `freezed` and `json_serializable` for immutable data models in `mediaserver/models/` (evidenced by `.freezed.dart` and `.g.dart` files).

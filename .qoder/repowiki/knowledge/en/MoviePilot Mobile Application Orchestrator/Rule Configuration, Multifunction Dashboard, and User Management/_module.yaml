@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: moviepilot_app/other_features
+title: Rule Configuration, Multifunction Dashboard, and User Management
+scope:
+    - lib/modules/rule/
+    - lib/modules/multifunction/
+    - lib/modules/user_management/
+source_files: []
+depends_on: []
+related_to: []

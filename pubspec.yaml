@@ -4,32 +4,24 @@ publish_to: none
 version: 1.1.8+29
 license: BSL-1.1
 environment:
-  sdk: '>=3.8.0 <4.0.0'
+  sdk: ^3.8.1
 dependencies:
   flutter:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  path_provider:
-    git:
-      url: https://gitcode.com/openharmony-tpc/flutter_packages.git
-      path: packages/path_provider/path_provider
-      ref: br_path_provider-v2.1.5_ohos
   dio: ^5.7.0
   dio_cookie_manager: ^3.1.1
-  get:
-    git:
-      url: 'https://gitcode.com/openharmony-sig/fluttertpc_get.git'
-      ref: br_v4.7.3_ohos
+  get: ^4.7.2
   freezed_annotation: ^2.4.4
   json_annotation: ^4.9.0
   cookie_jar: ^4.0.8
-  realm:
-    git:
-      url: https://gitcode.com/OpenHarmony-Flutter/fluttertpc_realm.git
-      path: packages/realm
-      ref: 20.0.1
+  drift: ^2.22.1
+  drift_flutter: ^0.2.4
+  sqlite3_flutter_libs: ^0.5.32
+  sqlite3: ^2.4.8
+  path: ^1.9.0
   cached_network_image: ^3.4.1
   flutter_cache_manager: ^3.4.1
   flutter_svg: ^2.0.10+1
@@ -39,56 +31,35 @@ dependencies:
   talker_dio_logger: ^5.1.13
   syncfusion_flutter_charts: ^31.1.25
   intl: ^0.20.2
-  shared_preferences: 
-    git:
-      url: https://gitcode.com/openharmony-tpc/flutter_packages.git
-      path: packages/shared_preferences/shared_preferences
-      ref: br_shared_preferences-v2.3.2_ohos
-  modal_bottom_sheet:
-    path: ./vendor/modal_bottom_sheet
+  shared_preferences: ^2.3.2
+  modal_bottom_sheet: ^3.0.0
   skeletonizer: ^2.1.2
-  url_launcher: 
-    git:
-      url: https://gitcode.com/openharmony-tpc/flutter_packages.git
-      ref: br_url_launcher-v6.3.2_ohos
-      path: packages/url_launcher/url_launcher
+  url_launcher: ^6.3.2
   flutter_floating_bottom_bar: ^1.4.0
+  path_provider: ^2.1.5
   palette_generator: ^0.3.3+7
-  webview_flutter:
-    git:
-      url: https://gitcode.com/openharmony-tpc/flutter_packages.git
-      ref: br_webview_flutter-v4.13.1_ohos
-      path: packages/webview_flutter/webview_flutter
+  webview_flutter: ^4.4.2
+  webview_flutter_android: ^3.12.0
+  webview_flutter_wkwebview: ^3.9.4
   soft_edge_blur: ^0.1.3
-  image_picker: 
-    git:
-      url: https://gitcode.com/openharmony-tpc/flutter_packages.git
-      ref: br_image_picker-v1.1.2_ohos
-      path: packages/image_picker/image_picker
-  package_info_plus:
-    git:
-      url: https://gitcode.com/openharmony-sig/flutter_plus_plugins.git
-      ref: br_package_info_plus-v8.1.0_ohos
-      path: packages/package_info_plus/package_info_plus
+  image_picker: ^1.1.2
+  package_info_plus: ^9.0.0
   jpush_flutter: ^3.1.8
   altman_downloader_control:
-    path: ./altman_downloader_control
+    git: https://github.com/singleton-altman/altman_downloader_control.git
   altman_totp:
     path: ./altman_totp
 dev_dependencies:
-  pigeon:
-    git:
-      url: 'https://gitcode.com/openharmony-tpc/flutter_packages.git'
-      path: packages/pigeon
-      ref: pigeon-v21.2.0	# 发布标签
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
   build_runner: ^2.4.9
+  drift_dev: ^2.22.1
   freezed: ^2.4.8
   json_serializable: ^6.8.0
-  flutter_gen_runner: ^5.9.0
+  flutter_gen_runner: ^5.12.0
   flutter_launcher_icons: ^0.14.2
+  path_provider_android: ^2.3.1
 flutter:
   generate: true
   uses-material-design: true
@@ -111,13 +82,5 @@ flutter_gen:
 flutter_launcher_icons:
   android: launcher_icon
   ios: false
-  ohos: true
   image_path: assets/icon.png
   min_sdk_android: 21
-
-dependency_overrides:
-  path_provider:
-    git:
-      url: https://gitcode.com/openharmony-tpc/flutter_packages.git
-      path: packages/path_provider/path_provider
-      ref: br_path_provider-v2.1.5_ohos

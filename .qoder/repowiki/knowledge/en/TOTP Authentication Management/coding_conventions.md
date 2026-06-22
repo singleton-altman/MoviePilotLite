@@ -1,0 +1,4 @@
+- Services extend GetxService and use Rx variables (.obs) for reactive state management.
+- Database operations are encapsulated in a dedicated data layer class (TotpDb) with async methods returning Futures.
+- UI components use showModalBottomSheet for complex input forms and editing workflows.
+- TOTP secrets are normalized by removing spaces and trimming before storage or processing.

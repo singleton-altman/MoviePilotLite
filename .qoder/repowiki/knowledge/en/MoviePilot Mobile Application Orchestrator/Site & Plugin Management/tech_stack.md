@@ -1,0 +1,3 @@
+- Uses `freezed` and `json_serializable` for robust, immutable model definitions and JSON parsing.
+- Leverages `realm_dart` for high-performance local object storage and caching of site/plugin metadata.
+- Employs `palette_generator` with conditional exports (`dart.library.io`) for native-side image color analysis.

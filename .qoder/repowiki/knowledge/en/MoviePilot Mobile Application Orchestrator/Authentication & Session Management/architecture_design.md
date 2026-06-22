@@ -1,0 +1,4 @@
+- Follows a Controller-Repository pattern where `LoginController` (Getx) manages UI state and `AuthRepository` handles data persistence and API calls.
+- Uses Realm for local persistent storage of `LoginProfile` entities on native platforms, with a SharedPreferences fallback for Web.
+- Integrates with external services like `TotpService` for 2FA code generation and `ApiClient` for backend communication.
+- UI is structured into `LoginPage` for the primary flow and `AccountPickerPage` for managing multiple saved sessions.

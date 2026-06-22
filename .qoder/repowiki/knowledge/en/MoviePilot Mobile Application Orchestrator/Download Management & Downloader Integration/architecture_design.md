@@ -1,0 +1,6 @@
+- The module is split into two logical sub-domains: `download` (initiation flow) and `downloader` (management and monitoring).
+- `download/download_controller.dart` acts as the entry point for creating download tasks, handling payload normalization (`_normalizeTorrentIn`, `_normalizeMediaIn`) and API communication with `/api/v1/download/`.
+- `downloader/downloader_controller.dart` manages the lifecycle of active tasks, providing periodic polling (5s interval) for task states via `/api/v1/download/` and supporting pause/resume/delete operations.
+- `downloader/downloader_config_controller.dart` handles CRUD operations for downloader configurations (e.g., qBittorrent, Transmission) using the `/api/v1/system/setting/Downloads` endpoint.
+- UI components are organized by responsibility: `download_sheet.dart` for the initiation dialog, and `downloader_page.dart` with associated widgets for the management dashboard.
+- A shared utility `search_result_raw_cache.dart` uses an `Expando` to preserve raw JSON data for search results, ensuring high-fidelity payload construction during download initiation.

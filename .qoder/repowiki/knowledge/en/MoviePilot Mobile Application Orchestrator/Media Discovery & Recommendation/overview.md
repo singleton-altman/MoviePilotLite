@@ -1,0 +1,1 @@
+Provides curated media exploration through dynamic filtering across multiple sources and categorized recommendation feeds.

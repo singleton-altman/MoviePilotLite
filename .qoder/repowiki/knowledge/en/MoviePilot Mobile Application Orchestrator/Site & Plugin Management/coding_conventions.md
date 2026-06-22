@@ -1,0 +1,3 @@
+- Controllers implement a 'cache-then-network' loading strategy, populating observables from Realm cache immediately before fetching fresh data from the API.
+- Models use custom `fromJson` helper functions (e.g., `_intFromJson`, `_stringFromJson`) to safely handle nullable or mismatched API response types.
+- UI pages utilize `Obx` or `GetView` to reactively rebuild widgets based on controller state changes, often wrapping lists in `Skeletonizer` for loading states.

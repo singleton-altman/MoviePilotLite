@@ -1,0 +1,5 @@
+- **HTTP Client**: `dio` with `dio_cookie_manager` for session handling.
+- **Local Database**: `realm_dart` for object persistence, conditionally compiled via `realm_service_stub.dart`.
+- **Push Notifications**: `jpush_flutter` for cross-platform push services.
+- **State Management**: `get` (GetX) for dependency injection and reactive state.
+- **Preferences**: `shared_preferences` for lightweight key-value storage.

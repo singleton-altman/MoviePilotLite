@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: moviepilot_app/dynamic_forms
+title: Dynamic Form Engine & Plugin Adapter System
+scope:
+    - lib/modules/dynamic_form/
+source_files: []
+depends_on: []
+related_to: []

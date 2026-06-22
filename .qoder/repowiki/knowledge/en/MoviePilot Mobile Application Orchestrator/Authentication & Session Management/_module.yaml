@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: moviepilot_app/auth
+title: Authentication & Session Management
+scope:
+    - lib/modules/login/
+source_files: []
+depends_on: []
+related_to: []

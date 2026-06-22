@@ -1,0 +1,4 @@
+- The `theme` sub-package defines a static `AppTheme` class in `lib/theme/app_theme.dart` that constructs `ThemeData` objects, enforcing a consistent design system (colors, typography, card styles) across the application.
+- A `ThemeExtension` on `BuildContext` in `lib/theme/app_theme.dart` offers convenient getters for accessing theme colors directly from widgets.
+- The `l10n` sub-package uses Flutter's standard `flutter_localizations` framework, with an abstract `AppLocalizations` class in `lib/l10n/app_localizations.dart` defining the localization interface.
+- Concrete implementations (`AppLocalizationsEn`, `AppLocalizationsZh`) extend the abstract class, while `.arb` files (`app_en.arb`, `app_zh.arb`) serve as the source of truth for translated strings.

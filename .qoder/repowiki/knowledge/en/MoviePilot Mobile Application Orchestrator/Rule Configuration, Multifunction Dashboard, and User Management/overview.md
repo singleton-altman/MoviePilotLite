@@ -1,0 +1,1 @@
+Manages media filtering rules, provides a centralized dashboard for system metrics, and handles user account administration.

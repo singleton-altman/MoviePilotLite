@@ -1,0 +1,3 @@
+- Uses `freezed` for immutable data modeling in `LoginResponse`.
+- Leverages `Realm` for robust local database storage of user profiles.
+- Utilizes `GetX` for dependency injection and reactive state management.

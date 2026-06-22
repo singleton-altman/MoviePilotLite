@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: moviepilot_app/infrastructure
+title: UI Theming and Localization
+scope:
+    - lib/theme/
+    - lib/l10n/
+    - lib/database/
+source_files: []
+depends_on: []
+related_to: []

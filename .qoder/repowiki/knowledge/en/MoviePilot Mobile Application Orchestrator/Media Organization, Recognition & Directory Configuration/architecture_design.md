@@ -1,0 +1,5 @@
+- The module is composed of three independent feature sub-packages (`media_organize`, `recognize`, `directory`), each following a strict Controller-Model-Page-Widget layering.
+- State management relies on `GetxController` (via `get/get.dart`) with reactive observables (`.obs`) to drive UI updates in `Obx` widgets.
+- Data models utilize `freezed` for immutable data classes and `json_serializable` for parsing, evidenced by `.freezed.dart` and `.g.dart` generation files in `models/`.
+- Business logic is encapsulated in controllers (e.g., `MediaOrganizeController`, `DirectoryEditController`) which interact with a shared `ApiClient` service, while pages remain thin presentation layers.
+- The `directory` module employs a specialized `SettingsFormManager` and `SettingsFieldState` pattern to handle complex form linkage and enum-based configuration editing.

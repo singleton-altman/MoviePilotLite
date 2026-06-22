@@ -106,13 +106,14 @@ class SearchIndexController extends GetxController {
     submit(pick.keyword);
   }
 
-  void loadHistories() {
-    histories.assignAll(_historyRepository.load());
+  Future<void> loadHistories() async {
+    final items = await _historyRepository.load();
+    histories.assignAll(items);
   }
 
-  void saveHistory(String term) {
-    _historyRepository.save(term);
-    loadHistories();
+  Future<void> saveHistory(String term) async {
+    await _historyRepository.save(term);
+    await loadHistories();
   }
 
   void submit([String? value]) {

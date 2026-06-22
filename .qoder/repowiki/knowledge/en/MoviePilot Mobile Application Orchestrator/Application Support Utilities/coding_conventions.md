@@ -1,0 +1,3 @@
+- Expose typed asset accessors through nested generator classes with `values` lists for bulk iteration.
+- Wrap third-party utilities (Talker) inside a GetX service to provide a stable, framework-integrated API.
+- Implement navigation guards as GetX middlewares that return `RouteSettings` for redirection and use post-frame callbacks for UI feedback.

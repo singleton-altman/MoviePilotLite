@@ -1,0 +1,4 @@
+- Controllers extend `GetxController` and use `.obs` reactive variables for state management, with UI components wrapped in `Obx` or `GetView` for automatic updates.
+- API response parsing includes resilient extraction logic that checks multiple potential JSON keys (e.g., 'data', 'items', 'list') to accommodate varying backend response structures.
+- Pages utilize `SafeArea` and `Scaffold` with `AppBar` actions for primary controls like refresh or filtering, ensuring consistent navigation and layout boundaries.
+- Custom JSON converters are implemented for handling non-standard date formats (Unix timestamps in seconds/milliseconds and varied string patterns) in data models.

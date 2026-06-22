@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: moviepilot_app/app_support
+title: Application Support Utilities
+scope:
+    - lib/gen/
+    - lib/applog/
+    - lib/middlewares/
+source_files: []
+depends_on: []
+related_to: []

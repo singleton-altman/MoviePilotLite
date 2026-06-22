@@ -1,7 +1,3 @@
-import 'package:realm/realm.dart';
-
-part 'plugin_model_cache.realm.dart';
-
 const _pluginMarketCacheScopeSeparator = '::plugin-market-scope::';
 
 String buildPluginMarketCacheId(String scopeKey, String pluginId) {
@@ -24,27 +20,49 @@ bool matchesPluginMarketScope(String cacheId, String scopeKey) {
   );
 }
 
-@RealmModel()
-class _PluginModelCache {
-  @PrimaryKey()
-  late String id;
-  late String pluginName;
-  late String pluginDesc;
-  late String pluginIcon;
-  late String pluginVersion;
-  late String pluginLabel;
-  late String pluginAuthor;
-  late String authorUrl;
-  late String pluginConfigPrefix;
-  late int pluginOrder;
-  late int authLevel;
-  late bool installed;
-  late bool state;
-  late bool hasPage;
-  late bool hasUpdate;
-  late bool isLocal;
-  late String repoUrl;
-  late int installCount;
-  late int addTime;
-  late String pluginPublicKey;
+/// Plugin market listing cache.
+class PluginModelCache {
+  final String id;
+  final String pluginName;
+  final String pluginDesc;
+  final String pluginIcon;
+  final String pluginVersion;
+  final String pluginLabel;
+  final String pluginAuthor;
+  final String authorUrl;
+  final String pluginConfigPrefix;
+  final int pluginOrder;
+  final int authLevel;
+  final bool installed;
+  final bool state;
+  final bool hasPage;
+  final bool hasUpdate;
+  final bool isLocal;
+  final String repoUrl;
+  final int installCount;
+  final int addTime;
+  final String pluginPublicKey;
+
+  const PluginModelCache({
+    required this.id,
+    required this.pluginName,
+    required this.pluginDesc,
+    required this.pluginIcon,
+    required this.pluginVersion,
+    required this.pluginLabel,
+    required this.pluginAuthor,
+    required this.authorUrl,
+    required this.pluginConfigPrefix,
+    required this.pluginOrder,
+    required this.authLevel,
+    required this.installed,
+    required this.state,
+    required this.hasPage,
+    required this.hasUpdate,
+    required this.isLocal,
+    required this.repoUrl,
+    required this.installCount,
+    required this.addTime,
+    required this.pluginPublicKey,
+  });
 }

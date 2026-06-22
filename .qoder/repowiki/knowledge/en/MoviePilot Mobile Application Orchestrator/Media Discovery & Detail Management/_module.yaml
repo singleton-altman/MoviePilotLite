@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: moviepilot_app/search_area
+title: Media Discovery & Detail Management
+scope:
+    - lib/modules/search/
+    - lib/modules/search_result/
+    - lib/modules/media_detail/
+source_files: []
+depends_on: []
+related_to: []

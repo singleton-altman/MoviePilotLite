@@ -1,0 +1,3 @@
+- **State Management**: GetX (`GetxController`, `Rx` observables).
+- **Serialization**: `freezed` and `json_serializable` for immutable data models and JSON parsing.
+- **Storage**: `path_provider` for local file-based configuration persistence.

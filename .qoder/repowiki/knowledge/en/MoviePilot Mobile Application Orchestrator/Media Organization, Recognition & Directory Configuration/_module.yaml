@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: moviepilot_app/media_management
+title: Media Organization, Recognition & Directory Configuration
+scope:
+    - lib/modules/media_organize/
+    - lib/modules/recognize/
+    - lib/modules/directory/
+source_files: []
+depends_on: []
+related_to: []

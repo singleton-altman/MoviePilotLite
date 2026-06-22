@@ -1,0 +1,3 @@
+- Controllers expose reactive state using `.obs` extensions (e.g., `isLoading.value`, `files.assignAll()`) and trigger UI updates via `Obx` widgets in the view layer.
+- API responses are defensively parsed by checking `statusCode` and validating data types (e.g., `data is List`, `data is Map`) before mapping to domain models.
+- Pages are implemented as `GetView<Controller>` subclasses, retrieving controller instances via `Get.find` or dependency injection tags passed through `Get.arguments`.

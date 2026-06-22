@@ -1,0 +1,1 @@
+Uses `freezed` and `json_serializable` for robust, type-safe JSON serialization and immutable model definitions.

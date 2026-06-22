@@ -1,0 +1,4 @@
+- Controllers extend `GetxController` and expose reactive state using `.obs` or `Rx` types for UI binding.
+- Data models utilize the `@freezed` annotation with `fromJson` factories for immutable, serializable state objects.
+- UI pages implement `GetView<Controller>` to access typed controllers without manual dependency lookup.
+- Settings fields are configured via `SettingsFieldConfig` metadata rather than hardcoded UI widgets, enabling dynamic form generation.

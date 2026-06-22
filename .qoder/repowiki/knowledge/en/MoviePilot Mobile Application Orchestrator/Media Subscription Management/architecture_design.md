@@ -1,0 +1,5 @@
+- Follows a Flutter MVVM pattern with `controllers` (logic/state), `models` (data/Freezed), `pages` (UI screens), and `widgets` (reusable components).
+- `SubscribeController` acts as the primary state manager for subscription lists, handling API interactions via `ApiClient` and local state via GetX.
+- `SubscribeService` encapsulates core business logic for CRUD operations on subscriptions, decoupling API details from controllers.
+- `SubscribeEditController` manages complex form state for editing subscriptions, integrating with external modules (Downloader, Directory, Rule, Site) via GetX dependency injection.
+- Data models use `freezed` for immutability and `json_serializable` for serialization, ensuring type safety and consistent JSON handling.

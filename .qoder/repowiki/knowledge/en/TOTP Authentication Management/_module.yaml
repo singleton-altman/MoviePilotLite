@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: altman_totp
+title: TOTP Authentication Management
+scope:
+    - altman_totp/
+source_files: []
+depends_on: []
+related_to: []

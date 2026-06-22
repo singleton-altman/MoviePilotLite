@@ -1,19 +1,24 @@
-import 'package:realm/realm.dart';
+/// Cached media detail payload for offline/fast access.
+class MediaDetailCache {
+  final String id;
+  final String server;
+  final String path;
+  final String? title;
+  final String? year;
+  final String? typeName;
+  final String? session;
+  final String payload;
+  final DateTime updatedAt;
 
-part 'media_detail_cache.realm.dart';
-
-@RealmModel()
-class _MediaDetailCache {
-  @PrimaryKey()
-  late String id;
-
-  late String server;
-  late String path;
-  String? title;
-  String? year;
-  String? typeName;
-  String? session;
-
-  late String payload;
-  late DateTime updatedAt;
+  const MediaDetailCache({
+    required this.id,
+    required this.server,
+    required this.path,
+    this.title,
+    this.year,
+    this.typeName,
+    this.session,
+    required this.payload,
+    required this.updatedAt,
+  });
 }

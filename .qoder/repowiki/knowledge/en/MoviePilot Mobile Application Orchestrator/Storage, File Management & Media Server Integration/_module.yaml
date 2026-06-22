@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: moviepilot_app/storage_area
+title: Storage, File Management & Media Server Integration
+scope:
+    - lib/modules/file_manager/
+    - lib/modules/storage/
+    - lib/modules/mediaserver/
+source_files: []
+depends_on: []
+related_to: []

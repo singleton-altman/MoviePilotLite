@@ -1,0 +1,5 @@
+- **Core Controller**: `DynamicFormController` orchestrates data fetching, mode detection (`render_mode: vue` vs `vuetify`), and state management for form models and UI blocks.
+- **Adapter Pattern**: `PluginFormAdapterRegistry` enables plugin-specific logic (e.g., `TrashCleanFormController`) to bypass generic parsing, allowing custom API aggregation and state handling via the `PluginFormAdapter` interface.
+- **Data Transformation**: `FormBlockConverter` and `VuetifyFormParser` translate raw `FormNode` trees into platform-agnostic `FormBlock` models, decoupling backend UI definitions from Flutter widgets.
+- **Rendering Layer**: `DynamicFormPage` selects between a generic `VuetifyPageRenderer` for standard JSON and custom `PluginFormRendererBuilder` callbacks for specialized plugins, ensuring flexible UI composition.
+- **Modeling**: Uses `freezed` unions (`FormBlock`, `FormNode`) to enforce type safety across diverse UI components like stat cards, charts, and form fields.

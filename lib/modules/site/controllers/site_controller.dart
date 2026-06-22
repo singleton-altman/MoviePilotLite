@@ -1,21 +1,25 @@
 import 'dart:convert';
 import 'dart:async';
 
+import 'package:drift/drift.dart' hide Value;
+import 'package:drift/drift.dart' as drift show Value;
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
-import 'package:moviepilot_mobile/modules/site/models/site_icon_cache.dart';
-import 'package:moviepilot_mobile/modules/site/models/site_model_cache.dart';
+import 'package:moviepilot_mobile/database/app_database.dart';
+import 'package:moviepilot_mobile/database/tables/site_icon_caches.dart';
+import 'package:moviepilot_mobile/database/tables/site_model_caches.dart';
+import 'package:moviepilot_mobile/database/tables/site_userdata_caches.dart';
 import 'package:moviepilot_mobile/modules/site/models/site_models.dart';
-import 'package:moviepilot_mobile/modules/site/models/site_userdata_cache.dart';
+import 'package:moviepilot_mobile/modules/site/models/site_resource_models.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
+import 'package:moviepilot_mobile/services/database_service.dart';
 import 'package:moviepilot_mobile/services/ios_shared_session_service.dart';
-import 'package:moviepilot_mobile/services/realm_service.dart';
 
 class SiteController extends GetxController {
   final _apiClient = Get.find<ApiClient>();
   final _iosSharedSessionService = Get.find<IosSharedSessionService>();
-  final _realm = Get.find<RealmService>();
+  final _db = Get.find<DatabaseService>();
   final _log = Get.find<AppLog>();
 
   final items = <SiteItem>[].obs;
@@ -146,7 +150,7 @@ class SiteController extends GetxController {
   Future<void> load({String? keyword}) async {
     isLoading.value = true;
     errorText.value = null;
-    loadFromCache();
+    await loadFromCache();
 
     final sites = <SiteModel>[];
     final userDataMap = <String, SiteUserDataModel>{};
@@ -243,19 +247,20 @@ class SiteController extends GetxController {
 
     merged.sort((a, b) => a.site.pri.compareTo(b.site.pri));
     items.assignAll(merged);
-    _saveToCache();
+    await _saveToCache();
     await _syncWidgetSnapshot(merged);
     isLoading.value = false;
   }
 
-  void loadFromCache() {
+  Future<void> loadFromCache() async {
     if (kIsWeb) return;
-    final siteCaches = _realm.realm.all<SiteModelCache>();
-    if (siteCaches.isEmpty) return;
+    final dao = _db.db.siteCacheDao;
+    final siteRows = await dao.getAllSiteModels();
+    if (siteRows.isEmpty) return;
 
-    final userDataCaches = _realm.realm.all<SiteUserDataCache>();
+    final userDataRows = await dao.getAllUserData();
     final userDataByDomain = <String, SiteUserDataModel>{};
-    for (final c in userDataCaches) {
+    for (final c in userDataRows) {
       userDataByDomain[c.domain] = SiteUserDataModel(
         domain: c.domain,
         username: c.username,
@@ -279,15 +284,15 @@ class SiteController extends GetxController {
       );
     }
 
-    final iconCaches = _realm.realm.all<SiteIconCache>();
+    final iconRows = await dao.getAllIcons();
     final iconBytesByUrl = <String, List<int>>{};
-    for (final c in iconCaches) {
+    for (final c in iconRows) {
       if (c.iconBase64.isEmpty) continue;
       final bytes = _decodeBase64ToBytes(c.iconBase64);
       if (bytes != null) iconBytesByUrl[c.url] = bytes;
     }
 
-    final list = siteCaches.map((c) {
+    final list = siteRows.map((c) {
       final site = SiteModel(
         id: c.id,
         name: c.name,
@@ -426,71 +431,67 @@ class SiteController extends GetxController {
     return base64Encode(bytes);
   }
 
-  void _saveToCache() {
+  Future<void> _saveToCache() async {
     if (kIsWeb) return;
-    final siteCaches = items.map((item) {
+    final dao = _db.db.siteCacheDao;
+    final siteRows = items.map((item) {
       final s = item.site;
-      return SiteModelCache(
-        s.id,
-        s.name,
-        s.domain,
-        s.url,
-        s.pri,
-        s.rss ?? '',
-        s.cookie ?? '',
-        s.ua ?? '',
-        s.apikey ?? '',
-        s.token ?? '',
-        s.proxy,
-        s.filter ?? '',
-        s.render,
-        s.public,
-        s.note ?? '',
-        s.timeout,
-        s.limitInterval,
-        s.limitCount,
-        s.limitSeconds,
-        s.isActive,
-        s.downloader,
+      return SiteModelCachesCompanion(
+        id: drift.Value(s.id),
+        name: drift.Value(s.name),
+        domain: drift.Value(s.domain),
+        url: drift.Value(s.url),
+        pri: drift.Value(s.pri),
+        rss: drift.Value(s.rss ?? ''),
+        cookie: drift.Value(s.cookie ?? ''),
+        ua: drift.Value(s.ua ?? ''),
+        apikey: drift.Value(s.apikey ?? ''),
+        token: drift.Value(s.token ?? ''),
+        proxy: drift.Value(s.proxy),
+        filter: drift.Value(s.filter ?? ''),
+        render: drift.Value(s.render),
+        public: drift.Value(s.public),
+        note: drift.Value(s.note ?? ''),
+        timeout: drift.Value(s.timeout),
+        limitInterval: drift.Value(s.limitInterval),
+        limitCount: drift.Value(s.limitCount),
+        limitSeconds: drift.Value(s.limitSeconds),
+        isActive: drift.Value(s.isActive),
+        downloader: drift.Value(s.downloader),
       );
     }).toList();
 
-    final userDataByDomain = <String, SiteUserDataCache>{};
+    final userDataByDomain = <String, SiteUserDataCachesCompanion>{};
     for (final item in items) {
       final u = item.userData;
       if (u == null) continue;
       if (u.domain.isEmpty) continue;
-      userDataByDomain[u.domain] = SiteUserDataCache(
-        u.domain,
-        u.username,
-        u.userid,
-        u.userLevel,
-        u.joinAt ?? '',
-        u.bonus,
-        u.upload,
-        u.download,
-        u.ratio,
-        u.seeding,
-        u.leeching,
-        u.seedingSize,
-        u.leechingSize,
-        u.messageUnread,
-        u.errMsg,
-        u.updatedDay,
-        u.updatedTime,
+      userDataByDomain[u.domain] = SiteUserDataCachesCompanion(
+        domain: drift.Value(u.domain),
+        username: drift.Value(u.username),
+        userid: drift.Value(u.userid),
+        userLevel: drift.Value(u.userLevel),
+        joinAt: drift.Value(u.joinAt ?? ''),
+        bonus: drift.Value(u.bonus),
+        upload: drift.Value(u.upload),
+        download: drift.Value(u.download),
+        ratio: drift.Value(u.ratio),
+        seeding: drift.Value(u.seeding),
+        leeching: drift.Value(u.leeching),
+        seedingSize: drift.Value(u.seedingSize),
+        leechingSize: drift.Value(u.leechingSize),
+        messageUnread: drift.Value(u.messageUnread),
+        errMsg: drift.Value(u.errMsg),
+        updatedDay: drift.Value(u.updatedDay),
+        updatedTime: drift.Value(u.updatedTime),
       );
     }
-    final userDataCaches = userDataByDomain.values.toList();
 
-    _realm.realm.write(() {
-      _realm.realm.deleteAll<SiteModelCache>();
-      _realm.realm.deleteAll<SiteUserDataCache>();
-      _realm.realm.addAll(siteCaches, update: true);
-      _realm.realm.addAll(userDataCaches, update: true);
-    });
+    await dao.replaceAllSiteModels(siteRows);
+    await dao.replaceAllUserData(userDataByDomain.values.toList());
   }
 
-  /// 先按站点 url 查本地 icon 缓存，未命中再请求接口并写入 Realm（url -> base64）
+  /// Look up local icon cache by site url, fall back to API.
   Future<List<int>?> _fetchIconBytes(SiteModel site) async {
     final url = site.url;
     if (url.isEmpty) return _fetchIconBytesFromApi(site.id, url);
@@ -499,7 +500,7 @@ class SiteController extends GetxController {
       return _fetchIconBytesFromApi(site.id, url);
     }
 
-    final cached = _realm.realm.find<SiteIconCache>(url);
+    final cached = await _db.db.siteCacheDao.findIconByUrl(url);
     if (cached != null && cached.iconBase64.isNotEmpty) {
       return _decodeBase64ToBytes(cached.iconBase64);
     }
@@ -547,9 +548,12 @@ class SiteController extends GetxController {
       if (bytes.isEmpty) return null;
 
       if (!kIsWeb && siteUrl.isNotEmpty) {
-        _realm.realm.write(() {
-          _realm.realm.add(SiteIconCache(siteUrl, base64), update: true);
-        });
+        await _db.db.siteCacheDao.upsertIcon(
+          SiteIconCachesCompanion(
+            url: drift.Value(siteUrl),
+            iconBase64: drift.Value(base64),
+          ),
+        );
       }
 
       return bytes;

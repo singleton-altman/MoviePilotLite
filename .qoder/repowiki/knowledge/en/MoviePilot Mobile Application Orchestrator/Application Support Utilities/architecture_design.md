@@ -1,0 +1,3 @@
+- `lib/gen/assets.gen.dart` is a FlutterGen-generated entry point offering type-safe access to image and SVG assets via nested generator classes (`$AssetsImagesGen`, `SvgGenImage`, `AssetGenImage`).
+- `lib/applog/app_log.dart` defines a `GetxService` singleton wrapping the `Talker` library, exposing debug/info/warning/error methods while disabling console logs and retaining in-memory history.
+- `lib/middlewares/route_permission_middleware.dart` implements a `GetMiddleware` that intercepts navigation, delegates access checks to `AppService`, shows a toast on denial, and redirects to `/main`.

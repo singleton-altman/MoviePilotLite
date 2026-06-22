@@ -1,0 +1,217 @@
+# 知识卡导出索引文件
+schema_version: 1
+locale: en-US
+branch: master
+exported_at: "2026-06-22T10:42:18Z"
+modules:
+    altman_totp:
+        dir_name: TOTP Authentication Management
+        title: TOTP Authentication Management
+        scope:
+            - altman_totp/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    moviepilot_app:
+        dir_name: MoviePilot Mobile Application Orchestrator
+        title: MoviePilot Mobile Application Orchestrator
+        scope:
+            - lib/
+        source_files: []
+        children:
+            - moviepilot_app/app_support
+            - moviepilot_app/shared_services
+            - moviepilot_app/other_features
+            - moviepilot_app/storage_area
+            - moviepilot_app/subscribe
+            - moviepilot_app/media_discovery
+            - moviepilot_app/infrastructure
+            - moviepilot_app/auth
+            - moviepilot_app/utilities
+            - moviepilot_app/media_management
+            - moviepilot_app/download_area
+            - moviepilot_app/search_area
+            - moviepilot_app/dashboard
+            - moviepilot_app/dynamic_forms
+            - moviepilot_app/system_monitoring
+            - moviepilot_app/settings_area
+            - moviepilot_app/integrations
+        depends_on: []
+        related_to: []
+    moviepilot_app/app_support:
+        dir_name: Application Support Utilities
+        title: Application Support Utilities
+        scope:
+            - lib/gen/
+            - lib/applog/
+            - lib/middlewares/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    moviepilot_app/auth:
+        dir_name: Authentication & Session Management
+        title: Authentication & Session Management
+        scope:
+            - lib/modules/login/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    moviepilot_app/dashboard:
+        dir_name: Dashboard & System Monitoring
+        title: Dashboard & System Monitoring
+        scope:
+            - lib/modules/dashboard/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    moviepilot_app/download_area:
+        dir_name: Download Management & Downloader Integration
+        title: Download Management & Downloader Integration
+        scope:
+            - lib/modules/download/
+            - lib/modules/downloader/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    moviepilot_app/dynamic_forms:
+        dir_name: Dynamic Form Engine & Plugin Adapter System
+        title: Dynamic Form Engine & Plugin Adapter System
+        scope:
+            - lib/modules/dynamic_form/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    moviepilot_app/infrastructure:
+        dir_name: UI Theming and Localization
+        title: UI Theming and Localization
+        scope:
+            - lib/theme/
+            - lib/l10n/
+            - lib/database/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    moviepilot_app/integrations:
+        dir_name: Site & Plugin Management
+        title: Site & Plugin Management
+        scope:
+            - lib/modules/site/
+            - lib/modules/plugin/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    moviepilot_app/media_discovery:
+        dir_name: Media Discovery & Recommendation
+        title: Media Discovery & Recommendation
+        scope:
+            - lib/modules/discover/
+            - lib/modules/recommend/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    moviepilot_app/media_management:
+        dir_name: Media Organization, Recognition & Directory Configuration
+        title: Media Organization, Recognition & Directory Configuration
+        scope:
+            - lib/modules/media_organize/
+            - lib/modules/recognize/
+            - lib/modules/directory/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    moviepilot_app/other_features:
+        dir_name: Rule Configuration, Multifunction Dashboard, and User Management
+        title: Rule Configuration, Multifunction Dashboard, and User Management
+        scope:
+            - lib/modules/rule/
+            - lib/modules/multifunction/
+            - lib/modules/user_management/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    moviepilot_app/search_area:
+        dir_name: Media Discovery & Detail Management
+        title: Media Discovery & Detail Management
+        scope:
+            - lib/modules/search/
+            - lib/modules/search_result/
+            - lib/modules/media_detail/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    moviepilot_app/settings_area:
+        dir_name: Application Settings & User Profile Management
+        title: Application Settings & User Profile Management
+        scope:
+            - lib/modules/settings/
+            - lib/modules/setting/
+            - lib/modules/profile/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    moviepilot_app/shared_services:
+        dir_name: Shared Services & Utilities
+        title: Shared Services & Utilities
+        scope:
+            - lib/services/
+            - lib/widgets/
+            - lib/utils/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    moviepilot_app/storage_area:
+        dir_name: Storage, File Management & Media Server Integration
+        title: Storage, File Management & Media Server Integration
+        scope:
+            - lib/modules/file_manager/
+            - lib/modules/storage/
+            - lib/modules/mediaserver/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    moviepilot_app/subscribe:
+        dir_name: Media Subscription Management
+        title: Media Subscription Management
+        scope:
+            - lib/modules/subscribe/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    moviepilot_app/system_monitoring:
+        dir_name: System Monitoring & Diagnostics
+        title: System Monitoring & Diagnostics
+        scope:
+            - lib/modules/system_health/
+            - lib/modules/system_message/
+            - lib/modules/server_log/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    moviepilot_app/utilities:
+        dir_name: Cache, Network Diagnostics & Workflow Management
+        title: Cache, Network Diagnostics & Workflow Management
+        scope:
+            - lib/modules/cache/
+            - lib/modules/network_test/
+            - lib/modules/workflow/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []

@@ -1,0 +1,4 @@
+- Controllers extend `GetxController` and use `.obs` reactive variables for state management, with UI updates triggered via `Obx` or `GetView`.
+- Data models are defined using `@freezed` classes with `fromJson` factories, ensuring immutable state and automatic JSON serialization code generation.
+- API calls are centralized in service classes or controllers using a shared `ApiClient` instance, with consistent error handling and logging via `AppLog`.
+- UI pages use `GetView` to access their corresponding controller, promoting a clean separation between view logic and business logic.

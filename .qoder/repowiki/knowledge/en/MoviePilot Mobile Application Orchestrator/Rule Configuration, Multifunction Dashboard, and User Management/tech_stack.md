@@ -1,0 +1,3 @@
+- Uses `freezed` and `json_serializable` for robust, immutable data modeling and JSON serialization in the Rule module.
+- Leverages `GetIt`/`Getx` for dependency injection and state management across all three sub-modules.
+- Integrates `shared_preferences` for persisting user-specific dashboard configurations like calendar segments.

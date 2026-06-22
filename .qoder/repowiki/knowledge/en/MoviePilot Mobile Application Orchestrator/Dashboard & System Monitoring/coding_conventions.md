@@ -1,0 +1,3 @@
+- Widget components for dashboard metrics are implemented as stateless widgets with a `compact` boolean parameter to support both grid and list layouts.
+- Data loading methods in the controller follow a consistent `load<Data>Data` naming convention, handling API responses, logging, and error states uniformly.
+- Dashboard widgets are identified and configured using Chinese string literals (e.g., '存储空间', 'CPU') which serve as the primary keys for visibility toggles and ordering.

@@ -1,0 +1,5 @@
+- Adopts a modular structure separating `site` and `plugin` domains, each following a Controller-Model-Page-Widget pattern.
+- Controllers (`SiteController`, `PluginController`) act as the primary state management layer using GetX, handling API communication via `ApiClient` and local persistence via `RealmService`.
+- Models utilize `freezed` for immutable data classes and JSON serialization, with specific cache models (`SiteIconCache`, `InstalledPluginModelCache`) defined for Realm database storage.
+- Pages implement responsive layouts (e.g., grid vs. list for plugins) and integrate with platform-specific services like `IosSharedSessionService` for widget synchronization.
+- Plugin module includes a conditional service layer (`palette_extract`) for image color extraction, using stub/IO implementations for cross-platform compatibility.

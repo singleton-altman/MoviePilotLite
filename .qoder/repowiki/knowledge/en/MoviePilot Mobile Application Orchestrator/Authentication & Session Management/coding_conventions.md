@@ -1,0 +1,2 @@
+- Repositories expose both synchronous and asynchronous methods for data retrieval to accommodate different platform constraints (e.g., Web vs Native).
+- UI components use `Obx` wrappers to reactively rebuild based on controller state changes such as loading indicators or step progression.

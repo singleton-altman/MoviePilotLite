@@ -1,0 +1,5 @@
+- The module is structured into three distinct sub-domains: `file_manager`, `storage`, and `mediaserver`, each following a Flutter MVVM pattern with `controllers/`, `pages/`, and `widgets/` (for file_manager) or `models/` (for mediaserver).
+- `file_manager` implements a dual-mode architecture (Browser vs. Picker) using `FileManagerBrowserController` for navigation state and `FileManagerPickerService` for global selection state, communicating via `Get.to` page-level navigation.
+- `storage` acts as a configuration and monitoring layer, using `StorageListController` to fetch storage settings and usage metrics from the API, which are then consumed by both its own UI and the `file_manager` module.
+- `mediaserver` handles integration with external media servers (Emby/Jellyfin/Plex), using `MediaServerController` to aggregate library data, latest media, and periodic statistics via `Timer`-based polling.
+- Dependency direction flows from UI pages to controllers, which in turn depend on a shared `ApiClient` service and domain-specific models (e.g., `MediaOrganizeFileItem`, `StorageSetting`, `MediaServer`).

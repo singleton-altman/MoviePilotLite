@@ -1,0 +1,1 @@
+Provides generated asset accessors, centralized logging via Talker, and route-level permission enforcement middleware.

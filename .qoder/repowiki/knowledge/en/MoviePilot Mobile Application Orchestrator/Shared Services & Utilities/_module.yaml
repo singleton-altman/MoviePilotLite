@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: moviepilot_app/shared_services
+title: Shared Services & Utilities
+scope:
+    - lib/services/
+    - lib/widgets/
+    - lib/utils/
+source_files: []
+depends_on: []
+related_to: []

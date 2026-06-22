@@ -6,7 +6,6 @@ import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:moviepilot_mobile/modules/login/models/login_profile.dart';
 import 'package:moviepilot_mobile/modules/login/repositories/auth_repository.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
-import 'package:moviepilot_mobile/services/realm_service.dart';
 
 /// 服务器日志控制器
 ///
@@ -17,7 +16,6 @@ import 'package:moviepilot_mobile/services/realm_service.dart';
 class ServerLogController extends GetxController {
   final _apiClient = Get.find<ApiClient>();
   final _log = Get.find<AppLog>();
-  final _realmService = Get.find<RealmService>();
   final _authRepository = Get.find<AuthRepository>();
   String logFile = 'moviepilot.log';
   String title = '服务器';
@@ -153,12 +151,7 @@ class ServerLogController extends GetxController {
 
   Future<bool> _refreshToken() async {
     try {
-      final List<LoginProfile> profiles;
-      if (kIsWeb) {
-        profiles = await _authRepository.getProfilesAsync();
-      } else {
-        profiles = _realmService.realm.all<LoginProfile>().toList();
-      }
+      final profiles = await _authRepository.getProfilesAsync();
       if (profiles.isEmpty) return false;
       profiles.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       final latest = profiles.first;

@@ -1,0 +1,1 @@
+Manages Time-based One-Time Password (TOTP) profiles, including generation, storage, scanning, and export for multi-factor authentication.

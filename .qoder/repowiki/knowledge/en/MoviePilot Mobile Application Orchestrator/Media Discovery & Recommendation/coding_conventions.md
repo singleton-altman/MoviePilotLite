@@ -1,0 +1,4 @@
+- Controllers use keyed reactive maps (e.g., `itemsByKey`, `isLoadingByKey`) to manage state for multiple concurrent data streams or categories within a single controller instance.
+- API response parsing follows a resilient pattern: decoding JSON strings, extracting lists from common wrapper keys ('data', 'results'), and normalizing string-keyed maps.
+- Data fetching implements a throttled request queue with minimum refresh intervals (30s) and force-refresh intervals (10s) to prevent API spamming.
+- Filter definitions are centralized in static constant classes (e.g., `DiscoverFilterDefines`) providing label-value pairs for UI dropdowns and API parameter mapping.

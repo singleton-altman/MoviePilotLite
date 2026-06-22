@@ -1,0 +1,4 @@
+- The module is structured into three distinct sub-domains: `settings` (complex configuration UI), `setting` (lightweight API data fetching for specific entities like downloaders), and `profile` (user identity and session management).
+- The `settings` domain employs a metadata-driven architecture where `SettingsCategory` and `SettingsFieldConfig` models define the UI structure, which is then rendered by `SettingsFormManager` and specialized row widgets (e.g., `settings_switch_row.dart`).
+- State management relies on GetX (`GetxController`) for reactive updates in controllers like `SettingsController` and `ProfileController`, with `ProfileController` coordinating logout logic across multiple services (AppService, RealmService).
+- Data models in `profile` and `setting` use `freezed` for immutable data classes and JSON serialization, ensuring type-safe handling of user info and system configurations.

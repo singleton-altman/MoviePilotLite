@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: moviepilot_app/settings_area
+title: Application Settings & User Profile Management
+scope:
+    - lib/modules/settings/
+    - lib/modules/setting/
+    - lib/modules/profile/
+source_files: []
+depends_on: []
+related_to: []

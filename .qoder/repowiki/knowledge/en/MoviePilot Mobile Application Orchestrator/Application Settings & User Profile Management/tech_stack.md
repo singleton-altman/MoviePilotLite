@@ -1,0 +1,1 @@
+Uses `freezed` and `json_serializable` for model generation (evident in `.freezed.dart` and `.g.dart` files) and `GetX` for dependency injection and state management.

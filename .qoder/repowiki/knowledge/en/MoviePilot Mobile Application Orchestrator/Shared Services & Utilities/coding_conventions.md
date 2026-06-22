@@ -1,0 +1,3 @@
+- Platform-specific implementations use conditional imports with stub files (e.g., `realm_service.dart` exports `realm_service_io.dart` or `realm_service_stub.dart` based on `dart.library.io`).
+- Services extend `GetxService` or `GetxController` and are accessed via `Get.find()` to ensure singleton lifecycle management within the GetX framework.
+- Network requests in `ApiClient` default to `validateStatus: (_) => true` to allow manual error handling and consistent session expiration logic across all HTTP methods.

@@ -1,0 +1,3 @@
+- Uses `freezed` and `json_serializable` for robust data modeling in `system_message`.
+- Implements SSE (Server-Sent Events) consumption for real-time log streaming in `server_log`.
+- Relies on `SharedPreferences` for local persistence of user read states in `system_message`.

@@ -1,0 +1,3 @@
+- Controllers extend GetxController and use reactive types (.obs) for state management, with UI components wrapped in Obx or GetView for automatic updates.
+- API interactions are centralized through a singleton ApiClient instance, with consistent error handling via AppLog and ToastUtil.
+- Data models utilize the freezed package for immutable data classes and JSON serialization, evidenced by .freezed.dart and .g.dart companion files.

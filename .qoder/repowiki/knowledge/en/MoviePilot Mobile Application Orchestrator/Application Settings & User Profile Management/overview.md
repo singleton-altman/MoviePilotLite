@@ -1,0 +1,1 @@
+Manages application configuration categories, dynamic form rendering for system settings, and user profile display with authentication state.

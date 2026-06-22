@@ -1,0 +1,4 @@
+- Controllers extend `GetxController` and use `.obs` reactive variables for state, with logic triggered in `onReady` or `onInit`.
+- API responses are wrapped in standardized response models (e.g., `CustomFilterRulesResponse`) containing `success`, `message`, and `data` fields.
+- Pages utilize `GetView<Controller>` for tight controller binding and `Obx` widgets to reactively rebuild UI based on state changes.
+- Access control is enforced at the controller level by checking `AppService` permissions (e.g., `canAccessSubscribe`, `isSuperuser`) before executing data-fetching logic.

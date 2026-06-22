@@ -1,0 +1,1 @@
+Handles user authentication, multi-account session persistence, and login UI workflows including server validation and TOTP integration.

@@ -1,0 +1,1 @@
+Provides centralized visual styling with light/dark mode support and manages multilingual text resources for English and Chinese.

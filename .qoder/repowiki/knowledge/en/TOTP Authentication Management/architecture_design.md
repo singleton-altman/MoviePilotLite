@@ -1,0 +1,4 @@
+- Follows a layered architecture with `models` (TotpProfile), `data` (TotpDb using sqflite), `services` (TotpService extending GetxService), and UI layers (`page`, `widget`).
+- Uses GetX for state management and dependency injection, with TotpService as a singleton service handling business logic and reactive state.
+- Persistence is handled by TotpDb which wraps sqflite operations for CRUD on TOTP profiles.
+- UI consists of TotpManagePage for listing/managing codes, TotpScanPage for QR scanning via mobile_scanner, and TotpEditSheet for adding/editing profiles.

@@ -1,0 +1,1 @@
+Provides real-time server log streaming, system health checks, and interactive system messaging for administrative diagnostics.

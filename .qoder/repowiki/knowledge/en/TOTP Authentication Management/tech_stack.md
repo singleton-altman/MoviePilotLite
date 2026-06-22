@@ -1,0 +1,5 @@
+- Uses `otp` package for TOTP code generation (SHA1, 6 digits, 30s period).
+- Uses `sqflite` for local persistent storage of TOTP secrets.
+- Uses `mobile_scanner` for QR code scanning to import TOTP secrets.
+- Uses `qr_flutter` for generating QR codes for TOTP export.
+- Uses `get` (GetX) for state management and navigation.

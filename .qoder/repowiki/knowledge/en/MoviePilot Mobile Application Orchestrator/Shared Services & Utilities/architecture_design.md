@@ -1,0 +1,5 @@
+- **Networking Layer**: Centralized `ApiClient` (Dio-based) handles REST and SSE (`SseClient`) with platform-specific cookie management (`PersistCookieJar` on IO, in-memory on Web) and automatic 401/403 session clearing.
+- **Persistence Layer**: Abstracts local storage via `RealmService` (conditional export for IO/Web) for structured data and `AppService` (SharedPreferences) for app-wide state like theme and session tokens.
+- **Platform Integration**: `JPushService` manages push notifications with iOS/Android specific permission handling, while `IosSharedSessionService` and `IosWidgetNavigationService` handle iOS-specific deep linking and session sharing.
+- **Utility & Widget Layer**: Offers reusable UI components (`BottomSheetWidget`, `CachedImage`) and cross-cutting utilities for image caching, file storage, and toast notifications (`ToastUtil`).
+- **Dependency Direction**: Services depend on lower-level utilities (e.g., `ApiClient` uses `dio_adapter_config_*` stubs) and are registered as singletons via GetX (`GetxService`/`GetxController`).

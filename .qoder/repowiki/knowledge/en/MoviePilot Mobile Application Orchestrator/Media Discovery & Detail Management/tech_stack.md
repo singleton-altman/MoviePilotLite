@@ -1,0 +1,5 @@
+- **State Management**: GetX (`GetxController`, `Rx` observables).
+- **Local Database**: Drift ORM for search history and media detail caching.
+- **Data Serialization**: Freezed with `json_serializable` for immutable models and JSON parsing.
+- **Real-time Updates**: Custom `SseClient` for server-sent event streaming during search operations.
+- **Persistence**: `shared_preferences` for lightweight user preferences (sort order, keyword hints).

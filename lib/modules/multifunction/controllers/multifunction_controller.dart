@@ -8,7 +8,7 @@ import 'package:moviepilot_mobile/modules/multifunction/models/multifunction_con
 import 'package:moviepilot_mobile/modules/multifunction/models/multifunction_models.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
-import 'package:moviepilot_mobile/services/realm_service.dart';
+import 'package:moviepilot_mobile/services/database_service.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -319,12 +319,32 @@ class MultifunctionController extends GetxController {
     return normalized.toLowerCase();
   }
 
-  String? _latestProfileUsername() {
-    if (kIsWeb || !Get.isRegistered<RealmService>()) return null;
+  Future<String?> _latestProfileUsername() async {
+    if (!Get.isRegistered<DatabaseService>()) return null;
     try {
-      final profiles =
-          Get.find<RealmService>().realm.all<LoginProfile>().toList()
-            ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      final rows = await Get.find<DatabaseService>().db.loginProfileDao.getAll();
+      if (rows.isEmpty) return null;
+      final profiles = rows
+          .map(
+            (r) => LoginProfile(
+              id: r.id,
+              server: r.server,
+              username: r.username,
+              password: r.password,
+              accessToken: r.accessToken,
+              tokenType: r.tokenType,
+              superUser: r.superUser,
+              userId: r.userId,
+              userName: r.userName,
+              avatar: r.avatar,
+              level: r.level,
+              permissionsJson: r.permissionsJson,
+              wizard: r.wizard,
+              updatedAt: r.updatedAt,
+            ),
+          )
+          .toList()
+        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       if (profiles.isEmpty) return null;
       return _normalizeUsername(profiles.first.username);
     } catch (_) {
@@ -332,10 +352,10 @@ class MultifunctionController extends GetxController {
     }
   }
 
-  Set<String> _currentUsernames() {
+  Future<Set<String>> _currentUsernames() async {
     final usernames = <String>{};
 
-    final profileUsername = _latestProfileUsername();
+    final profileUsername = await _latestProfileUsername();
     if (profileUsername != null) {
       usernames.add(profileUsername);
     }
@@ -380,7 +400,7 @@ class MultifunctionController extends GetxController {
     if (status >= 400) {
       throw Exception('subscribe request failed');
     }
-    final currentUsernames = _currentUsernames();
+    final currentUsernames = await _currentUsernames();
     final raw = response.data;
     if (raw is List) {
       return raw

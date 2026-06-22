@@ -1,0 +1,4 @@
+- Controllers use `.obs` observables for all mutable UI state (loading, error, data lists) to enable reactive updates in views.
+- Data models utilize Freezed unions with custom `fromJson`/`toJson` helpers to handle flexible or inconsistent API response types (e.g., int/string coercion).
+- Network calls in controllers are wrapped in try-catch blocks with centralized error logging via `AppLog` and user-facing error messages stored in `RxnString`.
+- Local caching strategies employ time-based validity checks (e.g., 24-hour expiry) before falling back to network requests for media details.

@@ -1,15 +1,18 @@
+import 'package:drift/drift.dart' hide Value;
+import 'package:drift/drift.dart' as drift show Value;
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
-import 'package:moviepilot_mobile/modules/site/models/site_icon_cache.dart';
+import 'package:moviepilot_mobile/database/app_database.dart';
+import 'package:moviepilot_mobile/database/tables/site_icon_caches.dart';
 import 'package:moviepilot_mobile/modules/site/models/site_models.dart';
 import 'package:moviepilot_mobile/modules/site/models/site_resource_models.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
-import 'package:moviepilot_mobile/services/realm_service.dart';
+import 'package:moviepilot_mobile/services/database_service.dart';
 
 class SiteDetailController extends GetxController {
   final _apiClient = Get.find<ApiClient>();
-  final _realm = Get.find<RealmService>();
+  final _db = Get.find<DatabaseService>();
   final _log = Get.find<AppLog>();
 
   int? siteId;
@@ -84,7 +87,7 @@ class SiteDetailController extends GetxController {
     if (id == null) return;
 
     if (!kIsWeb && siteUrl.isNotEmpty) {
-      final cached = _realm.realm.find<SiteIconCache>(siteUrl);
+      final cached = await _db.db.siteCacheDao.findIconByUrl(siteUrl);
       if (cached != null && cached.iconBase64.isNotEmpty) {
         String base64 = cached.iconBase64.trim();
         if (base64.contains(',')) {
@@ -114,9 +117,12 @@ class SiteDetailController extends GetxController {
       if (base64.isEmpty || iconBase64.value == base64) return;
       iconBase64.value = base64;
       if (!kIsWeb && siteUrl.isNotEmpty) {
-        _realm.realm.write(() {
-          _realm.realm.add(SiteIconCache(siteUrl, base64), update: true);
-        });
+        await _db.db.siteCacheDao.upsertIcon(
+          SiteIconCachesCompanion(
+            url: drift.Value(siteUrl),
+            iconBase64: drift.Value(base64),
+          ),
+        );
       }
     } catch (_) {}
   }

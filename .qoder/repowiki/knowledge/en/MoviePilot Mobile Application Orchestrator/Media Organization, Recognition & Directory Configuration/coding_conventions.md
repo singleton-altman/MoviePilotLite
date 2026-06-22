@@ -1,0 +1,4 @@
+- Controllers expose reactive state using `.obs` extensions (e.g., `isLoading.value`, `items.value`) and trigger UI updates via `Obx` wrappers in the view layer.
+- Data models are defined as `@freezed` classes with factory constructors and `fromJson` methods, delegating serialization logic to generated mixin implementations.
+- Pages are implemented as `GetView<ControllerName>` subclasses, ensuring direct access to the associated controller instance without manual dependency injection boilerplate.
+- Complex forms (specifically in `directory_edit_controller`) use a `SettingsFormManager` with typed field states (e.g., `SettingsSelectFieldState`) to manage validation and linkage between configuration options.

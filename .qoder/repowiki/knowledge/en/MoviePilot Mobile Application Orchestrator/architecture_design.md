@@ -1,0 +1,4 @@
+- Centralized routing via `GetMaterialApp` in `lib/main.dart`, mapping paths to module-specific pages and lazy-loaded controllers.
+- Global dependency initialization through `AppBinding`, provisioning shared services like logging, authentication, and API clients before module access.
+- Cross-cutting security enforced by `RoutePermissionMiddleware`, which intercepts navigation to protected routes and validates access against a central `AppService`.
+- Modular isolation achieved by scoping controller lifecycles to individual `GetPage` definitions, preventing state leakage between distinct feature areas like subscriptions and downloads.

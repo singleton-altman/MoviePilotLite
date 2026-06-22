@@ -1,0 +1,1 @@
+GetIt/GetX for dependency injection and reactive state management; freezed for immutable data modeling and JSON serialization

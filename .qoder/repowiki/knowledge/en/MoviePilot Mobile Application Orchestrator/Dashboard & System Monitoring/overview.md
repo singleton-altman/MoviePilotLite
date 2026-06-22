@@ -1,0 +1,1 @@
+Provides a customizable dashboard for monitoring system resources, media statistics, and background tasks with persistent local configuration.

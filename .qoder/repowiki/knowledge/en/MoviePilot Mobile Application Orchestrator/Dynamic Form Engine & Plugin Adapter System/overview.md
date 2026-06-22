@@ -1,0 +1,1 @@
+Renders dynamic UIs from server-side Vuetify JSON or plugin-specific adapters, supporting both read-only dashboards and interactive configuration forms.

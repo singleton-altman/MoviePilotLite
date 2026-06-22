@@ -1,0 +1,6 @@
+- The module is split into two sub-packages: `discover` for interactive, filter-driven browsing and `recommend` for static, category-based feeds.
+- Both sub-packages follow a Controller-Page-Widget pattern using GetX for state management (`DiscoverController`, `RecommendController`).
+- `DiscoverController` manages dynamic source selection (TMDB, Douban, Bangumi, and server-defined dynamic sources) and complex filter state (`DiscoverFilters`), mapping them to API query parameters.
+- `RecommendController` handles predefined categories (Movies, TV, Anime, Charts) and sub-categories, managing local visibility preferences via `SharedPreferences`.
+- Shared data model `RecommendApiItem` (using `freezed`) serves as the unified representation for media items across both discovery and recommendation flows.
+- UI layers are specialized: `discover` uses a cinematic hero layout with a filter summary sheet, while `recommend` uses an iOS-style banner and varied section layouts (horizontal lists, rank cards, grids).

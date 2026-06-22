@@ -2,19 +2,22 @@ import 'dart:convert';
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:drift/drift.dart' hide Value;
+import 'package:drift/drift.dart' as drift show Value;
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart' hide Response;
-import 'package:realm/realm.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
+import 'package:moviepilot_mobile/database/app_database.dart';
+import 'package:moviepilot_mobile/database/tables/login_profiles.dart';
 import 'package:moviepilot_mobile/modules/profile/models/user_info.dart';
 import 'package:moviepilot_mobile/modules/profile/models/user_global_config.dart';
 import 'package:moviepilot_mobile/modules/site/controllers/site_controller.dart';
 import 'package:moviepilot_mobile/modules/system_message/controllers/system_message_controller.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
+import 'package:moviepilot_mobile/services/database_service.dart';
 import 'package:moviepilot_mobile/services/ios_shared_session_service.dart';
 import '../../../services/api_client.dart';
-import '../../../services/realm_service.dart';
 import '../../../utils/prefs_keys.dart';
 import '../models/login_profile.dart';
 import '../models/login_response.dart';
@@ -25,7 +28,7 @@ class AuthRepository extends GetxService {
   final _appService = Get.find<AppService>();
   final _iosSharedSessionService = Get.find<IosSharedSessionService>();
 
-  Realm get _realm => Get.find<RealmService>().realm;
+  AppDatabase get _db => Get.find<DatabaseService>().db;
 
   void _syncSystemMessagePolling() {
     if (_appService.isSuperuser) {
@@ -59,7 +62,7 @@ class AuthRepository extends GetxService {
     _api.setToken(login.accessToken);
 
     // 保存当前账号配置，包含 server、token 以及用户信息
-    _saveProfile(normalizedServer, username, password, login);
+    await _saveProfile(normalizedServer, username, password, login);
     await _iosSharedSessionService.syncSession(
       server: normalizedServer,
       accessToken: login.accessToken,
@@ -318,91 +321,39 @@ class AuthRepository extends GetxService {
     }
   }
 
-  List<LoginProfile> getProfiles() {
-    if (kIsWeb) return [];
-    final list = _realm.all<LoginProfile>().toList();
-    list.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-    return list;
-  }
-
   Future<List<LoginProfile>> getProfilesAsync() async {
-    if (kIsWeb) return _readWebProfiles();
-    return Future.value(getProfiles());
-  }
-
-  Future<void> deleteProfile(String id) async {
-    if (kIsWeb) {
-      final profiles = await _readWebProfiles();
-      await _persistWebProfiles(profiles.where((p) => p.id != id).toList());
-      return;
-    }
-
-    final profile = _realm.find<LoginProfile>(id);
-    if (profile == null) return;
-    _realm.write(() => _realm.delete(profile));
-  }
-
-  Future<List<LoginProfile>> _readWebProfiles() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(kLoginProfilesWebKey);
-    if (raw == null || raw.isEmpty) return [];
     try {
-      final decoded = jsonDecode(raw);
-      if (decoded is! List) return [];
-      final out = <LoginProfile>[];
-      for (final e in decoded) {
-        if (e is! Map) continue;
-        final m = Map<String, dynamic>.from(e);
-        out.add(
-          LoginProfile(
-            m['id'] as String,
-            m['server'] as String,
-            m['username'] as String,
-            m['password'] as String,
-            m['accessToken'] as String,
-            m['tokenType'] as String,
-            m['superUser'] as bool,
-            (m['userId'] as num).toInt(),
-            m['userName'] as String,
-            (m['level'] as num).toInt(),
-            m['permissionsJson'] as String,
-            m['wizard'] as bool,
-            DateTime.parse(m['updatedAt'] as String),
-            avatar: m['avatar'] as String?,
-          ),
-        );
-      }
-      out.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-      return out;
-    } catch (e, st) {
-      _talker.handle(e, stackTrace: st, message: '读取 Web 账号列表失败');
+      final rows = await _db.loginProfileDao.getAll();
+      final profiles = rows
+          .map(
+            (r) => LoginProfile(
+              id: r.id,
+              server: r.server,
+              username: r.username,
+              password: r.password,
+              accessToken: r.accessToken,
+              tokenType: r.tokenType,
+              superUser: r.superUser,
+              userId: r.userId,
+              userName: r.userName,
+              avatar: r.avatar,
+              level: r.level,
+              permissionsJson: r.permissionsJson,
+              wizard: r.wizard,
+              updatedAt: r.updatedAt,
+            ),
+          )
+          .toList();
+      profiles.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      return profiles;
+    } catch (_) {
       return [];
     }
   }
 
-  Future<void> _persistWebProfiles(List<LoginProfile> list) async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonList = list
-        .map(
-          (p) => {
-            'id': p.id,
-            'server': p.server,
-            'username': p.username,
-            'password': p.password,
-            'accessToken': p.accessToken,
-            'tokenType': p.tokenType,
-            'superUser': p.superUser,
-            'userId': p.userId,
-            'userName': p.userName,
-            'level': p.level,
-            'permissionsJson': p.permissionsJson,
-            'wizard': p.wizard,
-            'updatedAt': p.updatedAt.toIso8601String(),
-            'avatar': p.avatar,
-          },
-        )
-        .toList();
-    await prefs.setString(kLoginProfilesWebKey, jsonEncode(jsonList));
+  Future<void> deleteProfile(String id) async {
+    await _db.loginProfileDao.deleteByPk(id);
+    _appService.invalidateProfilesCache();
   }
 
   String _normalizeServer(String server) {
@@ -411,73 +362,38 @@ class AuthRepository extends GetxService {
     return s;
   }
 
-  void _saveProfile(
+  Future<void> _saveProfile(
     String server,
     String username,
     String password,
     LoginResponse login,
-  ) {
+  ) async {
     _appService.saveProfile(server, login);
     final id = '${server.trim()}|${username.trim()}';
     final permissionsJson = jsonEncode(login.permissions);
 
-    if (kIsWeb) {
-      unawaited(
-        _saveProfileWeb(id, server, username, password, login, permissionsJson),
-      );
-      return;
-    }
-
-    _realm.write(() {
-      _realm.add(
-        LoginProfile(
-          id,
-          server,
-          username,
-          password,
-          login.accessToken,
-          login.tokenType,
-          login.superUser ?? false,
-          login.userId,
-          login.userName,
-          login.level,
-          permissionsJson,
-          login.wizard ?? false,
-          DateTime.now(),
-          avatar: login.avatar ?? '',
+    try {
+      await _db.loginProfileDao.upsert(
+        LoginProfilesCompanion(
+          id: drift.Value(id),
+          server: drift.Value(server),
+          username: drift.Value(username),
+          password: drift.Value(password),
+          accessToken: drift.Value(login.accessToken),
+          tokenType: drift.Value(login.tokenType),
+          superUser: drift.Value(login.superUser ?? false),
+          userId: drift.Value(login.userId),
+          userName: drift.Value(login.userName),
+          level: drift.Value(login.level),
+          permissionsJson: drift.Value(permissionsJson),
+          wizard: drift.Value(login.wizard ?? false),
+          updatedAt: drift.Value(DateTime.now()),
+          avatar: drift.Value(login.avatar ?? ''),
         ),
-        update: true,
       );
-    });
-  }
-
-  Future<void> _saveProfileWeb(
-    String id,
-    String server,
-    String username,
-    String password,
-    LoginResponse login,
-    String permissionsJson,
-  ) async {
-    final existing = await _readWebProfiles();
-    final next = LoginProfile(
-      id,
-      server,
-      username,
-      password,
-      login.accessToken,
-      login.tokenType,
-      login.superUser ?? false,
-      login.userId,
-      login.userName,
-      login.level,
-      permissionsJson,
-      login.wizard ?? false,
-      DateTime.now(),
-      avatar: login.avatar ?? '',
-    );
-    final merged = [...existing.where((p) => p.id != id), next];
-    merged.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-    await _persistWebProfiles(merged);
+      _appService.invalidateProfilesCache();
+    } catch (e, st) {
+      _talker.handle(e, stackTrace: st, message: '保存登录账号失败');
+    }
   }
 }

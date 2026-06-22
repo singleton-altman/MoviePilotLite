@@ -1,0 +1,1 @@
+Provides core infrastructure services including HTTP networking, local persistence, push notifications, and shared UI utilities for the MoviePilot mobile application.

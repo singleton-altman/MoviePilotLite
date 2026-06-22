@@ -26,7 +26,7 @@ import 'package:moviepilot_mobile/services/ios_widget_navigation_service.dart';
 import 'package:moviepilot_mobile/services/jpush_service.dart';
 import 'package:moviepilot_mobile/l10n/app_localizations.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
-import 'package:moviepilot_mobile/services/realm_service.dart';
+import 'package:moviepilot_mobile/services/database_service.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
 import 'package:moviepilot_mobile/utils/web_view_screen.dart';
 import 'package:talker_flutter/talker_flutter.dart';
@@ -141,7 +141,14 @@ Future<void> main() async {
   await Get.put(IosWidgetNavigationService()).init();
   await Get.put(JPushService()).init();
   Get.put(AppService());
-  Get.put(RealmService(), permanent: true);
+  await Get.putAsync<DatabaseService>(
+    () async {
+      final s = DatabaseService();
+      await s.onInit();
+      return s;
+    },
+    permanent: true,
+  );
   Get.put(IosSharedSessionService());
   Get.put(ApiClient());
   Get.put(MediaDetailService());

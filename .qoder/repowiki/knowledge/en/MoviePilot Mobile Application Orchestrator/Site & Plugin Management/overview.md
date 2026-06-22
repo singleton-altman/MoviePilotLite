@@ -1,0 +1,1 @@
+Manages tracker site configurations, user statistics, and plugin lifecycle operations with local caching and UI integration.

@@ -30,7 +30,6 @@ import 'package:moviepilot_mobile/modules/system_message/controllers/system_mess
 
 import 'package:moviepilot_mobile/modules/login/models/login_profile.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
-import 'package:moviepilot_mobile/services/realm_service.dart';
 import 'package:moviepilot_mobile/utils/open_url.dart';
 import 'package:moviepilot_mobile/utils/size_formatter.dart';
 
@@ -187,18 +186,16 @@ class DashboardPage extends GetView<DashboardController> {
   }
 
   String? _dashboardBarAvatar() {
-    if (kIsWeb) {
+    try {
       final app = Get.find<AppService>();
+      // Try appService in-memory profile first
       final u = app.userInfo?.avatar;
       if (u != null && u.isNotEmpty) return u;
-      return app.loginResponse?.avatar;
-    }
-    try {
-      final profiles = Get.find<RealmService>().realm.all<LoginProfile>();
-      if (profiles.isEmpty) return null;
-      final sorted = profiles.toList()
-        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-      return sorted.first.avatar;
+      final lr = app.loginResponse?.avatar;
+      if (lr != null && lr.isNotEmpty) return lr;
+      // Fall back to stored profile cache
+      final profile = app.currentStoredProfile;
+      return profile?.avatar;
     } catch (_) {
       return null;
     }

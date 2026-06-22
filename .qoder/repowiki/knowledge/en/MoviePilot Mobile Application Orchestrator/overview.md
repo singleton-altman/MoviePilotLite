@@ -1,0 +1,1 @@
+Orchestrates the mobile client's lifecycle, routing, and dependency injection to unify diverse media management and system monitoring modules.

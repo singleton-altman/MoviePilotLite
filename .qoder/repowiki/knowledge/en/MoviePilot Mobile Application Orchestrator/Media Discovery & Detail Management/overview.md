@@ -1,0 +1,1 @@
+Handles media search, result filtering, and detailed metadata management including subscription status and library presence.

@@ -1,0 +1,1 @@
+GetX for dependency injection and reactive state (GetxController, GetView, .obs); freezed + json_serializable for model code generation; flutter/cupertino for iOS-style UI components including BackdropFilter frosted glass effects.

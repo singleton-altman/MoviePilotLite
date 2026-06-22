@@ -1,0 +1,1 @@
+Manages media transfer history, metadata recognition, and directory-based automation rules for the MoviePilot mobile client.

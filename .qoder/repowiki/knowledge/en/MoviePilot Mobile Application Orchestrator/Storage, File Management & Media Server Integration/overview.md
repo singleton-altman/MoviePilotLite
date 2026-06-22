@@ -1,0 +1,1 @@
+Manages storage configurations, provides file browsing and picking capabilities, and integrates with external media servers for library and statistic synchronization.

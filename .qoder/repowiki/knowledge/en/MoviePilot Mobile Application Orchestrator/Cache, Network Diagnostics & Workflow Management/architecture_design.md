@@ -1,0 +1,7 @@
+- Three independent feature modules (cache, network_test, workflow) each following a controllers/models/pages/widgets layered structure.
+- Controllers extend GetX's GetxController for reactive state management; pages use GetView<T> to bind UI to controller observables via Obx wrappers.
+- Models use freezed_annotation for immutable data classes with generated JSON serialization (.freezed.dart / .g.dart); workflow_models.dart also includes manual fromJson parsing for nested action lists.
+- Pages compose Cupertino/Material widgets; cache_page uses frosted-glass backdrop filters and custom floating action bars; workflow_page uses gradient headers and skeleton loading states; network_test_page renders per-target status indicators.
+- Shared workflow functionality is split across shared_workflow_page.dart (grid/list responsive layout), shared_workflow_card.dart (two-tone card design), and shared_workflow_fork_sheet.dart (fork dialog).
+- All controllers depend on a shared ApiClient service injected via Get.find<ApiClient>(); network_test_controller additionally injects AppLog and AppService.
+- Error handling is centralized in controllers: HTTP status checks, JSON parsing fallbacks, and toast/logging side effects before updating reactive errorText fields.

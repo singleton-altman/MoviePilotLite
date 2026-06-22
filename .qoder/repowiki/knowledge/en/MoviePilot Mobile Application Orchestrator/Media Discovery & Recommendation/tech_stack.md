@@ -1,0 +1,3 @@
+- Uses `freezed` and `json_serializable` for immutable data models (`RecommendApiItem`).
+- Relies on `GetX` for dependency injection and reactive state management (`Rx`, `Obx`).
+- Integrates `shared_preferences` for persisting user filter selections and category visibility.

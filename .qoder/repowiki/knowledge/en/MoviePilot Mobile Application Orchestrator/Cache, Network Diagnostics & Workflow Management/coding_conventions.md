@@ -1,0 +1,5 @@
+- Controllers initialize async data fetching in onInit or onReady lifecycle hooks and expose isLoading/errorText/reactive data streams as .obs fields consumed by Obx wrappers in pages.
+- API response parsing follows a defensive pattern: check HTTP status >= 400 first, then attempt JSON deserialization with try-catch, falling back to extracted error messages from common keys (message, detail, error, msg).
+- Model classes use @freezed annotations with part directives for generated files; custom fromJson factories handle type coercion (e.g., int.tryParse for numeric strings, nullable field defaults).
+- Pages use GetView<T> as the base class and wrap dynamic content sections with Obx(() => ...) to reactively rebuild when controller observables change.
+- Reusable widget components are extracted into separate files under widgets/ directories (site_filter_sheet.dart, shared_workflow_card.dart) and accept callback parameters for user actions rather than directly invoking controller methods.

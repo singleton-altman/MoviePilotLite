@@ -1,0 +1,4 @@
+- **State Management**: Uses `Getx` (`DashboardController`) to manage reactive state for various metrics (CPU, memory, network, storage) and handle periodic data fetching via `ApiClient`.
+- **Component Architecture**: Follows a widget-per-metric pattern in `widgets/` (e.g., `cpu_widget.dart`, `storage_widget.dart`), orchestrated by a factory in `dashboard_widgets.dart` and composed in `dashboard_page.dart`.
+- **Configuration & Persistence**: Implements a local-first configuration strategy using `freezed` models (`DashboardConfigModel`, `DashboardOrderModel`) persisted to `getApplicationSupportDirectory` as JSON, allowing users to toggle and reorder widgets via `edit_dashboard_page.dart`.
+- **Data Flow**: The controller exposes observable lists (`displayedWidgets`) and data streams, which the main page observes to dynamically render the layout using `Obx` and `CustomScrollView`.

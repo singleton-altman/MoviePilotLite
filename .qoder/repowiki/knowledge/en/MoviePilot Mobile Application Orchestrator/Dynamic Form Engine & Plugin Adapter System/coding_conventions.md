@@ -1,0 +1,4 @@
+- UI components are defined as sealed freezed unions (FormBlock) with pattern-matching rendering in the view layer.
+- Plugin-specific adapters implement the PluginFormAdapter interface to encapsulate custom API calls and data mapping logic.
+- Vuetify JSON nodes are normalized by mapping 'type' to 'component' and extracting props before parsing.
+- Form field values are synchronized via a centralized formModel map keyed by the field's 'model' or 'name' prop.

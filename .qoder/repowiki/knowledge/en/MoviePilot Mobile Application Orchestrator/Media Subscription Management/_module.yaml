@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: moviepilot_app/subscribe
+title: Media Subscription Management
+scope:
+    - lib/modules/subscribe/
+source_files: []
+depends_on: []
+related_to: []

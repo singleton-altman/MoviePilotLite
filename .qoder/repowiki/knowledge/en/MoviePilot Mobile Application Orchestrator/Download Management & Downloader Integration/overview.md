@@ -1,0 +1,1 @@
+Manages torrent download initiation, downloader configuration, and real-time task monitoring for media resources.
