@@ -30,6 +30,7 @@ import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/services/database_service.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
 import 'package:moviepilot_mobile/utils/web_view_screen.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
 import 'bindings/app_binding.dart';
@@ -140,6 +141,9 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     Get.put(AppLog());
+    getApplicationSupportDirectory().then(
+      (value) => print('Application support directory: ${value.path}'),
+    );
     Get.put(IosWidgetNavigationService(), permanent: true);
     Get.put(JPushService(), permanent: true);
     Get.put(AppService());

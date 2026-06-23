@@ -51,6 +51,31 @@ dependencies:
 dependency_overrides:
   modal_bottom_sheet:
     path: ./third_party/modal_bottom_sheet
+  path_provider:
+    git:
+      url: https://gitcode.com/openharmony-tpc/flutter_packages.git
+      path: packages/path_provider/path_provider
+      ref: br_path_provider-v2.1.5_ohos
+  shared_preferences:
+    git:
+      url: https://gitcode.com/openharmony-tpc/flutter_packages.git
+      path: packages/shared_preferences/shared_preferences
+      ref: br_shared_preferences-v2.3.2_ohos
+  url_launcher:
+    git:
+      url: https://gitcode.com/openharmony-tpc/flutter_packages.git
+      path: packages/url_launcher/url_launcher
+      ref: br_url_launcher-v6.3.2_ohos
+  image_picker:
+    git:
+      url: https://gitcode.com/openharmony-tpc/flutter_packages.git
+      path: packages/image_picker/image_picker
+      ref: br_image_picker-v1.1.2_ohos
+  package_info_plus:
+    git:
+      url: https://gitcode.com/openharmony-sig/flutter_plus_plugins.git
+      path: packages/package_info_plus/package_info_plus
+      ref: br_package_info_plus-v8.1.0_ohos
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -84,5 +109,6 @@ flutter_gen:
 flutter_launcher_icons:
   android: launcher_icon
   ios: false
+  ohos: true
   image_path: assets/icon.png
   min_sdk_android: 21

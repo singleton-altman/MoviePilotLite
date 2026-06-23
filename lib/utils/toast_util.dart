@@ -45,6 +45,7 @@ class ToastUtil {
     String? title,
     Duration duration = const Duration(seconds: 3),
   }) {
+    print('error: $message');
     Get.snackbar(
       title ?? '错误',
       message,

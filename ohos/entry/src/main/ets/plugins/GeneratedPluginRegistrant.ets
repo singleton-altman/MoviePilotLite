@@ -1,5 +1,10 @@
 import { FlutterEngine, Log } from '@ohos/flutter_ohos';
+import UrlLauncherPlugin from 'url_launcher_ohos';
+import PathProviderPlugin from 'path_provider_ohos';
+import SharedPreferencesPlugin from 'shared_preferences_ohos';
+import PackageInfoPlugin from 'package_info_plus';
 import JpushHarmonySdkPlugin from 'jpush_flutter';
+import ImagePickerPlugin from 'image_picker_ohos';
 
 /**
  * Generated file. Do not edit.
@@ -13,7 +18,12 @@ export class GeneratedPluginRegistrant {
 
   static registerWith(flutterEngine: FlutterEngine) {
     try {
+      flutterEngine.getPlugins()?.add(new UrlLauncherPlugin());
+      flutterEngine.getPlugins()?.add(new PathProviderPlugin());
+      flutterEngine.getPlugins()?.add(new SharedPreferencesPlugin());
+      flutterEngine.getPlugins()?.add(new PackageInfoPlugin());
       flutterEngine.getPlugins()?.add(new JpushHarmonySdkPlugin());
+      flutterEngine.getPlugins()?.add(new ImagePickerPlugin());
     } catch (e) {
       Log.e(
         TAG,
