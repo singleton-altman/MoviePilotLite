@@ -1,11 +1,7 @@
-import 'package:drift/drift.dart' hide Value;
-import 'package:drift/drift.dart' as drift show Value;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
-import 'package:moviepilot_mobile/database/app_database.dart';
-import 'package:moviepilot_mobile/database/tables/plugin_model_caches.dart';
 import 'package:moviepilot_mobile/modules/login/repositories/auth_repository.dart';
 import 'package:moviepilot_mobile/modules/plugin/defines/plugin_list_filter_defines.dart';
 import 'package:moviepilot_mobile/modules/plugin/models/plugin_model_cache.dart';
@@ -13,15 +9,15 @@ import 'package:moviepilot_mobile/modules/plugin/models/plugin_models.dart';
 import 'package:moviepilot_mobile/modules/plugin/services/plugin_palette_cache.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
-import 'package:moviepilot_mobile/services/database_service.dart';
+import 'package:moviepilot_mobile/services/realm_service.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
+import 'package:realm/realm.dart';
 
 class PluginListController extends GetxController {
   final _apiClient = Get.find<ApiClient>();
   final _log = Get.find<AppLog>();
 
-  AppDatabase? get _db =>
-      Get.isRegistered<DatabaseService>() ? Get.find<DatabaseService>().db : null;
+  Realm get _realm => Get.find<RealmService>().realm;
   final _appService = Get.find<AppService>();
   final _authRepository = Get.find<AuthRepository>();
   static const int _pageSize = 40;
@@ -47,15 +43,17 @@ class PluginListController extends GetxController {
 
   bool get _canAccessPlugins => _appService.canManage;
 
-  Future<void> _clearLocalCache() async {
+  void _clearLocalCache() {
     if (kIsWeb) return;
-    final db = _db;
-    if (db == null) return;
     final scopeKey = _appService.pluginCacheScopeKey;
     if (scopeKey.isEmpty) return;
-    await db.pluginCacheDao.deletePluginModelsByScope(
-      (id) => matchesPluginMarketScope(id, scopeKey),
-    );
+    final stale = _realm
+        .all<PluginModelCache>()
+        .where((item) => matchesPluginMarketScope(item.id, scopeKey))
+        .toList();
+    _realm.write(() {
+      _realm.deleteMany(stale);
+    });
   }
 
   void _invalidateComputedCache() {
@@ -173,7 +171,7 @@ class PluginListController extends GetxController {
       _displayedLimit = _pageSize;
       _invalidateComputedCache();
       _preloadPalettes(limit: 12);
-      await _saveToCache();
+      _saveToCache();
     } catch (e, st) {
       _log.handle(e, stackTrace: st, message: '获取插件列表失败');
       errorText.value = '请求失败，请稍后重试';
@@ -185,7 +183,7 @@ class PluginListController extends GetxController {
 
   Future<void> loadFromCache() async {
     if (!_canAccessPlugins) {
-      await _clearLocalCache();
+      _clearLocalCache();
       items.clear();
       _displayedLimit = _pageSize;
       _invalidateComputedCache();
@@ -199,18 +197,10 @@ class PluginListController extends GetxController {
       _invalidateComputedCache();
       return;
     }
-    final db = _db;
-    if (db == null) {
-      items.clear();
-      _displayedLimit = _pageSize;
-      _invalidateComputedCache();
-      return;
-    }
-    final cache = await db.pluginCacheDao.getPluginModelsByScope(
-      (id) => matchesPluginMarketScope(id, scopeKey),
-    );
+    final cache = _realm.all<PluginModelCache>();
     if (cache.isEmpty) return;
     final locals = cache
+        .where((e) => matchesPluginMarketScope(e.id, scopeKey))
         .map(
           (e) => PluginItem(
             id: extractPluginMarketPluginId(e.id),
@@ -240,43 +230,44 @@ class PluginListController extends GetxController {
     _invalidateComputedCache();
   }
 
-  Future<void> _saveToCache() async {
+  void _saveToCache() {
     if (kIsWeb) return;
     final scopeKey = _appService.pluginCacheScopeKey;
     if (scopeKey.isEmpty) return;
-    final list = <PluginModelCachesCompanion>[];
+    late final List<PluginModelCache> list = [];
     for (final item in items) {
-      list.add(
-        PluginModelCachesCompanion(
-          id: drift.Value(buildPluginMarketCacheId(scopeKey, item.id)),
-          pluginName: drift.Value(item.pluginName),
-          pluginDesc: drift.Value(item.pluginDesc ?? ''),
-          pluginIcon: drift.Value(item.pluginIcon ?? ''),
-          pluginVersion: drift.Value(item.pluginVersion ?? ''),
-          pluginLabel: drift.Value(item.pluginLabel ?? ''),
-          pluginAuthor: drift.Value(item.pluginAuthor ?? ''),
-          authorUrl: drift.Value(item.authorUrl ?? ''),
-          pluginConfigPrefix: drift.Value(item.pluginConfigPrefix ?? ''),
-          pluginOrder: drift.Value(item.pluginOrder),
-          authLevel: drift.Value(item.authLevel),
-          installed: drift.Value(item.installed),
-          state: drift.Value(item.state),
-          hasPage: drift.Value(item.hasPage),
-          hasUpdate: drift.Value(item.hasUpdate),
-          isLocal: drift.Value(item.isLocal),
-          repoUrl: drift.Value(item.repoUrl ?? ''),
-          installCount: drift.Value(item.installCount),
-          addTime: drift.Value(item.addTime),
-          pluginPublicKey: drift.Value(item.pluginPublicKey ?? ''),
-        ),
+      final cache = PluginModelCache(
+        buildPluginMarketCacheId(scopeKey, item.id),
+        item.pluginName,
+        item.pluginDesc ?? '',
+        item.pluginIcon ?? '',
+        item.pluginVersion ?? '',
+        item.pluginLabel ?? '',
+        item.pluginAuthor ?? '',
+        item.authorUrl ?? '',
+        item.pluginConfigPrefix ?? '',
+        item.pluginOrder,
+        item.authLevel,
+        item.installed,
+        item.state,
+        item.hasPage,
+        item.hasUpdate,
+        item.isLocal,
+        item.repoUrl ?? '',
+        item.installCount,
+        item.addTime,
+        item.pluginPublicKey ?? '',
       );
+      list.add(cache);
     }
-    final db = _db;
-    if (db == null) return;
-    await db.pluginCacheDao.replacePluginModelsByScope(
-      (id) => matchesPluginMarketScope(id, scopeKey),
-      list,
-    );
+    final stale = _realm
+        .all<PluginModelCache>()
+        .where((item) => matchesPluginMarketScope(item.id, scopeKey))
+        .toList();
+    _realm.write(() {
+      _realm.deleteMany(stale);
+      _realm.addAll(list, update: true);
+    });
   }
 
   void loadMore() {

@@ -1,40 +1,39 @@
 import 'dart:async';
 
-import 'package:drift/drift.dart' hide Value;
-import 'package:drift/drift.dart' as drift show Value;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:moviepilot_mobile/database/app_database.dart';
-import 'package:moviepilot_mobile/database/tables/plugin_palette_entries.dart';
+import 'package:moviepilot_mobile/modules/plugin/models/plugin_palette_cache_entry.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
-import 'package:moviepilot_mobile/services/database_service.dart';
+import 'package:moviepilot_mobile/services/realm_service.dart';
 import 'package:moviepilot_mobile/utils/image_cache_manager.dart';
 import 'palette_extract.dart';
+import 'package:realm/realm.dart';
 
 class PluginPaletteCache extends GetxController {
-  AppDatabase? get _db =>
-      Get.isRegistered<DatabaseService>() ? Get.find<DatabaseService>().db : null;
+  Realm get _realm => Get.find<RealmService>().realm;
 
-  /// Cache: iconUrl -> palette color
+  /// 缓存：iconUrl -> 主题色
   final RxMap<String, Color> _cache = <String, Color>{}.obs;
 
-  /// URLs currently being extracted
+  /// 正在提取中的 URL，避免重复请求
   final Set<String> _pending = {};
 
-  /// Max concurrent extractions
+  /// 最大并发提取数（控制 CPU 占用，避免卡顿）
   static const int _maxConcurrent = 2;
   int _activeCount = 0;
   final List<Completer<void>> _queue = [];
 
-  /// Default color (fallback)
+  /// 默认色（提取失败或空 URL 时使用）
   static Color defaultColor = Colors.amberAccent;
 
+  /// 获取已缓存的主题色，若无则返回 null
   Color? getCached(String iconUrl) {
     if (iconUrl.isEmpty) return null;
     return _cache[iconUrl];
   }
 
+  /// 供 Obx 使用：读取颜色并触发提取，提取完成后触发重建
   Color? watchColor(String iconUrl) {
     if (iconUrl.isEmpty) return null;
     final cached = _cache[iconUrl];
@@ -43,6 +42,7 @@ class PluginPaletteCache extends GetxController {
     return null;
   }
 
+  /// 批量预加载：在后台提取尚未缓存的 URL
   void preload(Iterable<String> urls) {
     for (final url in urls) {
       if (url.isEmpty) continue;
@@ -69,6 +69,7 @@ class PluginPaletteCache extends GetxController {
         return;
       }
       final headers = <String, String>{};
+      // 获取cookie，如果没有提供则从AppService获取
       final imageCookie = Get.find<AppService>().cookie;
       if (imageCookie != null && imageCookie.isNotEmpty) {
         headers['cookie'] = imageCookie;
@@ -79,7 +80,7 @@ class PluginPaletteCache extends GetxController {
       );
       final color = await extractPaletteFromCachedFile(file, defaultColor);
       _cache[url] = color;
-      await _saveToDb(url, color);
+      _saveToRealm(url, color);
     } catch (error) {
       _cache[url] = defaultColor;
     } finally {
@@ -93,30 +94,18 @@ class PluginPaletteCache extends GetxController {
   }
 
   @override
-  Future<void> onInit() async {
+  void onInit() {
     super.onInit();
     if (kIsWeb) return;
-    try {
-      final db = _db;
-      if (db == null) return;
-      final entries = await db.pluginPaletteDao.getAll();
-      for (final entry in entries) {
-        _cache[entry.url] = Color(entry.colorValue);
-      }
-    } catch (_) {}
+    for (final entry in _realm.all<PluginPaletteCacheEntry>()) {
+      _cache[entry.url] = Color(entry.colorValue);
+    }
   }
 
-  Future<void> _saveToDb(String url, Color color) async {
+  void _saveToRealm(String url, Color color) {
     if (kIsWeb) return;
-    try {
-      final db = _db;
-      if (db == null) return;
-      await db.pluginPaletteDao.upsert(
-        PluginPaletteEntriesCompanion(
-          url: drift.Value(url),
-          colorValue: drift.Value(color.value),
-        ),
-      );
-    } catch (_) {}
+    _realm.write(() {
+      _realm.add(PluginPaletteCacheEntry(url, color.value), update: true);
+    });
   }
 }

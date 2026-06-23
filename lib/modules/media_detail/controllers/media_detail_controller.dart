@@ -1,14 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:drift/drift.dart' as drift show Value;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
-import 'package:moviepilot_mobile/database/app_database.dart';
 import 'package:moviepilot_mobile/modules/login/repositories/auth_repository.dart';
 import 'package:moviepilot_mobile/modules/media_detail/controllers/media_detail_service.dart';
+import 'package:moviepilot_mobile/modules/media_detail/models/media_detail_cache.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/media_detail_model.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/media_notexists.dart';
 import 'package:moviepilot_mobile/modules/recommend/models/recommend_api_item.dart';
@@ -16,7 +15,7 @@ import 'package:moviepilot_mobile/modules/subscribe/controllers/subscribe_servic
 import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_models.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
-import 'package:moviepilot_mobile/services/database_service.dart';
+import 'package:moviepilot_mobile/services/realm_service.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
 
 class MediaDetailController extends GetxController {
@@ -27,9 +26,7 @@ class MediaDetailController extends GetxController {
   final _authRepository = Get.find<AuthRepository>();
   final _appService = Get.find<AppService>();
   final _log = Get.find<AppLog>();
-  final _dbService = Get.isRegistered<DatabaseService>()
-      ? Get.find<DatabaseService>()
-      : null;
+  final _realmService = Get.find<RealmService>().realm;
   final _mediaDetailService = Get.find<MediaDetailService>();
   final _subscribeService = Get.put(SubscribeService());
   final subscribeLoadingState = false.obs;
@@ -141,13 +138,11 @@ class MediaDetailController extends GetxController {
     }
   }
 
-  Future<void> _loadCachedDetailIfValid() async {
+  void _loadCachedDetailIfValid() {
     if (kIsWeb) return;
-    final db = _dbService;
-    if (db == null) return;
     final cacheKey = _cacheKey(_args);
     if (cacheKey.isEmpty) return;
-    final cache = await db.db.mediaDetailCacheDao.findByPk(cacheKey);
+    final cache = _realmService.find<MediaDetailCache>(cacheKey);
     if (cache == null) return;
     final now = DateTime.now();
     if (now.difference(cache.updatedAt) > _cacheValidDuration) {
@@ -165,28 +160,27 @@ class MediaDetailController extends GetxController {
     }
   }
 
-  Future<void> _cacheDetail(MediaDetail detail) async {
+  void _cacheDetail(MediaDetail detail) {
     if (kIsWeb) return;
-    final db = _dbService;
-    if (db == null) return;
     final cacheKey = _cacheKey(_args);
     if (cacheKey.isEmpty) return;
     try {
       final payload = jsonEncode(detail.toJson());
       final server = (_appService.baseUrl ?? _apiClient.baseUrl ?? '').trim();
-      await db.db.mediaDetailCacheDao.upsert(
-        MediaDetailCachesCompanion(
-          id: drift.Value(cacheKey),
-          server: drift.Value(server),
-          path: drift.Value(_args.path),
-          payload: drift.Value(payload),
-          updatedAt: drift.Value(DateTime.now()),
-          title: drift.Value(_args.title),
-          year: drift.Value(_args.year),
-          typeName: drift.Value(_args.typeName),
-          session: drift.Value(_args.session),
-        ),
+      final cache = MediaDetailCache(
+        cacheKey,
+        server,
+        _args.path,
+        payload,
+        DateTime.now(),
+        title: _args.title,
+        year: _args.year,
+        typeName: _args.typeName,
+        session: _args.session,
       );
+      _realmService.write(() {
+        _realmService.add(cache, update: true);
+      });
     } catch (e, st) {
       _log.handle(e, stackTrace: st, message: '写入详情缓存失败');
     }

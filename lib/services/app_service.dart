@@ -1,23 +1,17 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 import 'package:dio/dio.dart';
-import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:moviepilot_mobile/database/app_database.dart';
-import 'package:moviepilot_mobile/database/tables/installed_plugin_caches.dart';
-import 'package:moviepilot_mobile/database/tables/login_profiles.dart';
-import 'package:moviepilot_mobile/database/tables/plugin_model_caches.dart';
 import 'package:moviepilot_mobile/modules/login/models/login_profile.dart';
 import 'package:moviepilot_mobile/modules/plugin/models/installed_plugin_model_cache.dart';
 import 'package:moviepilot_mobile/modules/plugin/models/plugin_model_cache.dart';
-import 'package:moviepilot_mobile/services/database_service.dart';
 import 'package:moviepilot_mobile/utils/prefs_keys.dart';
 import 'package:moviepilot_mobile/modules/login/models/login_response.dart';
 import 'package:moviepilot_mobile/modules/profile/models/user_info.dart';
+import 'package:moviepilot_mobile/services/realm_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 应用全局服务
@@ -100,9 +94,6 @@ class AppService extends GetxService {
         _cookie = storedCookie;
       }
     }
-
-    // Pre-load login profiles into memory cache for sync access
-    await _ensureProfilesLoaded();
   }
 
   Future<void> updateThemeMode(ThemeMode mode) async {
@@ -322,80 +313,43 @@ class AppService extends GetxService {
     return const <String, dynamic>{};
   }
 
-  /// In-memory profile cache — loaded lazily, updated on save/delete.
-  List<LoginProfile>? _profilesCache;
-
-  Future<void> _ensureProfilesLoaded() async {
-    if (_profilesCache != null) return;
-    if (!Get.isRegistered<DatabaseService>()) {
-      _profilesCache = [];
-      return;
-    }
-    try {
-      final rows = await Get.find<DatabaseService>().db.loginProfileDao.getAll();
-      _profilesCache = rows
-          .map(
-            (r) => LoginProfile(
-              id: r.id,
-              server: r.server,
-              username: r.username,
-              password: r.password,
-              accessToken: r.accessToken,
-              tokenType: r.tokenType,
-              superUser: r.superUser,
-              userId: r.userId,
-              userName: r.userName,
-              avatar: r.avatar,
-              level: r.level,
-              permissionsJson: r.permissionsJson,
-              wizard: r.wizard,
-              updatedAt: r.updatedAt,
-            ),
-          )
-          .toList()
-        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-    } catch (_) {
-      _profilesCache = [];
-    }
-  }
-
-  void _invalidateProfilesCache() {
-    _profilesCache = null;
-  }
-
-  /// Public method for external invalidation (e.g., auth repository)
-  void invalidateProfilesCache() => _invalidateProfilesCache();
-
   LoginProfile? _findStoredProfile({
     String? server,
     String? username,
     int? userId,
     String? accessToken,
   }) {
-    final profiles = _profilesCache;
-    if (profiles == null || profiles.isEmpty) return null;
+    if (!Get.isRegistered<RealmService>()) return null;
+    try {
+      final profiles =
+          Get.find<RealmService>().realm.all<LoginProfile>().toList()
+            ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      if (profiles.isEmpty) return null;
 
-    final normalizedServer = server?.trim();
-    final normalizedUsername = username?.trim().toLowerCase();
-    for (final profile in profiles) {
-      if (normalizedServer != null &&
-          normalizedServer.isNotEmpty &&
-          profile.server.trim() != normalizedServer) {
-        continue;
+      final normalizedServer = server?.trim();
+      final normalizedUsername = username?.trim().toLowerCase();
+      for (final profile in profiles) {
+        if (normalizedServer != null &&
+            normalizedServer.isNotEmpty &&
+            profile.server.trim() != normalizedServer) {
+          continue;
+        }
+        if (userId != null && profile.userId == userId) {
+          return profile;
+        }
+        if (accessToken != null &&
+            accessToken.isNotEmpty &&
+            profile.accessToken == accessToken) {
+          return profile;
+        }
+        if (normalizedUsername != null &&
+            normalizedUsername.isNotEmpty &&
+            profile.username.trim().toLowerCase() == normalizedUsername) {
+          return profile;
+        }
       }
-      if (userId != null && profile.userId == userId) {
-        return profile;
-      }
-      if (accessToken != null &&
-          accessToken.isNotEmpty &&
-          profile.accessToken == accessToken) {
-        return profile;
-      }
-      if (normalizedUsername != null &&
-          normalizedUsername.isNotEmpty &&
-          profile.username.trim().toLowerCase() == normalizedUsername) {
-        return profile;
-      }
+    } catch (_) {
+      return null;
     }
     return null;
   }
@@ -463,21 +417,23 @@ class AppService extends GetxService {
   }
 
   void _clearPluginCaches() {
-    if (!Get.isRegistered<DatabaseService>()) return;
+    if (kIsWeb || !Get.isRegistered<RealmService>()) return;
     try {
       final scopeKey = pluginCacheScopeKey;
       if (scopeKey.isEmpty) return;
-      final dao = Get.find<DatabaseService>().db.pluginCacheDao;
-      unawaited(
-        dao.deleteInstalledPluginsByScope(
-          (id) => matchesInstalledPluginScope(id, scopeKey),
-        ),
-      );
-      unawaited(
-        dao.deletePluginModelsByScope(
-          (id) => matchesPluginMarketScope(id, scopeKey),
-        ),
-      );
+      final realm = Get.find<RealmService>().realm;
+      final installed = realm
+          .all<InstalledPluginModelCache>()
+          .where((item) => matchesInstalledPluginScope(item.id, scopeKey))
+          .toList();
+      final market = realm
+          .all<PluginModelCache>()
+          .where((item) => matchesPluginMarketScope(item.id, scopeKey))
+          .toList();
+      realm.write(() {
+        realm.deleteMany(installed);
+        realm.deleteMany(market);
+      });
     } catch (_) {}
   }
 
@@ -704,7 +660,6 @@ class AppService extends GetxService {
   }
 
   saveProfile(String server, LoginResponse login) {
-    _invalidateProfilesCache();
     final currentUserId = _userInfo?.id;
     final currentUserName = _userInfo?.name.trim().toLowerCase();
     final nextUserName = login.userName.trim().toLowerCase();

@@ -1,34 +1,25 @@
-/// Login profile — stores user credentials for quick re-authentication.
-class LoginProfile {
-  final String id;
-  final String server;
-  final String username;
-  final String password;
-  final String accessToken;
-  final String tokenType;
-  final bool superUser;
-  final int userId;
-  final String userName;
-  final String? avatar;
-  final int level;
-  final String permissionsJson;
-  final bool wizard;
-  final DateTime updatedAt;
+import 'package:realm/realm.dart';
 
-  const LoginProfile({
-    required this.id,
-    required this.server,
-    required this.username,
-    required this.password,
-    required this.accessToken,
-    required this.tokenType,
-    required this.superUser,
-    required this.userId,
-    required this.userName,
-    this.avatar,
-    required this.level,
-    required this.permissionsJson,
-    required this.wizard,
-    required this.updatedAt,
-  });
+part 'login_profile.realm.dart';
+
+@RealmModel()
+class _LoginProfile {
+  @PrimaryKey()
+  late String id;
+
+  late String server;
+  late String username;
+  late String password;
+
+  late String accessToken;
+  late String tokenType;
+  late bool superUser;
+  late int userId;
+  late String userName;
+  String? avatar;
+  late int level;
+  late String permissionsJson;
+  late bool wizard;
+
+  late DateTime updatedAt;
 }

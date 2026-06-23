@@ -13,8 +13,9 @@ import 'package:moviepilot_mobile/utils/dio_adapter_config_stub.dart'
     if (dart.library.io) 'package:moviepilot_mobile/utils/dio_adapter_config_io.dart'
     if (dart.library.js_interop) 'package:moviepilot_mobile/utils/dio_adapter_config_web.dart';
 import 'package:moviepilot_mobile/services/ios_shared_session_service.dart';
-import 'package:moviepilot_mobile/services/database_service.dart';
+import 'package:moviepilot_mobile/services/realm_service.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
+import 'package:moviepilot_mobile/modules/login/models/login_profile.dart';
 import 'package:get/get.dart' as g;
 
 enum RequestMethod { get, post, put, delete }
@@ -43,13 +44,8 @@ class ApiHttpException implements Exception {
 
 class ApiClient extends g.GetxController {
   final _appService = g.Get.find<AppService>();
-  final _iosSharedSessionService = g.Get.put(
-    IosSharedSessionService(),
-    permanent: true,
-  );
-  final _dbService = g.Get.isRegistered<DatabaseService>()
-      ? g.Get.find<DatabaseService>()
-      : null;
+  final _iosSharedSessionService = g.Get.find<IosSharedSessionService>();
+  final _realmService = g.Get.find<RealmService>();
   final _log = g.Get.find<AppLog>();
   late final Dio _dio;
   late final CookieJar _cookieJar;
@@ -630,15 +626,13 @@ class ApiClient extends g.GetxController {
       } catch (_) {}
       if (!kIsWeb) {
         try {
-          final dbService = _dbService;
-          if (dbService != null) {
-            final dao = dbService.db.loginProfileDao;
-            final profiles = await dao.getAll();
-            if (profiles.isNotEmpty) {
-              profiles.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-              final latest = profiles.first;
-              await dao.updateAccessToken(latest.id, '');
-            }
+          final profiles = _realmService.realm.all<LoginProfile>().toList();
+          if (profiles.isNotEmpty) {
+            profiles.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+            final latest = profiles.first;
+            _realmService.realm.write(() {
+              latest.accessToken = '';
+            });
           }
         } catch (_) {}
       }

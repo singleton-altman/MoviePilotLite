@@ -27,7 +27,7 @@ import 'package:moviepilot_mobile/services/ios_widget_navigation_service.dart';
 import 'package:moviepilot_mobile/services/jpush_service.dart';
 import 'package:moviepilot_mobile/l10n/app_localizations.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
-import 'package:moviepilot_mobile/services/database_service.dart';
+import 'package:moviepilot_mobile/services/realm_service.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
 import 'package:moviepilot_mobile/utils/web_view_screen.dart';
 import 'package:path_provider/path_provider.dart';
@@ -144,16 +144,12 @@ Future<void> main() async {
     getApplicationSupportDirectory().then(
       (value) => print('Application support directory: ${value.path}'),
     );
+    Get.put(RealmService(), permanent: true);
     Get.put(IosWidgetNavigationService(), permanent: true);
     Get.put(JPushService(), permanent: true);
+    Get.put(IosSharedSessionService(), permanent: true);
     Get.put(AppService());
     Get.put(ApiClient());
-    Get.putAsync<DatabaseService>(() async {
-      final s = DatabaseService();
-      await s.onInit();
-      return s;
-    }, permanent: true);
-    Get.put(IosSharedSessionService());
     Get.put(MediaDetailService());
     Get.put(ImageUtil());
     // 注册 vue 模式插件适配器

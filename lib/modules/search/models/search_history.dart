@@ -1,18 +1,17 @@
-/// Search history entry keyed by normalized keyword.
-class SearchHistoryEntry {
-  /// Normalized keyword for dedup
-  final String id;
+import 'package:realm/realm.dart';
 
-  /// User-typed keyword preserving original casing
-  final String keyword;
+part 'search_history.realm.dart';
 
-  final DateTime createdAt;
-  final DateTime updatedAt;
+@RealmModel()
+class _SearchHistoryEntry {
+  /// 归一化后的关键字，用于去重
+  @PrimaryKey()
+  late String id;
 
-  const SearchHistoryEntry({
-    required this.id,
-    required this.keyword,
-    required this.createdAt,
-    required this.updatedAt,
-  });
+  /// 用户实际输入的关键字，保持原大小写
+  late String keyword;
+
+  late DateTime createdAt;
+
+  late DateTime updatedAt;
 }

@@ -1,10 +1,10 @@
-/// Plugin icon palette color cache entry.
-class PluginPaletteCacheEntry {
-  final String url;
-  final int colorValue;
+import 'package:realm/realm.dart';
 
-  const PluginPaletteCacheEntry({
-    required this.url,
-    required this.colorValue,
-  });
+part 'plugin_palette_cache_entry.realm.dart';
+
+@RealmModel()
+class _PluginPaletteCacheEntry {
+  @PrimaryKey()
+  late String url;
+  late int colorValue;
 }

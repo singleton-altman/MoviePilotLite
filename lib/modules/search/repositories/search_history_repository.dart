@@ -1,10 +1,8 @@
-import 'package:drift/drift.dart' hide Value;
-import 'package:drift/drift.dart' as drift show Value;
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:realm/realm.dart';
 
-import '../../../database/app_database.dart';
-import '../../../database/tables/search_history_entries.dart';
-import '../../../services/database_service.dart';
+import '../../../services/realm_service.dart';
 import '../models/search_history.dart';
 
 class SearchHistoryRepository extends GetxService {
@@ -14,91 +12,122 @@ class SearchHistoryRepository extends GetxService {
   static const int defaultFetchLimit = 20;
 
   final int _maxEntries;
+  final List<SearchHistoryEntry> _webEntries = [];
 
-  AppDatabase? get _db =>
-      Get.isRegistered<DatabaseService>() ? Get.find<DatabaseService>().db : null;
+  Realm get _realm => Get.find<RealmService>().realm;
 
-  Future<List<SearchHistoryEntry>> load({int limit = defaultFetchLimit}) async {
-    try {
-      final db = _db;
-      if (db == null) return [];
-      final rows = await db.searchHistoryDao.getAll();
-      final records = rows
-          .map(
-            (r) => SearchHistoryEntry(
-              id: r.id,
-              keyword: r.keyword,
-              createdAt: r.createdAt,
-              updatedAt: r.updatedAt,
-            ),
-          )
-          .toList();
+  List<SearchHistoryEntry> load({int limit = defaultFetchLimit}) {
+    if (kIsWeb) {
+      final records = List<SearchHistoryEntry>.from(_webEntries);
       records.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-      if (limit > 0 && records.length > limit) {
-        return records.take(limit).toList();
+      if (limit <= 0 || records.length <= limit) {
+        return records;
       }
-      return records;
-    } catch (_) {
-      return [];
+      return records.take(limit).toList();
     }
+    final records = _realm.all<SearchHistoryEntry>().toList();
+    records.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    if (limit <= 0 || records.length <= limit) {
+      return records;
+    }
+    return records.take(limit).toList();
   }
 
-  Future<void> save(String keyword) async {
+  void save(String keyword) {
     final normalized = _normalize(keyword);
     if (normalized.isEmpty) return;
 
     final trimmed = keyword.trim();
     final now = DateTime.now();
 
-    try {
-      final db = _db;
-      if (db == null) return;
-      final existing = await db.searchHistoryDao.findByPk(normalized);
+    if (kIsWeb) {
+      final idx = _webEntries.indexWhere((e) => e.id == normalized);
+      final createdAt =
+          idx >= 0 ? _webEntries[idx].createdAt : now;
+      final display =
+          idx >= 0 ? _webEntries[idx].keyword : trimmed;
+      if (idx >= 0) {
+        _webEntries.removeAt(idx);
+      }
+      _webEntries.add(
+        SearchHistoryEntry(
+          normalized,
+          trimmed.isEmpty ? display : trimmed,
+          createdAt,
+          now,
+        ),
+      );
+      _trimOverflowWeb();
+      return;
+    }
+
+    _realm.write(() {
+      final existing = _realm.find<SearchHistoryEntry>(normalized);
       final createdAt = existing?.createdAt ?? now;
       final display = existing?.keyword ?? trimmed;
 
-      await db.searchHistoryDao.upsert(
-        SearchHistoryEntriesCompanion(
-          id: drift.Value(normalized),
-          keyword: drift.Value(trimmed.isEmpty ? display : trimmed),
-          createdAt: drift.Value(createdAt),
-          updatedAt: drift.Value(now),
+      _realm.add(
+        SearchHistoryEntry(
+          normalized,
+          trimmed.isEmpty ? display : trimmed,
+          createdAt,
+          now,
         ),
+        update: true,
       );
-      await _trimOverflow(db);
-    } catch (_) {}
+      _trimOverflow();
+    });
   }
 
-  Future<void> remove(String keyword) async {
+  void remove(String keyword) {
     final normalized = _normalize(keyword);
     if (normalized.isEmpty) return;
-    try {
-      final db = _db;
-      if (db == null) return;
-      await db.searchHistoryDao.deleteByPk(normalized);
-    } catch (_) {}
+
+    if (kIsWeb) {
+      _webEntries.removeWhere((e) => e.id == normalized);
+      return;
+    }
+
+    final record = _realm.find<SearchHistoryEntry>(normalized);
+    if (record == null) return;
+    _realm.write(() {
+      _realm.delete(record);
+    });
   }
 
-  Future<void> clearAll() async {
-    try {
-      final db = _db;
-      if (db == null) return;
-      await db.searchHistoryDao.deleteAll();
-    } catch (_) {}
+  void clearAll() {
+    if (kIsWeb) {
+      _webEntries.clear();
+      return;
+    }
+    final records = _realm.all<SearchHistoryEntry>();
+    if (records.isEmpty) return;
+    _realm.write(() {
+      _realm.deleteMany(records);
+    });
   }
 
-  Future<void> _trimOverflow(AppDatabase db) async {
-    final rows = await db.searchHistoryDao.getAll();
-    if (rows.length <= _maxEntries) return;
+  void _trimOverflowWeb() {
+    if (_webEntries.length <= _maxEntries) return;
+    _webEntries.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    final overflow = _webEntries.length - _maxEntries;
+    if (overflow <= 0) return;
+    _webEntries.removeRange(_maxEntries, _webEntries.length);
+  }
 
-    final sorted = rows.toList()
-      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-    final overflow = sorted.skip(_maxEntries).toList();
+  void _trimOverflow() {
+    final records = _realm.all<SearchHistoryEntry>().toList();
+    if (records.length <= _maxEntries) return;
+
+    records.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    final overflow = records.skip(_maxEntries);
     if (overflow.isEmpty) return;
 
-    for (final item in overflow) {
-      await db.searchHistoryDao.deleteByPk(item.id);
-    }
+    _realm.write(() {
+      for (final item in overflow) {
+        _realm.delete(item);
+      }
+    });
   }
 
   String _normalize(String keyword) => keyword.trim().toLowerCase();

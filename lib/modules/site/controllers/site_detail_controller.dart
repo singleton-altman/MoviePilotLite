@@ -1,20 +1,15 @@
-import 'package:drift/drift.dart' hide Value;
-import 'package:drift/drift.dart' as drift show Value;
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
-import 'package:moviepilot_mobile/database/app_database.dart';
-import 'package:moviepilot_mobile/database/tables/site_icon_caches.dart';
+import 'package:moviepilot_mobile/modules/site/models/site_icon_cache.dart';
 import 'package:moviepilot_mobile/modules/site/models/site_models.dart';
 import 'package:moviepilot_mobile/modules/site/models/site_resource_models.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
-import 'package:moviepilot_mobile/services/database_service.dart';
+import 'package:moviepilot_mobile/services/realm_service.dart';
 
 class SiteDetailController extends GetxController {
   final _apiClient = Get.find<ApiClient>();
-  final _db = Get.isRegistered<DatabaseService>()
-      ? Get.find<DatabaseService>()
-      : null;
+  final _realm = Get.find<RealmService>();
   final _log = Get.find<AppLog>();
 
   int? siteId;
@@ -89,19 +84,16 @@ class SiteDetailController extends GetxController {
     if (id == null) return;
 
     if (!kIsWeb && siteUrl.isNotEmpty) {
-      final db = _db;
-      if (db != null) {
-        final cached = await db.db.siteCacheDao.findIconByUrl(siteUrl);
-        if (cached != null && cached.iconBase64.isNotEmpty) {
-          String base64 = cached.iconBase64.trim();
-          if (base64.contains(',')) {
-            final comma = base64.indexOf(',');
-            base64 = base64.substring(comma + 1).trim();
-          }
-          if (base64.isNotEmpty) {
-            iconBase64.value = base64;
-            return;
-          }
+      final cached = _realm.realm.find<SiteIconCache>(siteUrl);
+      if (cached != null && cached.iconBase64.isNotEmpty) {
+        String base64 = cached.iconBase64.trim();
+        if (base64.contains(',')) {
+          final comma = base64.indexOf(',');
+          base64 = base64.substring(comma + 1).trim();
+        }
+        if (base64.isNotEmpty) {
+          iconBase64.value = base64;
+          return;
         }
       }
     }
@@ -122,15 +114,9 @@ class SiteDetailController extends GetxController {
       if (base64.isEmpty || iconBase64.value == base64) return;
       iconBase64.value = base64;
       if (!kIsWeb && siteUrl.isNotEmpty) {
-        final db = _db;
-        if (db != null) {
-          await db.db.siteCacheDao.upsertIcon(
-            SiteIconCachesCompanion(
-              url: drift.Value(siteUrl),
-              iconBase64: drift.Value(base64),
-            ),
-          );
-        }
+        _realm.realm.write(() {
+          _realm.realm.add(SiteIconCache(siteUrl, base64), update: true);
+        });
       }
     } catch (_) {}
   }
