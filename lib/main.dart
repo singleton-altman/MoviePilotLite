@@ -27,7 +27,7 @@ import 'package:moviepilot_mobile/services/ios_widget_navigation_service.dart';
 import 'package:moviepilot_mobile/services/jpush_service.dart';
 import 'package:moviepilot_mobile/l10n/app_localizations.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
-import 'package:moviepilot_mobile/services/realm_service.dart';
+import 'package:moviepilot_mobile/services/hive_service.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
 import 'package:moviepilot_mobile/utils/web_view_screen.dart';
 import 'package:path_provider/path_provider.dart';
@@ -141,10 +141,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     Get.put(AppLog());
-    getApplicationSupportDirectory().then(
-      (value) => print('Application support directory: ${value.path}'),
-    );
-    Get.put(RealmService(), permanent: true);
+    await Get.putAsync(() => HiveService().init(), permanent: true);
     Get.put(IosWidgetNavigationService(), permanent: true);
     Get.put(JPushService(), permanent: true);
     Get.put(IosSharedSessionService(), permanent: true);

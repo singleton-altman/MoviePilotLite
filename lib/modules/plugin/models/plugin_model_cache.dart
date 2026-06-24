@@ -1,6 +1,6 @@
-import 'package:realm/realm.dart';
+import 'package:hive_ce/hive.dart';
 
-part 'plugin_model_cache.realm.dart';
+part 'plugin_model_cache.g.dart';
 
 const _pluginMarketCacheScopeSeparator = '::plugin-market-scope::';
 
@@ -24,27 +24,69 @@ bool matchesPluginMarketScope(String cacheId, String scopeKey) {
   );
 }
 
-@RealmModel()
-class _PluginModelCache {
-  @PrimaryKey()
-  late String id;
-  late String pluginName;
-  late String pluginDesc;
-  late String pluginIcon;
-  late String pluginVersion;
-  late String pluginLabel;
-  late String pluginAuthor;
-  late String authorUrl;
-  late String pluginConfigPrefix;
-  late int pluginOrder;
-  late int authLevel;
-  late bool installed;
-  late bool state;
-  late bool hasPage;
-  late bool hasUpdate;
-  late bool isLocal;
-  late String repoUrl;
-  late int installCount;
-  late int addTime;
-  late String pluginPublicKey;
+@HiveType(typeId: 2)
+class PluginModelCache {
+  @HiveField(0)
+  String id;
+  @HiveField(1)
+  String pluginName;
+  @HiveField(2)
+  String pluginDesc;
+  @HiveField(3)
+  String pluginIcon;
+  @HiveField(4)
+  String pluginVersion;
+  @HiveField(5)
+  String pluginLabel;
+  @HiveField(6)
+  String pluginAuthor;
+  @HiveField(7)
+  String authorUrl;
+  @HiveField(8)
+  String pluginConfigPrefix;
+  @HiveField(9)
+  int pluginOrder;
+  @HiveField(10)
+  int authLevel;
+  @HiveField(11)
+  bool installed;
+  @HiveField(12)
+  bool state;
+  @HiveField(13)
+  bool hasPage;
+  @HiveField(14)
+  bool hasUpdate;
+  @HiveField(15)
+  bool isLocal;
+  @HiveField(16)
+  String repoUrl;
+  @HiveField(17)
+  int installCount;
+  @HiveField(18)
+  int addTime;
+  @HiveField(19)
+  String pluginPublicKey;
+
+  PluginModelCache(
+    this.id,
+    this.pluginName,
+    this.pluginDesc,
+    this.pluginIcon,
+    this.pluginVersion,
+    this.pluginLabel,
+    this.pluginAuthor,
+    this.authorUrl,
+    this.pluginConfigPrefix,
+    this.pluginOrder,
+    this.authLevel,
+    this.installed,
+    this.state,
+    this.hasPage,
+    this.hasUpdate,
+    this.isLocal,
+    this.repoUrl,
+    this.installCount,
+    this.addTime,
+    this.pluginPublicKey,
+  );
 }

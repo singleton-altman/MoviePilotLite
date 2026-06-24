@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:moviepilot_mobile/modules/login/repositories/auth_repository.dart';
 import 'package:moviepilot_mobile/modules/plugin/defines/plugin_list_filter_defines.dart';
@@ -9,15 +10,15 @@ import 'package:moviepilot_mobile/modules/plugin/models/plugin_models.dart';
 import 'package:moviepilot_mobile/modules/plugin/services/plugin_palette_cache.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
-import 'package:moviepilot_mobile/services/realm_service.dart';
+import 'package:moviepilot_mobile/services/hive_service.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
-import 'package:realm/realm.dart';
 
 class PluginListController extends GetxController {
   final _apiClient = Get.find<ApiClient>();
   final _log = Get.find<AppLog>();
 
-  Realm get _realm => Get.find<RealmService>().realm;
+  Box<PluginModelCache> get _pluginBox =>
+      Get.find<HiveService>().pluginModelCacheBox;
   final _appService = Get.find<AppService>();
   final _authRepository = Get.find<AuthRepository>();
   static const int _pageSize = 40;
@@ -47,13 +48,11 @@ class PluginListController extends GetxController {
     if (kIsWeb) return;
     final scopeKey = _appService.pluginCacheScopeKey;
     if (scopeKey.isEmpty) return;
-    final stale = _realm
-        .all<PluginModelCache>()
+    final stale = _pluginBox.values
         .where((item) => matchesPluginMarketScope(item.id, scopeKey))
+        .map((e) => e.id)
         .toList();
-    _realm.write(() {
-      _realm.deleteMany(stale);
-    });
+    _pluginBox.deleteAll(stale);
   }
 
   void _invalidateComputedCache() {
@@ -197,7 +196,7 @@ class PluginListController extends GetxController {
       _invalidateComputedCache();
       return;
     }
-    final cache = _realm.all<PluginModelCache>();
+    final cache = _pluginBox.values.toList();
     if (cache.isEmpty) return;
     final locals = cache
         .where((e) => matchesPluginMarketScope(e.id, scopeKey))
@@ -260,14 +259,14 @@ class PluginListController extends GetxController {
       );
       list.add(cache);
     }
-    final stale = _realm
-        .all<PluginModelCache>()
+    final stale = _pluginBox.values
         .where((item) => matchesPluginMarketScope(item.id, scopeKey))
+        .map((e) => e.id)
         .toList();
-    _realm.write(() {
-      _realm.deleteMany(stale);
-      _realm.addAll(list, update: true);
-    });
+    _pluginBox.deleteAll(stale);
+    for (final c in list) {
+      _pluginBox.put(c.id, c);
+    }
   }
 
   void loadMore() {

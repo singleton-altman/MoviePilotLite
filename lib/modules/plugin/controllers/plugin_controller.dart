@@ -6,14 +6,14 @@ import 'package:moviepilot_mobile/modules/plugin/models/plugin_models.dart';
 import 'package:moviepilot_mobile/modules/plugin/services/plugin_palette_cache.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
-import 'package:moviepilot_mobile/services/realm_service.dart';
+import 'package:moviepilot_mobile/services/hive_service.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
 
 class PluginController extends GetxController {
   final _apiClient = Get.find<ApiClient>();
   final _log = Get.find<AppLog>();
   final _appService = Get.find<AppService>();
-  final _realm = Get.find<RealmService>();
+  final _hive = Get.find<HiveService>();
   final items = <PluginItem>[].obs;
   final keyword = ''.obs;
   final isLoading = false.obs;
@@ -28,13 +28,11 @@ class PluginController extends GetxController {
     if (kIsWeb) return;
     final scopeKey = _appService.pluginCacheScopeKey;
     if (scopeKey.isEmpty) return;
-    final stale = _realm.realm
-        .all<InstalledPluginModelCache>()
+    final stale = _hive.installedPluginModelCacheBox.values
         .where((item) => matchesInstalledPluginScope(item.id, scopeKey))
+        .map((e) => e.id)
         .toList();
-    _realm.realm.write(() {
-      _realm.realm.deleteMany(stale);
-    });
+    _hive.installedPluginModelCacheBox.deleteAll(stale);
   }
 
   @override
@@ -107,7 +105,7 @@ class PluginController extends GetxController {
       _visibleCacheDirty = true;
       return;
     }
-    final cache = _realm.realm.all<InstalledPluginModelCache>();
+    final cache = _hive.installedPluginModelCacheBox.values.toList();
     if (cache.isEmpty) return;
     final locals = cache
         .where((e) => matchesInstalledPluginScope(e.id, scopeKey))
@@ -169,14 +167,14 @@ class PluginController extends GetxController {
       );
       list.add(cache);
     }
-    final stale = _realm.realm
-        .all<InstalledPluginModelCache>()
+    final stale = _hive.installedPluginModelCacheBox.values
         .where((item) => matchesInstalledPluginScope(item.id, scopeKey))
+        .map((e) => e.id)
         .toList();
-    _realm.realm.write(() {
-      _realm.realm.deleteMany(stale);
-      _realm.realm.addAll(list, update: true);
-    });
+    _hive.installedPluginModelCacheBox.deleteAll(stale);
+    for (final c in list) {
+      _hive.installedPluginModelCacheBox.put(c.id, c);
+    }
   }
 
   Future<void> load({bool force = false}) async {

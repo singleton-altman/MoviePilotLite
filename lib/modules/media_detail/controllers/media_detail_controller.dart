@@ -15,7 +15,7 @@ import 'package:moviepilot_mobile/modules/subscribe/controllers/subscribe_servic
 import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_models.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
-import 'package:moviepilot_mobile/services/realm_service.dart';
+import 'package:moviepilot_mobile/services/hive_service.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
 
 class MediaDetailController extends GetxController {
@@ -26,7 +26,7 @@ class MediaDetailController extends GetxController {
   final _authRepository = Get.find<AuthRepository>();
   final _appService = Get.find<AppService>();
   final _log = Get.find<AppLog>();
-  final _realmService = Get.find<RealmService>().realm;
+  final _hiveService = Get.find<HiveService>();
   final _mediaDetailService = Get.find<MediaDetailService>();
   final _subscribeService = Get.put(SubscribeService());
   final subscribeLoadingState = false.obs;
@@ -142,7 +142,7 @@ class MediaDetailController extends GetxController {
     if (kIsWeb) return;
     final cacheKey = _cacheKey(_args);
     if (cacheKey.isEmpty) return;
-    final cache = _realmService.find<MediaDetailCache>(cacheKey);
+    final cache = _hiveService.mediaDetailCacheBox.get(cacheKey);
     if (cache == null) return;
     final now = DateTime.now();
     if (now.difference(cache.updatedAt) > _cacheValidDuration) {
@@ -178,9 +178,20 @@ class MediaDetailController extends GetxController {
         typeName: _args.typeName,
         session: _args.session,
       );
-      _realmService.write(() {
-        _realmService.add(cache, update: true);
-      });
+      _hiveService.mediaDetailCacheBox.put(
+        cacheKey,
+        MediaDetailCache(
+          cacheKey,
+          server,
+          _args.path,
+          payload,
+          DateTime.now(),
+          title: _args.title,
+          year: _args.year,
+          typeName: _args.typeName,
+          session: _args.session,
+        ),
+      );
     } catch (e, st) {
       _log.handle(e, stackTrace: st, message: '写入详情缓存失败');
     }

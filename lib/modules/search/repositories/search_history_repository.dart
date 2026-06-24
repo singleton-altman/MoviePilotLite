@@ -1,8 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
-import 'package:realm/realm.dart';
 
-import '../../../services/realm_service.dart';
+import '../../../services/hive_service.dart';
 import '../models/search_history.dart';
 
 class SearchHistoryRepository extends GetxService {
@@ -12,20 +10,9 @@ class SearchHistoryRepository extends GetxService {
   static const int defaultFetchLimit = 20;
 
   final int _maxEntries;
-  final List<SearchHistoryEntry> _webEntries = [];
-
-  Realm get _realm => Get.find<RealmService>().realm;
 
   List<SearchHistoryEntry> load({int limit = defaultFetchLimit}) {
-    if (kIsWeb) {
-      final records = List<SearchHistoryEntry>.from(_webEntries);
-      records.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-      if (limit <= 0 || records.length <= limit) {
-        return records;
-      }
-      return records.take(limit).toList();
-    }
-    final records = _realm.all<SearchHistoryEntry>().toList();
+    final records = Get.find<HiveService>().searchHistoryBox.values.toList();
     records.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     if (limit <= 0 || records.length <= limit) {
       return records;
@@ -39,95 +26,44 @@ class SearchHistoryRepository extends GetxService {
 
     final trimmed = keyword.trim();
     final now = DateTime.now();
+    final box = Get.find<HiveService>().searchHistoryBox;
 
-    if (kIsWeb) {
-      final idx = _webEntries.indexWhere((e) => e.id == normalized);
-      final createdAt =
-          idx >= 0 ? _webEntries[idx].createdAt : now;
-      final display =
-          idx >= 0 ? _webEntries[idx].keyword : trimmed;
-      if (idx >= 0) {
-        _webEntries.removeAt(idx);
-      }
-      _webEntries.add(
-        SearchHistoryEntry(
-          normalized,
-          trimmed.isEmpty ? display : trimmed,
-          createdAt,
-          now,
-        ),
-      );
-      _trimOverflowWeb();
-      return;
-    }
+    final existing = box.get(normalized);
+    final createdAt = existing?.createdAt ?? now;
+    final display = existing?.keyword ?? trimmed;
 
-    _realm.write(() {
-      final existing = _realm.find<SearchHistoryEntry>(normalized);
-      final createdAt = existing?.createdAt ?? now;
-      final display = existing?.keyword ?? trimmed;
-
-      _realm.add(
-        SearchHistoryEntry(
-          normalized,
-          trimmed.isEmpty ? display : trimmed,
-          createdAt,
-          now,
-        ),
-        update: true,
-      );
-      _trimOverflow();
-    });
+    box.put(
+      normalized,
+      SearchHistoryEntry(
+        normalized,
+        trimmed.isEmpty ? display : trimmed,
+        createdAt,
+        now,
+      ),
+    );
+    _trimOverflow();
   }
 
   void remove(String keyword) {
     final normalized = _normalize(keyword);
     if (normalized.isEmpty) return;
-
-    if (kIsWeb) {
-      _webEntries.removeWhere((e) => e.id == normalized);
-      return;
-    }
-
-    final record = _realm.find<SearchHistoryEntry>(normalized);
-    if (record == null) return;
-    _realm.write(() {
-      _realm.delete(record);
-    });
+    Get.find<HiveService>().searchHistoryBox.delete(normalized);
   }
 
   void clearAll() {
-    if (kIsWeb) {
-      _webEntries.clear();
-      return;
-    }
-    final records = _realm.all<SearchHistoryEntry>();
-    if (records.isEmpty) return;
-    _realm.write(() {
-      _realm.deleteMany(records);
-    });
-  }
-
-  void _trimOverflowWeb() {
-    if (_webEntries.length <= _maxEntries) return;
-    _webEntries.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-    final overflow = _webEntries.length - _maxEntries;
-    if (overflow <= 0) return;
-    _webEntries.removeRange(_maxEntries, _webEntries.length);
+    Get.find<HiveService>().searchHistoryBox.clear();
   }
 
   void _trimOverflow() {
-    final records = _realm.all<SearchHistoryEntry>().toList();
+    final box = Get.find<HiveService>().searchHistoryBox;
+    final records = box.values.toList();
     if (records.length <= _maxEntries) return;
 
     records.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-    final overflow = records.skip(_maxEntries);
+    final overflow = records.skip(_maxEntries).toList();
     if (overflow.isEmpty) return;
 
-    _realm.write(() {
-      for (final item in overflow) {
-        _realm.delete(item);
-      }
-    });
+    box.deleteAll(overflow.map((e) => e.id));
   }
 
   String _normalize(String keyword) => keyword.trim().toLowerCase();

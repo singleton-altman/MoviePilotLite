@@ -11,9 +11,8 @@ import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_models.dart
 import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_submit_resp.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
-import 'package:moviepilot_mobile/services/realm_service.dart';
+import 'package:moviepilot_mobile/services/hive_service.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
-import 'package:realm/realm.dart';
 
 /// 订阅类型：电视剧 / 电影
 enum SubscribeType { tv, movie }
@@ -118,10 +117,10 @@ class SubscribeController extends GetxController {
   }
 
   String? _latestProfileUsername() {
-    if (kIsWeb || !Get.isRegistered<RealmService>()) return null;
+    if (!Get.isRegistered<HiveService>()) return null;
     try {
       final profiles =
-          Get.find<RealmService>().realm.all<LoginProfile>().toList()
+          Get.find<HiveService>().loginProfileBox.values.toList()
             ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       if (profiles.isEmpty) return null;
       return _normalizeUsername(profiles.first.username);

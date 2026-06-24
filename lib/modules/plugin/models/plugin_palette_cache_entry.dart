@@ -1,10 +1,14 @@
-import 'package:realm/realm.dart';
+import 'package:hive_ce/hive.dart';
 
-part 'plugin_palette_cache_entry.realm.dart';
+part 'plugin_palette_cache_entry.g.dart';
 
-@RealmModel()
-class _PluginPaletteCacheEntry {
-  @PrimaryKey()
-  late String url;
-  late int colorValue;
+@HiveType(typeId: 4)
+class PluginPaletteCacheEntry {
+  @HiveField(0)
+  String url;
+
+  @HiveField(1)
+  int colorValue;
+
+  PluginPaletteCacheEntry(this.url, this.colorValue);
 }

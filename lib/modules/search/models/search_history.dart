@@ -1,17 +1,22 @@
-import 'package:realm/realm.dart';
+import 'package:hive_ce/hive.dart';
 
-part 'search_history.realm.dart';
+part 'search_history.g.dart';
 
-@RealmModel()
-class _SearchHistoryEntry {
+@HiveType(typeId: 8)
+class SearchHistoryEntry {
   /// 归一化后的关键字，用于去重
-  @PrimaryKey()
-  late String id;
+  @HiveField(0)
+  String id;
 
   /// 用户实际输入的关键字，保持原大小写
-  late String keyword;
+  @HiveField(1)
+  String keyword;
 
-  late DateTime createdAt;
+  @HiveField(2)
+  DateTime createdAt;
 
-  late DateTime updatedAt;
+  @HiveField(3)
+  DateTime updatedAt;
+
+  SearchHistoryEntry(this.id, this.keyword, this.createdAt, this.updatedAt);
 }

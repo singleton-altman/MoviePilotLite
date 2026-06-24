@@ -5,11 +5,11 @@ import 'package:moviepilot_mobile/modules/site/models/site_icon_cache.dart';
 import 'package:moviepilot_mobile/modules/site/models/site_models.dart';
 import 'package:moviepilot_mobile/modules/site/models/site_resource_models.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
-import 'package:moviepilot_mobile/services/realm_service.dart';
+import 'package:moviepilot_mobile/services/hive_service.dart';
 
 class SiteDetailController extends GetxController {
   final _apiClient = Get.find<ApiClient>();
-  final _realm = Get.find<RealmService>();
+  final _hive = Get.find<HiveService>();
   final _log = Get.find<AppLog>();
 
   int? siteId;
@@ -84,7 +84,7 @@ class SiteDetailController extends GetxController {
     if (id == null) return;
 
     if (!kIsWeb && siteUrl.isNotEmpty) {
-      final cached = _realm.realm.find<SiteIconCache>(siteUrl);
+      final cached = _hive.siteIconCacheBox.get(siteUrl);
       if (cached != null && cached.iconBase64.isNotEmpty) {
         String base64 = cached.iconBase64.trim();
         if (base64.contains(',')) {
@@ -114,9 +114,7 @@ class SiteDetailController extends GetxController {
       if (base64.isEmpty || iconBase64.value == base64) return;
       iconBase64.value = base64;
       if (!kIsWeb && siteUrl.isNotEmpty) {
-        _realm.realm.write(() {
-          _realm.realm.add(SiteIconCache(siteUrl, base64), update: true);
-        });
+        _hive.siteIconCacheBox.put(siteUrl, SiteIconCache(siteUrl, base64));
       }
     } catch (_) {}
   }

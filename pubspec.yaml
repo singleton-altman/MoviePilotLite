@@ -17,11 +17,8 @@ dependencies:
   freezed_annotation: ^2.4.4
   json_annotation: ^4.9.0
   cookie_jar: ^4.0.8
-  realm:
-    git:
-      url: https://gitcode.com/OpenHarmony-Flutter/fluttertpc_realm.git
-      path: packages/realm
-      ref: 20.0.1
+  hive_ce: ^2.10.0
+  hive_ce_flutter: ^2.3.0
   cached_network_image: ^3.4.1
   flutter_cache_manager: ^3.4.1
   flutter_svg: ^2.0.10+1
@@ -49,6 +46,7 @@ dependencies:
     git: https://github.com/singleton-altman/altman_downloader_control.git
   altman_totp:
     path: ./altman_totp
+  lottie: ^3.3.3
 dependency_overrides:
   modal_bottom_sheet:
     path: ./third_party/modal_bottom_sheet
@@ -82,6 +80,7 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
   build_runner: ^2.4.9
+  hive_ce_generator: ^1.8.0
   freezed: ^2.4.8
   json_serializable: ^6.8.0
   flutter_gen_runner: ^5.12.0

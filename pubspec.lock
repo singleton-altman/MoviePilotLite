@@ -89,14 +89,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.4.2"
-  build_cli_annotations:
-    dependency: transitive
-    description:
-      name: build_cli_annotations
-      sha256: e563c2e01de8974566a1998410d3f6f03521788160a02503b0b1f1a46c7b3d95
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.1.1"
   build_config:
     dependency: transitive
     description:
@@ -177,14 +169,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.3.1"
-  cancellation_token:
-    dependency: transitive
-    description:
-      name: cancellation_token
-      sha256: ad95acf9d4b2f3563e25dc937f63587e46a70ce534e910b65d10e115490f1027
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.0.1"
   characters:
     dependency: transitive
     description:
@@ -305,14 +289,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.0"
-  decimal:
-    dependency: transitive
-    description:
-      name: decimal
-      sha256: fc706a5618b81e5b367b01dd62621def37abc096f2b46a9bd9068b64c1fa36d0
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.2.4"
   dio:
     dependency: "direct main"
     description:
@@ -337,22 +313,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.2"
-  ejson:
-    dependency: transitive
-    description:
-      name: ejson
-      sha256: "5856e32943e476d67304731dedcd2a4b2363f2d14442176e2a151039605c4633"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.4.1"
-  ejson_annotation:
-    dependency: transitive
-    description:
-      name: ejson_annotation
-      sha256: "966c38370f21a0b5ed296a33293c2592a7d14e4b320cc1a5de49d6c55606cc2f"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.4.1"
   fake_async:
     dependency: transitive
     description:
@@ -629,6 +589,30 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.0"
+  hive_ce:
+    dependency: "direct main"
+    description:
+      name: hive_ce
+      sha256: "8e9980e68643afb1e765d3af32b47996552a64e190d03faf622cea07c1294418"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.19.3"
+  hive_ce_flutter:
+    dependency: "direct main"
+    description:
+      name: hive_ce_flutter
+      sha256: "2677e95a333ff15af43ccd06af7eb7abbf1a4f154ea071997f3de4346cae913a"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.3.4"
+  hive_ce_generator:
+    dependency: "direct dev"
+    description:
+      name: hive_ce_generator
+      sha256: "609678c10ebee7503505a0007050af40a0a4f498b1fb7def3220df341e573a89"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.9.2"
   html:
     dependency: transitive
     description:
@@ -767,6 +751,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.5"
+  isolate_channel:
+    dependency: transitive
+    description:
+      name: isolate_channel
+      sha256: a9d3d620695bc984244dafae00b95e4319d6974b2d77f4b9e1eb4f2efe099094
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.6.1"
   jni:
     dependency: transitive
     description:
@@ -855,6 +847,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.3.0"
+  lottie:
+    dependency: "direct main"
+    description:
+      name: lottie
+      sha256: "8b6359a7422167014aa73ce763fa133fb832065dcc0ac4d1dec1f603a5cef7d0"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.3.3"
   markdown:
     dependency: transitive
     description:
@@ -910,14 +910,6 @@ packages:
       relative: true
     source: path
     version: "3.0.0"
-  objectid:
-    dependency: transitive
-    description:
-      name: objectid
-      sha256: f6cea8360862c78b1984cc8f497e484aa7f491282f7f4e4bd2f722bc85f93237
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.0.3"
   octo_image:
     dependency: transitive
     description:
@@ -1113,47 +1105,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.1.0"
-  rational:
-    dependency: transitive
-    description:
-      name: rational
-      sha256: cb808fb6f1a839e6fc5f7d8cb3b0a10e1db48b3be102de73938c627f0b636336
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.2.3"
-  realm:
-    dependency: "direct main"
-    description:
-      path: "packages/realm"
-      ref: "20.0.1"
-      resolved-ref: "0386c445fe8947dc17af185e74bb71c9643293cb"
-      url: "https://gitcode.com/OpenHarmony-Flutter/fluttertpc_realm.git"
-    source: git
-    version: "20.0.1"
-  realm_common:
-    dependency: transitive
-    description:
-      name: realm_common
-      sha256: efa7ddac1c31c5abfb4d43f74376ffacfc3f6193a83847969955e2dc4d7908b7
-      url: "https://pub.dev"
-    source: hosted
-    version: "20.2.0"
-  realm_dart:
-    dependency: transitive
-    description:
-      name: realm_dart
-      sha256: "6657fda24dbde1ba749730063c9152330d155536866e73056950d481ff0bed5c"
-      url: "https://pub.dev"
-    source: hosted
-    version: "20.2.0"
-  realm_generator:
-    dependency: transitive
-    description:
-      name: realm_generator
-      sha256: c2c90ad42e90865ed3becb864966c90d57384cb8d489135747548e1837a0dfc9
-      url: "https://pub.dev"
-    source: hosted
-    version: "20.2.0"
   rxdart:
     dependency: transitive
     description:
@@ -1162,14 +1113,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.28.0"
-  sane_uuid:
-    dependency: transitive
-    description:
-      name: sane_uuid
-      sha256: "5b3fd581f51d01aef0526344c175e198d04ff701249c1a75186429dbb4367265"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.0"
   share_plus:
     dependency: transitive
     description:
@@ -1441,14 +1384,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.1.17"
-  tar:
-    dependency: transitive
-    description:
-      name: tar
-      sha256: b338bacfd24dae6cf527acb4242003a71fc88ce183a9002376fabbc4ebda30c9
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.0.2"
   term_glyph:
     dependency: transitive
     description:
@@ -1489,14 +1424,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.2"
-  type_plus:
-    dependency: transitive
-    description:
-      name: type_plus
-      sha256: d5d1019471f0d38b91603adb9b5fd4ce7ab903c879d2fbf1a3f80a630a03fcc9
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.1.1"
   typed_data:
     dependency: transitive
     description:
@@ -1731,6 +1658,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.3"
+  yaml_writer:
+    dependency: transitive
+    description:
+      name: yaml_writer
+      sha256: "69651cd7238411179ac32079937d4aa9a2970150d6b2ae2c6fe6de09402a5dc5"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.0"
 sdks:
   dart: ">=3.9.0 <4.0.0"
   flutter: ">=3.35.6"

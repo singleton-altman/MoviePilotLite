@@ -1,25 +1,65 @@
-import 'package:realm/realm.dart';
+import 'package:hive_ce/hive.dart';
 
-part 'login_profile.realm.dart';
+part 'login_profile.g.dart';
 
-@RealmModel()
-class _LoginProfile {
-  @PrimaryKey()
-  late String id;
+@HiveType(typeId: 0)
+class LoginProfile {
+  @HiveField(0)
+  String id;
 
-  late String server;
-  late String username;
-  late String password;
+  @HiveField(1)
+  String server;
 
-  late String accessToken;
-  late String tokenType;
-  late bool superUser;
-  late int userId;
-  late String userName;
+  @HiveField(2)
+  String username;
+
+  @HiveField(3)
+  String password;
+
+  @HiveField(4)
+  String accessToken;
+
+  @HiveField(5)
+  String tokenType;
+
+  @HiveField(6)
+  bool superUser;
+
+  @HiveField(7)
+  int userId;
+
+  @HiveField(8)
+  String userName;
+
+  @HiveField(9)
   String? avatar;
-  late int level;
-  late String permissionsJson;
-  late bool wizard;
 
-  late DateTime updatedAt;
+  @HiveField(10)
+  int level;
+
+  @HiveField(11)
+  String permissionsJson;
+
+  @HiveField(12)
+  bool wizard;
+
+  @HiveField(13)
+  DateTime updatedAt;
+
+  LoginProfile(
+    this.id,
+    this.server,
+    this.username,
+    this.password,
+    this.accessToken,
+    this.tokenType,
+    this.superUser,
+    this.userId,
+    this.userName,
+    this.level,
+    this.permissionsJson,
+    this.wizard,
+    this.updatedAt, {
+    this.avatar,
+  });
 }

@@ -10,12 +10,12 @@ import 'package:moviepilot_mobile/modules/site/models/site_models.dart';
 import 'package:moviepilot_mobile/modules/site/models/site_userdata_cache.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/ios_shared_session_service.dart';
-import 'package:moviepilot_mobile/services/realm_service.dart';
+import 'package:moviepilot_mobile/services/hive_service.dart';
 
 class SiteController extends GetxController {
   final _apiClient = Get.find<ApiClient>();
   final _iosSharedSessionService = Get.find<IosSharedSessionService>();
-  final _realm = Get.find<RealmService>();
+  final _hive = Get.find<HiveService>();
   final _log = Get.find<AppLog>();
 
   final items = <SiteItem>[].obs;
@@ -250,10 +250,10 @@ class SiteController extends GetxController {
 
   void loadFromCache() {
     if (kIsWeb) return;
-    final siteCaches = _realm.realm.all<SiteModelCache>();
+    final siteCaches = _hive.siteModelCacheBox.values.toList();
     if (siteCaches.isEmpty) return;
 
-    final userDataCaches = _realm.realm.all<SiteUserDataCache>();
+    final userDataCaches = _hive.siteUserDataCacheBox.values.toList();
     final userDataByDomain = <String, SiteUserDataModel>{};
     for (final c in userDataCaches) {
       userDataByDomain[c.domain] = SiteUserDataModel(
@@ -279,7 +279,7 @@ class SiteController extends GetxController {
       );
     }
 
-    final iconCaches = _realm.realm.all<SiteIconCache>();
+    final iconCaches = _hive.siteIconCacheBox.values.toList();
     final iconBytesByUrl = <String, List<int>>{};
     for (final c in iconCaches) {
       if (c.iconBase64.isEmpty) continue;
@@ -482,12 +482,14 @@ class SiteController extends GetxController {
     }
     final userDataCaches = userDataByDomain.values.toList();
 
-    _realm.realm.write(() {
-      _realm.realm.deleteAll<SiteModelCache>();
-      _realm.realm.deleteAll<SiteUserDataCache>();
-      _realm.realm.addAll(siteCaches, update: true);
-      _realm.realm.addAll(userDataCaches, update: true);
-    });
+    _hive.siteModelCacheBox.clear();
+    _hive.siteUserDataCacheBox.clear();
+    for (final c in siteCaches) {
+      _hive.siteModelCacheBox.put(c.id, c);
+    }
+    for (final c in userDataCaches) {
+      _hive.siteUserDataCacheBox.put(c.domain, c);
+    }
   }
 
   /// 先按站点 url 查本地 icon 缓存，未命中再请求接口并写入 Realm（url -> base64）
@@ -499,7 +501,7 @@ class SiteController extends GetxController {
       return _fetchIconBytesFromApi(site.id, url);
     }
 
-    final cached = _realm.realm.find<SiteIconCache>(url);
+    final cached = _hive.siteIconCacheBox.get(url);
     if (cached != null && cached.iconBase64.isNotEmpty) {
       return _decodeBase64ToBytes(cached.iconBase64);
     }
@@ -547,9 +549,7 @@ class SiteController extends GetxController {
       if (bytes.isEmpty) return null;
 
       if (!kIsWeb && siteUrl.isNotEmpty) {
-        _realm.realm.write(() {
-          _realm.realm.add(SiteIconCache(siteUrl, base64), update: true);
-        });
+        _hive.siteIconCacheBox.put(siteUrl, SiteIconCache(siteUrl, base64));
       }
 
       return bytes;

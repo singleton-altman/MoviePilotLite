@@ -11,7 +11,7 @@ import 'package:moviepilot_mobile/modules/plugin/models/plugin_model_cache.dart'
 import 'package:moviepilot_mobile/utils/prefs_keys.dart';
 import 'package:moviepilot_mobile/modules/login/models/login_response.dart';
 import 'package:moviepilot_mobile/modules/profile/models/user_info.dart';
-import 'package:moviepilot_mobile/services/realm_service.dart';
+import 'package:moviepilot_mobile/services/hive_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 应用全局服务
@@ -319,10 +319,10 @@ class AppService extends GetxService {
     int? userId,
     String? accessToken,
   }) {
-    if (!Get.isRegistered<RealmService>()) return null;
+    if (!Get.isRegistered<HiveService>()) return null;
     try {
       final profiles =
-          Get.find<RealmService>().realm.all<LoginProfile>().toList()
+          Get.find<HiveService>().loginProfileBox.values.toList()
             ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       if (profiles.isEmpty) return null;
 
@@ -417,23 +417,23 @@ class AppService extends GetxService {
   }
 
   void _clearPluginCaches() {
-    if (kIsWeb || !Get.isRegistered<RealmService>()) return;
+    if (kIsWeb || !Get.isRegistered<HiveService>()) return;
     try {
       final scopeKey = pluginCacheScopeKey;
       if (scopeKey.isEmpty) return;
-      final realm = Get.find<RealmService>().realm;
-      final installed = realm
-          .all<InstalledPluginModelCache>()
+      final hive = Get.find<HiveService>();
+      final installedKeys = hive
+          .installedPluginModelCacheBox.values
           .where((item) => matchesInstalledPluginScope(item.id, scopeKey))
+          .map((e) => e.id)
           .toList();
-      final market = realm
-          .all<PluginModelCache>()
+      final marketKeys = hive
+          .pluginModelCacheBox.values
           .where((item) => matchesPluginMarketScope(item.id, scopeKey))
+          .map((e) => e.id)
           .toList();
-      realm.write(() {
-        realm.deleteMany(installed);
-        realm.deleteMany(market);
-      });
+      hive.installedPluginModelCacheBox.deleteAll(installedKeys);
+      hive.pluginModelCacheBox.deleteAll(marketKeys);
     } catch (_) {}
   }
 
