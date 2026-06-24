@@ -47,8 +47,6 @@ dependencies:
     path: ./altman_totp
   lottie: ^3.3.3
 dependency_overrides:
-  modal_bottom_sheet:
-    path: ./third_party/modal_bottom_sheet
   path_provider:
     git:
       url: https://gitcode.com/openharmony-tpc/flutter_packages.git
