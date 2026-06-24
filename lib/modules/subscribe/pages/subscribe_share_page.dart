@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:moviepilot_mobile/modules/subscribe/controllers/subscribe_share_controller.dart';
 import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_models.dart';
 import 'package:moviepilot_mobile/modules/subscribe/widgets/shared_subscribe_detail_sheet.dart';
@@ -238,7 +237,7 @@ class SubscribeSharePage extends GetView<SubscribeShareController> {
     BuildContext context,
     SubscribeShareItem item,
   ) {
-    showCupertinoModalBottomSheet<void>(
+    showModalBottomSheet<void>(
       context: context,
       builder: (ctx) => SharedSubscribeDetailSheet(item: item),
     );

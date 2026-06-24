@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:moviepilot_mobile/gen/assets.gen.dart';
 import 'package:moviepilot_mobile/modules/dashboard/controllers/dashboard_controller.dart';
 import 'package:moviepilot_mobile/modules/dashboard/pages/edit_dashboard_page.dart';
@@ -493,7 +492,7 @@ class AppSettingPage extends GetView<AppSettingController> {
     if (!Get.isRegistered<DashboardController>()) {
       Get.put(DashboardController());
     }
-    await showCupertinoModalBottomSheet<void>(
+    await showModalBottomSheet<void>(
       context: context,
       builder: (_) => const EditDashboardPage(),
     );

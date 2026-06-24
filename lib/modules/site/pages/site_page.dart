@@ -5,7 +5,6 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:moviepilot_mobile/modules/site/controllers/site_controller.dart';
 import 'package:moviepilot_mobile/modules/site/controllers/site_statistic_controller.dart';
 import 'package:moviepilot_mobile/modules/site/models/site_statistic_models.dart';
@@ -84,9 +83,8 @@ class _SitePageState extends State<SitePage> {
 
   void _openStatistic(BuildContext context) {
     Get.put(SiteStatisticController(), permanent: false);
-    showCupertinoModalBottomSheet<void>(
+    showModalBottomSheet<void>(
       context: context,
-      expand: true,
       builder: (sheetContext) {
         return const SiteStatisticPage();
       },

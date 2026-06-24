@@ -1,175 +1,87 @@
 {
   "HVIGOR_OHOS_PLUGIN": {
-    "MODULES": [
-      {
-        "MODULE_NAME": "923fe53966c6cd9343e11af776cd4b05be315ea4b200b02e4d5dfb0f929b73bf",
-        "API_TYPE": "stageMode",
-        "INCLUDE_IN_BUILD": true,
-        "IS_COMMAND_LINE_ENTRY_MODULE": true,
-        "MODULE_TYPE": "entry",
-        "INCREMENTAL_TASKS": {
-          "COMPILE_ARKTS": true
-        },
-        "IS_INCREMENTAL_MODULE": true
-      },
-      {
-        "MODULE_NAME": "d24ed749b3a1bee1d5be93b373aa26a54bf3b5ffd06b9efa3f619a07925e6926",
-        "API_TYPE": "stageMode",
-        "INCLUDE_IN_BUILD": true,
-        "IS_COMMAND_LINE_ENTRY_MODULE": false,
-        "MODULE_TYPE": "har",
-        "IS_BYTE_CODE_HAR": true,
-        "IS_INCREMENTAL_MODULE": true
-      },
-      {
-        "MODULE_NAME": "e3dcef4662d14c48e1e5fcc2d8656219d672228e4026e8ade978971fbdbd61a4",
-        "API_TYPE": "stageMode",
-        "INCLUDE_IN_BUILD": true,
-        "IS_COMMAND_LINE_ENTRY_MODULE": false,
-        "MODULE_TYPE": "har",
-        "IS_BYTE_CODE_HAR": true,
-        "IS_INCREMENTAL_MODULE": true
-      },
-      {
-        "MODULE_NAME": "1c86a33abe871d5632544e5a555ac41fa5efc88d455eb493ed3af09ca9e27c7c",
-        "API_TYPE": "stageMode",
-        "INCLUDE_IN_BUILD": true,
-        "IS_COMMAND_LINE_ENTRY_MODULE": false,
-        "MODULE_TYPE": "har",
-        "IS_BYTE_CODE_HAR": true,
-        "IS_INCREMENTAL_MODULE": true
-      },
-      {
-        "MODULE_NAME": "9507ed95f3f3689a9842a36a06110a9925ebc5f170462e23a3c5b684e96fa1db",
-        "API_TYPE": "stageMode",
-        "INCLUDE_IN_BUILD": true,
-        "IS_COMMAND_LINE_ENTRY_MODULE": false,
-        "MODULE_TYPE": "har",
-        "IS_BYTE_CODE_HAR": true,
-        "IS_INCREMENTAL_MODULE": true
-      },
-      {
-        "MODULE_NAME": "b7fee722c4902ecb7d3dc2e99f4b1ffa6c9074a4451277556ed68e48d6254428",
-        "API_TYPE": "stageMode",
-        "INCLUDE_IN_BUILD": true,
-        "IS_COMMAND_LINE_ENTRY_MODULE": false,
-        "MODULE_TYPE": "har",
-        "IS_BYTE_CODE_HAR": true,
-        "IS_INCREMENTAL_MODULE": true
-      },
-      {
-        "MODULE_NAME": "64569eb3bc300b216f9ac831db09b1ac42d61f1f0e712b8be1fb9945e64b01b5",
-        "API_TYPE": "stageMode",
-        "INCLUDE_IN_BUILD": true,
-        "IS_COMMAND_LINE_ENTRY_MODULE": false,
-        "MODULE_TYPE": "har",
-        "IS_BYTE_CODE_HAR": true,
-        "IS_INCREMENTAL_MODULE": true
-      }
-    ],
+    "MODULES": [],
     "NATIVE_COMPILER": "Default",
-    "IS_FULL_BUILD": false,
-    "BUILD_MODE": "debug",
-    "USE_NORMALIZED_OHMURL": true
+    "IS_FULL_BUILD": true
   },
   "HVIGOR": {
     "IS_INCREMENTAL": true,
     "IS_DAEMON": true,
     "IS_PARALLEL": true,
     "IS_HVIGORFILE_TYPE_CHECK": false,
-    "TASK_TIME": {
-      "923fe53966c6cd9343e11af776cd4b05be315ea4b200b02e4d5dfb0f929b73bf": {
-        "PreBuild": 5104209,
-        "CreateModuleInfo": 366959,
-        "PreCheckSyscap": 82667,
-        "GeneratePkgSdkInfo": 876625,
-        "ProcessIntegratedHsp": 236167,
-        "SyscapTransform": 481750,
-        "ProcessRouterMap": 1103250,
-        "ProcessShareConfig": 649667,
-        "ProcessStartupConfig": 840125,
-        "GenerateLoaderJson": 7548792,
-        "ConfigureCmake": 67833,
-        "BuildNativeWithCmake": 78791,
-        "CompileResource": 474889042,
-        "BuildNativeWithNinja": 213291,
-        "BuildJS": 934417,
-        "CompileArkTS": 717064041,
-        "GeneratePkgModuleJson": 723084,
-        "ProcessCompiledResources": 214500,
-        "PackageHap": 411837167,
-        "PackingCheck": 2234333,
-        "SignHap": 294327042,
-        "CollectDebugSymbol": 339917,
-        "assembleHap": 62375
-      },
-      "d24ed749b3a1bee1d5be93b373aa26a54bf3b5ffd06b9efa3f619a07925e6926": {
-        "PreBuild": 11181000,
-        "ConfigureCmake": 63750,
-        "BuildNativeWithCmake": 160209,
-        "BuildNativeWithNinja": 159625
-      },
-      "e3dcef4662d14c48e1e5fcc2d8656219d672228e4026e8ade978971fbdbd61a4": {
-        "PreBuild": 2552375,
-        "ConfigureCmake": 117625,
-        "BuildNativeWithCmake": 69250,
-        "BuildNativeWithNinja": 120291
-      },
-      "1c86a33abe871d5632544e5a555ac41fa5efc88d455eb493ed3af09ca9e27c7c": {
-        "PreBuild": 1783042,
-        "ConfigureCmake": 419416,
-        "BuildNativeWithCmake": 57209,
-        "BuildNativeWithNinja": 104792
-      },
-      "9507ed95f3f3689a9842a36a06110a9925ebc5f170462e23a3c5b684e96fa1db": {
-        "PreBuild": 1533417,
-        "ConfigureCmake": 76333,
-        "BuildNativeWithCmake": 52333,
-        "BuildNativeWithNinja": 115875
-      },
-      "b7fee722c4902ecb7d3dc2e99f4b1ffa6c9074a4451277556ed68e48d6254428": {
-        "PreBuild": 1523458,
-        "ConfigureCmake": 62167,
-        "BuildNativeWithCmake": 55250,
-        "BuildNativeWithNinja": 119875
-      },
-      "64569eb3bc300b216f9ac831db09b1ac42d61f1f0e712b8be1fb9945e64b01b5": {
-        "PreBuild": 3516000,
-        "ConfigureCmake": 89041,
-        "BuildNativeWithCmake": 53584,
-        "BuildNativeWithNinja": 376667
-      }
-    },
+    "TASK_TIME": {},
     "APIS": [
-      "getHvigorConfig",
-      "includeNode",
-      "getContext",
-      "getCurrentProduct",
-      "getProductName",
-      "getParameter",
-      "getExtParam",
-      "getBuildMode",
-      "afterNodeEvaluate",
-      "subNodes",
-      "getNodeName",
-      "getAppJsonOpt",
-      "setAppJsonOpt",
-      "getOverrides",
-      "setOverrides",
-      "targets",
-      "getTargetName",
-      "registerTask",
-      "getDependenciesOpt",
-      "setDependenciesOpt",
-      "getNodePath",
-      "getProperty"
+      "getHvigorConfig"
     ],
     "CONFIG_EXPERIMENT": {
       "ENABLE_MODULE_SKIP": false,
       "ENABLE_CPP_FUNCTION_LEVEL_INCREMENTAL": false
     },
     "CONFIG_PROPERTIES": {},
-    "TOTAL_TIME": 8269557041,
-    "BUILD_ID": "202606241009336800"
+    "TOTAL_TIME": 15940417,
+    "BUILD_ID": "202606241152452800",
+    "ERROR_MESSAGE": [
+      {
+        "CODE": "00308018",
+        "STACK": "00308018 Unknown Error\n...",
+        "PROJECT_CONFIG": {
+          "buildMode": "Debug",
+          "compileMode": "esmodule",
+          "moduleType": "entry",
+          "targetName": ".default",
+          "packageManagerType": "ohpm",
+          "isLocalTest": false,
+          "needCoverageInsert": false,
+          "debugLine": false,
+          "compileSdkVersion": 23,
+          "compatibleSdkVersion": 18,
+          "originCompatibleSdkVersion": "5.1.0(18)",
+          "etsLoaderVersion": "6.1.0.105",
+          "etsLoaderReleaseType": "Release",
+          "aotCompileMode": "type",
+          "isCrossplatform": false,
+          "bundleType": "app",
+          "apiVersion": 23,
+          "isFaMode": false,
+          "deviceTypes": [
+            "phone"
+          ],
+          "integratedHsp": false,
+          "branchElimination": false,
+          "tsImportSendable": false,
+          "resolveConflictMode": true,
+          "useNativeResolver": true,
+          "shouldEmitJs": true,
+          "useTscResolve": false,
+          "singleFileEmit": false,
+          "executionMode": "memory",
+          "isHarDeduplicateEnabled": false,
+          "autoLazyImport": false,
+          "allowEmptyBundleName": false,
+          "reExportCheckMode": "noCheck",
+          "usePathPlaceholder": false,
+          "writeRollupCache": true,
+          "isExpandImportEnabled": false,
+          "ignoreCrossplatformCheck": false,
+          "skipOhModulesLint": false,
+          "enableStrictCheckOHModule": false,
+          "useDeclarationFileSignature": false,
+          "isPreloadSoEnabled": false,
+          "strictMode.caseSensitiveCheck": true,
+          "strictMode.useNormalizedOHMUrl": true,
+          "strictMode.noExternalImportByPath": true,
+          "runtimeOS": "HarmonyOS",
+          "sdkInfo": "false:23:6.1.0.105:Release",
+          "useSourceHash": false,
+          "isByteCodeHarOptimize": false,
+          "copyCodeResourceEnable": true,
+          "uiTransformOptimization": false
+        }
+      },
+      {
+        "CODE": "00308018",
+        "TIMESTAMP": "1782273165296"
+      }
+    ]
   }
 }

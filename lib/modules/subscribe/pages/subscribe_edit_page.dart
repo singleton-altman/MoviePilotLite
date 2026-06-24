@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:moviepilot_mobile/modules/settings/models/settings_enums.dart';
 import 'package:moviepilot_mobile/modules/settings/models/settings_field_config.dart';
 import 'package:moviepilot_mobile/modules/settings/state/settings_form_row_builder.dart';
@@ -345,7 +344,7 @@ class SubscribeEditPage extends GetView<SubscribeEditController> {
               : display,
           onTap: () async {
             final result =
-                await showCupertinoModalBottomSheet<({String area, List<int> sites})>(
+                await showModalBottomSheet<({String area, List<int> sites})>(
               context: context,
               builder: (ctx) {
                 final allIds = controller.allSites.map((s) => s.id).toSet();

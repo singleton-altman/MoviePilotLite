@@ -3,7 +3,6 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:moviepilot_mobile/modules/media_organize/controllers/media_organize_controller.dart';
 import 'package:moviepilot_mobile/modules/media_organize/models/media_organize_models.dart';
 import 'package:moviepilot_mobile/modules/media_organize/widgets/media_organize_detail_sheet.dart';
@@ -852,7 +851,7 @@ class MediaOrganizePage extends GetView<MediaOrganizeController> {
   }
 
   Future<void> _openFilterSheet(BuildContext context) {
-    return showCupertinoModalBottomSheet<void>(
+    return showModalBottomSheet<void>(
       context: context,
       builder: (ctx) => Obx(
         () => _MediaOrganizeFilterSheet(

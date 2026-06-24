@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:moviepilot_mobile/gen/assets.gen.dart';
 import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_widget_styles.dart';
 import 'package:moviepilot_mobile/modules/dashboard/widgets/cpu_widget.dart';
@@ -799,7 +798,7 @@ class DashboardPage extends GetView<DashboardController> {
       Get.delete<RecognizeController>();
     }
     Get.put(RecognizeController());
-    await showCupertinoModalBottomSheet<void>(
+    await showModalBottomSheet<void>(
       context: context,
       builder: (_) => const RecognizePage(),
     );
@@ -814,7 +813,7 @@ class DashboardPage extends GetView<DashboardController> {
       Get.delete<NetworkTestController>();
     }
     Get.put(NetworkTestController());
-    await showCupertinoModalBottomSheet<void>(
+    await showModalBottomSheet<void>(
       context: context,
       builder: (_) => const NetworkTestPage(),
     );
@@ -829,7 +828,7 @@ class DashboardPage extends GetView<DashboardController> {
       Get.delete<SystemHealthController>();
     }
     Get.put(SystemHealthController());
-    await showCupertinoModalBottomSheet<void>(
+    await showModalBottomSheet<void>(
       context: context,
       builder: (_) => const SystemHealthPage(),
     );

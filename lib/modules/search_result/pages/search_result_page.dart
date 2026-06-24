@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'dart:ui';
-import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:moviepilot_mobile/modules/search_result/controllers/search_result_controller.dart';
 import 'package:moviepilot_mobile/modules/search_result/models/search_result_models.dart';
 import 'package:moviepilot_mobile/modules/search_result/widgets/search_result_filter_sheet.dart'
@@ -439,7 +438,7 @@ class SearchResultPage extends GetView<SearchResultController> {
   ]) {
     final sheetTitle = '筛选';
     final clearLabel = '清空';
-    return showCupertinoModalBottomSheet<void>(
+    return showModalBottomSheet<void>(
       context: context,
       builder: (sheetContext) {
         return SizedBox(

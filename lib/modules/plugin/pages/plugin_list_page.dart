@@ -3,7 +3,6 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:moviepilot_mobile/modules/plugin/controllers/plugin_list_controller.dart';
 import 'package:moviepilot_mobile/modules/plugin/defines/plugin_list_filter_defines.dart';
 import 'package:moviepilot_mobile/modules/plugin/models/plugin_models.dart';
@@ -333,7 +332,7 @@ class PluginListPage extends GetView<PluginListController> {
     BuildContext context, [
     PluginListFilterType? filterMode,
   ]) {
-    return showCupertinoModalBottomSheet<void>(
+    return showModalBottomSheet<void>(
       context: context,
       builder: (sheetContext) {
         return SizedBox(

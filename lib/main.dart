@@ -163,13 +163,11 @@ Future<void> main() async {
       ({required formMode}) =>
           ProxmoxVEBackupFormController(formMode: formMode),
     );
-
-    registerProxmoxVeBackupRenderer();
-    registerAppLitePushRenderer();
-  } catch (e, stack) {
-    print('初始化失败: $e ');
-    print('初始化失败堆栈: $stack');
+  } catch (e) {
+    print('Error initializing app: $e');
   }
+  registerProxmoxVeBackupRenderer();
+  registerAppLitePushRenderer();
   runApp(const MyApp());
 }
 

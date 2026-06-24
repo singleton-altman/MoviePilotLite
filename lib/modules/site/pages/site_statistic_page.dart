@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:moviepilot_mobile/modules/site/controllers/site_statistic_controller.dart';
 import 'package:moviepilot_mobile/modules/site/models/site_statistic_models.dart';
 import 'package:moviepilot_mobile/theme/app_theme.dart';
@@ -145,7 +144,7 @@ class _SiteStatisticPageState extends State<SiteStatisticPage> {
 
   void _showNoteSheet(BuildContext context, SiteStatisticItem item) {
     if (item.note.isEmpty) return;
-    showCupertinoModalBottomSheet<void>(
+    showModalBottomSheet<void>(
       context: context,
       builder: (ctx) {
         return Material(

@@ -3,7 +3,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:altman_totp/page/totp_manage_page.dart';
-import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:moviepilot_mobile/widgets/cached_image.dart';
 
 import '../../../theme/app_theme.dart';
@@ -367,9 +366,8 @@ class LoginPage extends GetView<LoginController> {
               padding: const EdgeInsets.only(right: 8),
               minimumSize: const Size(0, 0),
               onPressed: () async {
-                final code = await showCupertinoModalBottomSheet<String>(
+                final code = await showModalBottomSheet<String>(
                   context: context,
-                  expand: true,
                   builder: (_) => TotpManagePage(
                     selectMode: true,
                     targetServer: controller.serverController.text.trim(),

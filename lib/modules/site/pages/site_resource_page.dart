@@ -3,7 +3,6 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:moviepilot_mobile/modules/search_result/widgets/search_result_torrent_item.dart';
 import 'package:moviepilot_mobile/modules/search_result/widgets/sort_pull_down_widget.dart';
 import 'package:moviepilot_mobile/modules/site/controllers/site_resource_controller.dart';
@@ -331,7 +330,7 @@ class SiteResourcePage extends GetView<SiteResourceController> {
   }
 
   Future<void> _openFilterSheet(BuildContext context) {
-    return showCupertinoModalBottomSheet<void>(
+    return showModalBottomSheet<void>(
       context: context,
       builder: (sheetContext) {
         return SizedBox(

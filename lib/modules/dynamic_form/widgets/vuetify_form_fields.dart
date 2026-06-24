@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/controllers/dynamic_form_controller.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/utils/vuetify_form_parser.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/widgets/vuetify_primitives.dart';
@@ -204,7 +203,7 @@ class VuetifySelectField extends StatelessWidget {
     final currentIndex = spec.items.indexWhere((item) => item.value == current);
     final initialIndex = currentIndex >= 0 ? currentIndex : 0;
 
-    showCupertinoModalBottomSheet<void>(
+    showModalBottomSheet<void>(
       context: context,
       builder: (sheetContext) => _VuetifySingleSelectSheet(
         label: spec.label,
@@ -221,7 +220,7 @@ class VuetifySelectField extends StatelessWidget {
   void _showMultiSelectPicker(BuildContext context, dynamic current) {
     final initialValues = current is Iterable ? current.toSet() : <dynamic>{};
 
-    showCupertinoModalBottomSheet<void>(
+    showModalBottomSheet<void>(
       context: context,
       builder: (sheetContext) => _VuetifyMultiSelectSheet(
         label: spec.label,

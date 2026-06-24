@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:moviepilot_mobile/gen/assets.gen.dart';
 import 'package:moviepilot_mobile/modules/media_detail/controllers/media_detail_controller.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/media_detail_model.dart';
@@ -966,7 +965,7 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
             detail,
             season.season_number ?? 0,
           );
-          showCupertinoModalBottomSheet(
+          showModalBottomSheet(
             context: context,
             builder: (context) => MediaSeasonDetailPage(
               reqPath: reqPath,

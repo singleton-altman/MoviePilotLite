@@ -29,7 +29,6 @@ dependencies:
   syncfusion_flutter_charts: ^31.1.25
   intl: ^0.20.2
   shared_preferences: ^2.3.2
-  modal_bottom_sheet: ^3.0.0
   skeletonizer: ^2.1.2
   url_launcher: ^6.3.2
   flutter_floating_bottom_bar: ^1.4.0

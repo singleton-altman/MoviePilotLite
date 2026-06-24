@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'dart:ui';
-import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:moviepilot_mobile/modules/discover/controllers/discover_controller.dart';
 import 'package:moviepilot_mobile/modules/recommend/models/recommend_api_item.dart';
 import 'package:moviepilot_mobile/modules/subscribe/controllers/subscribe_controller.dart';
@@ -788,7 +787,7 @@ class SubscribePage extends GetView<SubscribeController> {
   }
 
   Future<void> _openFilterSheet(BuildContext context) {
-    return showCupertinoModalBottomSheet<void>(
+    return showModalBottomSheet<void>(
       context: context,
       builder: (sheetContext) {
         return SizedBox(

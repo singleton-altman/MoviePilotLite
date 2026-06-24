@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/models/form_block_models.dart';
 import 'package:moviepilot_mobile/theme/section.dart';
 
@@ -585,7 +584,7 @@ class SelectFieldWidget extends StatelessWidget {
     final currentIndex = block.items.indexWhere((item) => item.value == value);
     final selectedIndex = currentIndex >= 0 ? currentIndex : 0;
 
-    showCupertinoModalBottomSheet<void>(
+    showModalBottomSheet<void>(
       context: context,
       builder: (context) => _SingleSelectPickerSheet(
         label: block.label,
@@ -706,7 +705,7 @@ class SelectFieldWidget extends StatelessWidget {
     final initialValues =
         (value is List ? (value as List).toSet() : <dynamic>{}).toSet();
 
-    showCupertinoModalBottomSheet<void>(
+    showModalBottomSheet<void>(
       context: context,
       builder: (context) => _MultiSelectPickerSheet(
         label: block.label,
