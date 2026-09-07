@@ -93,74 +93,13 @@ If needed, you can further use the `web_scraper.py` file to scrape the web page 
 - Test file operations should use Path objects for cross-platform compatibility
 - Mock external API calls and file operations to make tests reliable and fast
 
-## Task: 字幕结果页 Item 美化 + 整卡点击下载 Sheet（下载器/保存目录）
+## Task: 空图片缓存 FileImage 崩溃
 
-[X] ui-ux-pro-max 指导 Item 视觉
-[X] 移除下载按钮，整卡点击
-[X] SubtitleDownloadSheet 复用 DownloadController 选下载器/目录
-[X] downloadSubtitle 带 save_path
-
-## Done: 已安装插件 AppBar 三按钮配色区分（primary / cool / warm）
-
-## Done: 已安装插件 AppBar 取消「更多」，直接露出指定安装/备份中心/插件市场
-
-## Done: 插件备份中心 A — 顶部立即备份/导入 + 列表 → 恢复 Sheet
-
-## Done: 恢复安装按钮用 onPrimary 白字，避免 light 下 inverseText 深色反差
-
-## Done: 恢复列表右侧选中改为圆形 checkmark，去掉方角色块
-
-## Done: 恢复插件选择独立 Sheet，备份列表不再页内二次切换
-
-## Done: 备份/恢复 Item 背景改 pageBackgroundAlt，避免半透明 surface 发灰
-
-## Done: 插件页 AppBar title 去掉 titleLarge，对齐主题 16/w600
-
-## Done: 恢复进度保留成功/失败，不自动隐藏/关闭
-
-## Done: 备份列表删除改 ContextMenu + 文件名完整显示
-
-## Done: 删除备份确认 Dialog 美化（DashboardPalette + 危险色 + 文件信息卡）
-
-## Done: 已安装插件备份/恢复 — 本地 JSON + 多选批量 installPlugin（指定安装同逻辑）
-
-## Done: 插件安装量全 0 — statistic 解析/异常会中断合并；改为 Map.from + int 查找且 try/catch
-
-## Done: 插件市场 Item 箭头对齐 — 固定 desc/footer 高 + Grid 160 + chevron 与 chip 居中
-
-## Done: 插件市场缓存顺序 — Hive.values 无序，写入 listIndex 还原 API 序；旧缓存无 index 仍展示
-
-## Done: 更多页下载器 Item 左侧 icon 按 type 换 logo（qb/tr/通用）
-
-## Done: 媒体详情字幕搜索入口 + 按钮改版
-
-## Done: 已安装插件页（PluginPage）与插件市场同风格 bottom floating bar + visibleItems 缓存 + palette 预加载限制 + await loadFromCache
-
-## Done: 下载接口 500（对齐 WebUI POST /api/v1/download/ + 原始 torrent_in/media_in）
-
-## Done: iOS CI 构建失败 — altman_downloader_control 移除 controller_adaptor，本地 DownloaderControllerAdaptor 适配
-
-## Done: 下载 startDownload — API detail 为 List 时 ToastUtil.error 类型错误（_downloadApiErrorMessage）
-
-## Done: 插件页 Item 美化
-
-## Done: 订阅 Item 文件统计（Sheet + 海报墙）
+[X] 根因：appImageCache 写入 0 字节文件，FileImage/Palette 直接加载
+[X] FileService 拒绝空响应
+[X] getFileFromCache 剔除空文件
+[X] palette 不再走 FileImage
 
 ## Lessons
-- 插件备份恢复：本地 JSON 存 ApplicationSupport/plugin_backups/{scope}/；恢复走 GET /api/v1/plugin/install/{id}?repo_url&force=false；缺 repo_url 按市场缓存/PLUGIN_MARKET/官方仓/author_url 反推并多仓尝试
-- 插件市场缓存：Hive Box.values 不保证写入序；须存 listIndex 并在 loadFromCache 排序还原；旧缓存无 index 仍要展示（可按 installCount 近似），勿 skip
-- 字幕搜索 SSE：`GET /api/v1/search/subtitle/media/{mediaid}/stream`（mtype/title/year/sites[/season]）；事件 type=append/progress/replace/done；下载 `POST /api/v1/download/subtitle` 须原样回传 subtitle_in（保留 enclosure 签名），save_path 可为 null；接口无 downloader 字段，Sheet 仍选下载器以复用目录偏好与资源下载 UX
-- SSE 长连接 `streamLines` 的 receiveTimeout 须为 null，否则会在搜索中途被 Dio 掐断
-- 历史订阅重新订阅须 POST 原样 raw JSON（保留 completed_episode/episode_priority 等），勿仅用 SubscribeItem.toJson()
-- GET /api/v1/subscribe/history/{mtype}，mtype 为「电视剧」「电影」；DELETE /api/v1/subscribe/history/{id}
-- CupertinoContextMenu 列表卡预览须固定宽高，否则松约束会撑满导致 menuSheet 无布局空间
-- GET /api/v1/subscribe/files/{id} 返回 subscribe + episodes(download/library)；点击订阅 Item 打开文件统计 Sheet，编辑走菜单
-- 沉浸式媒体 Sheet 设计见 `.cursor/skills/immersive-backdrop-sheet/SKILL.md`：backdrop 全屏背景 + pageBackground 自上而下渐变 + 半透明列表卡；首屏用已有 Item 瞬时渲染，列表异步加载
-
-## Lessons (BrushFlow)
-- 自定义 PluginFormRenderer 需保证 adapter.blocks 非空（sentinel FormBlock），否则 DynamicFormPage 不进入 customRenderer 分支
-- BrushFlow 业务放 VueStyle/brush_flow + 独立 Service/Models，仅 Registry 注册，不改 DynamicFormController 通用逻辑
-- 提交 settings 时原样回写 show_sidebar_nav，App 内不提供侧边栏开关
-- 任务保存须组完整 body（非 dirty patch）；site_id 为 int，空文本可选字段传 null
-- 任务卡片操作走 CupertinoContextMenu（长按），勿在 item 内嵌编辑/暂停按钮
-- 清理：POST /tasks/{id}/clear body `{}`；删除：DELETE /tasks/{id}
+- Multifunction refreshDashboard 勿在刷新开头把 DataReady 置 false；*DataReady 控制列表/加载态，置 false 会清空可见列表。切回更多 Tab（index==3）会触发 refreshDashboard
+- appImageCache 空文件：FileImage 会抛 StateError（LocalFile is empty）。CacheManager 须在 getFileFromCache 剔除 0 字节并在 FileService 拒绝空响应；PaletteGenerator.fromImageProvider(FileImage) 无 onError 会打到 image resource service，改 instantiateImageCodec

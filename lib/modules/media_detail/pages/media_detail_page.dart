@@ -2001,17 +2001,28 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
   }
 
   String? _resolveAvatarUrl(Actor actor) {
-    if (actor.avatar == null) {
-      return "https://image.tmdb.org/t/p/w600_and_h900_bestv2/${actor.profile_path}";
+    final avatar = actor.avatar;
+    if (avatar != null) {
+      if (avatar.large != null && avatar.large!.trim().isNotEmpty) {
+        return ImageUtil.convertCacheImageUrl(avatar.large!);
+      }
+      if (avatar.normal != null && avatar.normal!.trim().isNotEmpty) {
+        return ImageUtil.convertCacheImageUrl(avatar.normal!);
+      }
     }
-    final avatar = actor.avatar!;
-    if (avatar.large != null && avatar.large!.trim().isNotEmpty) {
-      return ImageUtil.convertCacheImageUrl(avatar.large!);
+    final images = actor.images;
+    final imageUrl = images?.large?.url ?? images?.normal?.url;
+    if (imageUrl != null && imageUrl.trim().isNotEmpty) {
+      return ImageUtil.convertCacheImageUrl(imageUrl.trim());
     }
-    if (avatar.normal != null && avatar.normal!.trim().isNotEmpty) {
-      return ImageUtil.convertCacheImageUrl(avatar.normal!);
+    final profile = actor.profile_path?.trim();
+    if (profile == null || profile.isEmpty) return null;
+    if (profile.startsWith('http://') || profile.startsWith('https://')) {
+      return ImageUtil.convertCacheImageUrl(profile);
     }
-    return null;
+    return ImageUtil.convertCacheImageUrl(
+      'https://image.tmdb.org/t/p/w600_and_h900_bestv2/$profile',
+    );
   }
 
   MediaDetail _skeletonDetail() {

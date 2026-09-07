@@ -16,6 +16,8 @@ class HttpPathBuilderUtil {
         return 'douban';
       case DiscoverSource.bangumi:
         return 'bangumi';
+      case DiscoverSource.anilist:
+        return 'anilist';
     }
   }
 

@@ -43,6 +43,7 @@ class AppService extends GetxService {
   final backgroundImageEnabled = false.obs;
   final backgroundImageUseServer = false.obs;
   final backgroundImageServerUrl = ''.obs;
+  final hideBottomNavBar = false.obs;
 
   @override
   Future<void> onInit() async {

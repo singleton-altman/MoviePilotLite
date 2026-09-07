@@ -28,19 +28,22 @@ class PluginBackupService {
   Future<PluginBackupFile> saveBackup({
     required String scopeKey,
     required List<PluginItem> plugins,
+    bool auto = false,
   }) async {
     if (kIsWeb) {
       throw UnsupportedError('Web 暂不支持插件备份');
     }
+    final now = DateTime.now();
     final backup = PluginBackupFile(
       version: PluginBackupFile.currentVersion,
-      createdAt: DateTime.now(),
+      createdAt: now,
       scopeKey: scopeKey,
       plugins: plugins,
+      auto: auto,
     );
     final dir = await _scopeDir(scopeKey);
-    final stamp = _formatStamp(backup.createdAt);
-    final fileName = 'plugins_$stamp.json';
+    final stamp = _formatStamp(now);
+    final fileName = auto ? 'plugins_auto_$stamp.json' : 'plugins_$stamp.json';
     final file = File('${dir.path}/$fileName');
     const encoder = JsonEncoder.withIndent('  ');
     await file.writeAsString(encoder.convert(backup.toJson()), flush: true);
@@ -51,6 +54,7 @@ class PluginBackupService {
       plugins: backup.plugins,
       fileName: fileName,
       filePath: file.path,
+      auto: auto,
     );
   }
 
@@ -66,32 +70,49 @@ class PluginBackupService {
     }
     final items = <PluginBackupListItem>[];
     for (final file in files) {
+      final name = file.uri.pathSegments.isEmpty
+          ? file.path
+          : file.uri.pathSegments.last;
       try {
         final backup = await readBackupFile(file.path);
         items.add(
           PluginBackupListItem(
-            fileName: backup.fileName.isNotEmpty
-                ? backup.fileName
-                : file.uri.pathSegments.last,
+            fileName: backup.fileName.isNotEmpty ? backup.fileName : name,
             filePath: file.path,
             createdAt: backup.createdAt,
             pluginCount: backup.plugins.length,
+            imported: backup.imported,
+            auto: backup.auto,
           ),
         );
       } catch (_) {
         final stat = await file.stat();
         items.add(
           PluginBackupListItem(
-            fileName: file.uri.pathSegments.last,
+            fileName: name,
             filePath: file.path,
             createdAt: stat.modified,
             pluginCount: 0,
+            imported: name.startsWith('plugins_import_'),
+            auto: name.startsWith('plugins_auto_'),
           ),
         );
       }
     }
     items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return items;
+  }
+
+  bool hasAutoBackupOnDate(List<PluginBackupListItem> items, DateTime day) {
+    final y = day.year;
+    final m = day.month;
+    final d = day.day;
+    for (final item in items) {
+      if (!item.auto) continue;
+      final t = item.createdAt;
+      if (t.year == y && t.month == m && t.day == d) return true;
+    }
+    return false;
   }
 
   Future<PluginBackupFile> readBackupFile(String path) async {
@@ -124,12 +145,75 @@ class PluginBackupService {
     );
   }
 
+  Future<PluginBackupFile> importBackup({
+    required String scopeKey,
+    required PluginBackupFile source,
+  }) async {
+    if (kIsWeb) {
+      throw UnsupportedError('Web 暂不支持插件备份');
+    }
+    if (source.plugins.isEmpty) {
+      throw StateError('备份中没有可导入的插件');
+    }
+    final dir = await _scopeDir(scopeKey);
+    if (source.filePath.isNotEmpty) {
+      final existing = File(source.filePath);
+      final normalizedDir = dir.path.endsWith('/')
+          ? dir.path
+          : '${dir.path}/';
+      if (existing.path.startsWith(normalizedDir) && await existing.exists()) {
+        return source;
+      }
+    }
+    final now = DateTime.now();
+    final backup = PluginBackupFile(
+      version: source.version <= 0
+          ? PluginBackupFile.currentVersion
+          : source.version,
+      createdAt: source.createdAt,
+      scopeKey: scopeKey,
+      plugins: source.plugins,
+      imported: true,
+    );
+    final stamp = _formatStamp(now);
+    final fileName = 'plugins_import_$stamp.json';
+    final file = File('${dir.path}/$fileName');
+    const encoder = JsonEncoder.withIndent('  ');
+    await file.writeAsString(encoder.convert(backup.toJson()), flush: true);
+    return PluginBackupFile(
+      version: backup.version,
+      createdAt: backup.createdAt,
+      scopeKey: backup.scopeKey,
+      plugins: backup.plugins,
+      fileName: fileName,
+      filePath: file.path,
+      imported: true,
+    );
+  }
+
   Future<void> deleteBackup(String path) async {
     if (kIsWeb) return;
     final file = File(path);
     if (await file.exists()) {
       await file.delete();
     }
+  }
+
+  Future<({String fileName, List<int> bytes})> readBackupExportPayload(
+    String path,
+  ) async {
+    if (kIsWeb) {
+      throw UnsupportedError('Web 暂不支持导出备份');
+    }
+    final file = File(path);
+    if (!await file.exists()) {
+      throw StateError('备份文件不存在');
+    }
+    final bytes = await file.readAsBytes();
+    final name = file.uri.pathSegments.isEmpty
+        ? 'plugins_backup.json'
+        : file.uri.pathSegments.last;
+    return (fileName: name, bytes: bytes);
   }
 
   String _formatStamp(DateTime time) {

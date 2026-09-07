@@ -8,6 +8,7 @@ import 'package:moviepilot_mobile/modules/discover/controllers/discover_controll
 import 'package:moviepilot_mobile/modules/discover/pages/discover_page.dart';
 import 'package:moviepilot_mobile/modules/multifunction/controllers/multifunction_controller.dart';
 import 'package:moviepilot_mobile/modules/multifunction/pages/multifunction_page.dart';
+import 'package:moviepilot_mobile/modules/plugin/controllers/plugin_controller.dart';
 import 'package:moviepilot_mobile/modules/recommend/controllers/recommend_controller.dart';
 import 'package:moviepilot_mobile/modules/recommend/pages/recommend_page.dart';
 import 'package:moviepilot_mobile/modules/search/controllers/search_index_controller.dart';
@@ -80,7 +81,20 @@ class _IndexState extends State<Index> {
     Get.put(SearchIndexController(), permanent: true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _widgetNavigationService.navigateToPendingRoute();
+      _runPluginAutoBackupOnLaunch();
     });
+  }
+
+  Future<void> _runPluginAutoBackupOnLaunch() async {
+    if (!_appService.hasLoggedInSession) return;
+    if (!_appService.canManage) return;
+    if (!Get.isRegistered<PluginController>()) {
+      Get.put(PluginController(), permanent: true);
+    }
+    // 稍延后，等 session/scope 与网络就绪
+    await Future<void>.delayed(const Duration(milliseconds: 800));
+    if (!mounted) return;
+    await Get.find<PluginController>().runDailyAutoBackupIfNeeded();
   }
 
   @override
@@ -296,19 +310,24 @@ class _IndexState extends State<Index> {
 
         final useNativeGlass = snapshot.data == true;
 
-        return Scaffold(
-          backgroundColor: Colors.transparent,
-          extendBody: true,
-          body: useNativeGlass ? tabBody : _buildFloatingBottomBar(tabBody),
-          bottomNavigationBar: useNativeGlass
-              ? NativeGlassNavBar(
-                  tabs: _nativeTabs,
-                  currentIndex: _selectedIndex,
-                  tintColor: Theme.of(context).primaryColor,
-                  onTap: _onTabTap,
-                )
-              : null,
-        );
+        return Obx(() {
+          final hideNav = _appService.hideBottomNavBar.value;
+          return Scaffold(
+            backgroundColor: Colors.transparent,
+            extendBody: true,
+            body: useNativeGlass || hideNav
+                ? tabBody
+                : _buildFloatingBottomBar(tabBody),
+            bottomNavigationBar: useNativeGlass && !hideNav
+                ? NativeGlassNavBar(
+                    tabs: _nativeTabs,
+                    currentIndex: _selectedIndex,
+                    tintColor: Theme.of(context).primaryColor,
+                    onTap: _onTabTap,
+                  )
+                : null,
+          );
+        });
       },
     );
   }

@@ -25,6 +25,8 @@ class MediaSourceUtil {
         return 'douban';
       case 'bangumi':
         return 'bangumi';
+      case 'anilist':
+        return 'anilist';
     }
     return 'douban';
   }

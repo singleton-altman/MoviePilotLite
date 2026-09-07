@@ -6,10 +6,7 @@ import 'package:moviepilot_mobile/services/server_api_version_service.dart';
 
 /// 存储使用情况
 class StorageUsage {
-  const StorageUsage({
-    required this.total,
-    required this.available,
-  });
+  const StorageUsage({required this.total, required this.available});
 
   final double total;
   final double available;
@@ -113,30 +110,45 @@ class StorageListController extends GetxController {
     try {
       final isV3 = await _serverApiVersionService.isV3();
       final response = isV3
-          ? await _apiClient.postJson<dynamic>(
-              '/api/v1/storage/manage',
-              {
-                'target': _storageUsageTarget(type),
-                'action': 'usage',
-                'params': <String, dynamic>{},
-              },
-            )
+          ? await _apiClient.postJson<dynamic>('/api/v1/storage/manage', {
+              'target': _storageUsageTarget(type),
+              'action': 'usage',
+              'params': <String, dynamic>{},
+            })
           : await _apiClient.get<dynamic>('/api/v1/storage/usage/$type');
       final status = response.statusCode ?? 0;
       if (status >= 400) return null;
 
-      final data = response.data;
-      if (data is Map<String, dynamic>) {
-        return StorageUsage.fromJson(data);
-      }
-      if (data is Map && data['data'] is Map<String, dynamic>) {
-        return StorageUsage.fromJson(data['data'] as Map<String, dynamic>);
-      }
-      return null;
+      final payload = _unwrapUsagePayload(response.data);
+      if (payload == null) return null;
+      final usage = StorageUsage.fromJson(payload);
+      if (usage.total <= 0 && usage.available <= 0) return null;
+      return usage;
     } catch (e, st) {
       _log.handle(e, stackTrace: st, message: '获取存储使用信息失败: $type');
       return null;
     }
+  }
+
+  Map<String, dynamic>? _unwrapUsagePayload(dynamic data) {
+    if (data is! Map) return null;
+    final map = data is Map<String, dynamic>
+        ? data
+        : Map<String, dynamic>.from(data);
+    final nested = map['data'];
+    if (nested is Map) {
+      final nestedMap = nested is Map<String, dynamic>
+          ? nested
+          : Map<String, dynamic>.from(nested);
+      if (nestedMap.containsKey('total') ||
+          nestedMap.containsKey('available')) {
+        return nestedMap;
+      }
+    }
+    if (map.containsKey('total') || map.containsKey('available')) {
+      return map;
+    }
+    return null;
   }
 
   String _storageUsageTarget(String type) => type;
@@ -150,5 +162,24 @@ class StorageListController extends GetxController {
   StorageUsage? getUsageFor(String? type) {
     if (type == null || type.isEmpty) return null;
     return usageMap[type];
+  }
+
+  static bool isConfigured(StorageSetting storage) {
+    final type = storage.type.toLowerCase();
+    final config = storage.config;
+    if (type == 'local') return true;
+    if (type == 'alist' || type == 'openlist') {
+      final url = config['url']?.toString().trim() ?? '';
+      return url.isNotEmpty;
+    }
+    if (type == 'u115' || type == 'alipan') {
+      final access = config['access_token']?.toString().trim() ?? '';
+      final refresh = config['refresh_token']?.toString().trim() ?? '';
+      return access.isNotEmpty || refresh.isNotEmpty;
+    }
+    if (type == 'rclone') {
+      return config.values.any((v) => v?.toString().trim().isNotEmpty == true);
+    }
+    return config.values.any((v) => v?.toString().trim().isNotEmpty == true);
   }
 }

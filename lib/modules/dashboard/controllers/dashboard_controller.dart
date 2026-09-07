@@ -45,8 +45,8 @@ class DashboardController extends GetxController {
   /// 网络流量 [上行, 下行]
   final networkTraffic = <int>[0, 0].obs;
 
-  /// 内存数据 [内存占用(字节), 使用率(%)]
-  final memoryData = <int>[0, 0].obs;
+  /// 内存数据（API: /api/v1/dashboard/memory → DashboardMemoryInfo）
+  final memoryInfo = Rxn<DashboardMemoryInfo>();
 
   /// 下载器数据
   final downloaderData = <String, dynamic>{}.obs;
@@ -422,32 +422,50 @@ class DashboardController extends GetxController {
   Future<void> loadMemoryData() async {
     try {
       talker.info('开始加载内存数据');
-      final response = await apiClient.get<dynamic>('/api/v1/dashboard/memory');
+      final response = await apiClient.get<dynamic>(
+        '/api/v1/dashboard/memory',
+      );
       if (response.statusCode == 200) {
-        final data = response.data!;
-        int? memoryUsed;
-        int? memoryUsage;
-        if (data is Map) {
-          memoryUsed = (data['used'] as num?)?.toInt();
-          memoryUsage = (data['usage'] as num?)?.round();
-        } else if (data is List && data.length >= 2) {
-          memoryUsed = (data[0] as num?)?.toInt();
-          memoryUsage = (data[1] as num?)?.round();
+        final payload = _unwrapMemoryPayload(response.data);
+        if (payload == null) {
+          talker.warning('内存数据格式异常');
+          return;
         }
-        if (memoryUsed != null && memoryUsage != null) {
-          memoryData.value = [memoryUsed, memoryUsage];
-          _appendMemoryChartData(memoryUsage.toDouble());
-          talker.info('内存数据加载成功: 使用 $memoryUsed 字节, 使用率 $memoryUsage%');
-        }
+        final info = DashboardMemoryInfo.fromJson(payload);
+        memoryInfo.value = info;
+        _appendMemoryChartData(info.usage.clamp(0.0, 100.0));
+        talker.info(
+          '内存数据加载成功: used=${info.used}, available=${info.available}, '
+          'usage=${info.usage.toStringAsFixed(1)}%',
+        );
       } else if (response.statusCode == 401) {
         talker.error('内存数据加载失败: 未授权，请重新登录');
-        // 这里可以添加重定向到登录页面的逻辑
       } else {
         talker.warning('内存数据加载失败，状态码: ${response.statusCode}');
       }
     } catch (e, st) {
       talker.handle(e, stackTrace: st, message: '加载内存数据失败');
     }
+  }
+
+  Map<String, dynamic>? _unwrapMemoryPayload(dynamic data) {
+    if (data is! Map) return null;
+    final map = data is Map<String, dynamic>
+        ? data
+        : Map<String, dynamic>.from(data);
+    final nested = map['data'];
+    if (nested is Map) {
+      final nestedMap = nested is Map<String, dynamic>
+          ? nested
+          : Map<String, dynamic>.from(nested);
+      if (nestedMap.containsKey('used') || nestedMap.containsKey('total')) {
+        return nestedMap;
+      }
+    }
+    if (map.containsKey('used') || map.containsKey('total')) {
+      return map;
+    }
+    return null;
   }
 
   /// 根据开关配置更新displayedWidgets列表
@@ -753,4 +771,45 @@ class ChartDataPoint {
   const ChartDataPoint(this.index, this.value);
   final int index;
   final double value;
+}
+
+/// 仪表板内存信息（API: /api/v1/dashboard/memory）
+class DashboardMemoryInfo {
+  const DashboardMemoryInfo({
+    required this.total,
+    required this.used,
+    required this.cached,
+    required this.available,
+    required this.usage,
+  });
+
+  final int total;
+  final int used;
+  final int cached;
+  final int available;
+  final double usage;
+
+  factory DashboardMemoryInfo.fromJson(Map<String, dynamic> json) {
+    return DashboardMemoryInfo(
+      total: _asInt(json['total']),
+      used: _asInt(json['used']),
+      cached: _asInt(json['cached']),
+      available: _asInt(json['available']),
+      usage: _asDouble(json['usage']),
+    );
+  }
+
+  static int _asInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
+  }
+
+  static double _asDouble(Object? value) {
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0;
+    return 0;
+  }
 }

@@ -119,11 +119,13 @@ class Actor with _$Actor {
     @JsonKey(fromJson: _intFromJson) int? order,
     @JsonKey(fromJson: _actorAvatarFromJson, toJson: _actorAvatarToJson)
     ActorAvatar? avatar,
+    @JsonKey(fromJson: _actorImagesFromJson, toJson: _actorImagesToJson)
     ActorImages? images,
     String? sharing_url,
   }) = _Actor;
 
-  factory Actor.fromJson(Map<String, dynamic> json) => _$ActorFromJson(json);
+  factory Actor.fromJson(Map<String, dynamic> json) =>
+      _$ActorFromJson(_normalizeActorJson(json));
 }
 
 @freezed
@@ -132,7 +134,7 @@ class ActorImages with _$ActorImages {
       _ActorImages;
 
   factory ActorImages.fromJson(Map<String, dynamic> json) =>
-      _$ActorImagesFromJson(json);
+      _actorImagesFromJson(json) ?? const ActorImages();
 }
 
 @freezed
@@ -376,7 +378,80 @@ ActorAvatar? _actorAvatarFromJson(Object? value) {
   if (value is Map<String, dynamic>) {
     return ActorAvatar.fromJson(value);
   }
+  if (value is Map) {
+    return ActorAvatar.fromJson(Map<String, dynamic>.from(value));
+  }
   return null;
 }
 
 Map<String, dynamic>? _actorAvatarToJson(ActorAvatar? value) => value?.toJson();
+
+ActorImages? _actorImagesFromJson(Object? value) {
+  if (value == null) return null;
+  if (value is! Map) return null;
+  final map = value is Map<String, dynamic>
+      ? value
+      : Map<String, dynamic>.from(value);
+
+  ActorImage? parseImage(Object? raw) {
+    if (raw == null) return null;
+    if (raw is String) {
+      final url = raw.trim();
+      return url.isEmpty ? null : ActorImage(url: url);
+    }
+    if (raw is Map) {
+      final nested = raw is Map<String, dynamic>
+          ? raw
+          : Map<String, dynamic>.from(raw);
+      final url = nested['url']?.toString().trim();
+      if (url == null || url.isEmpty) return null;
+      return ActorImage(url: url);
+    }
+    return null;
+  }
+
+  return ActorImages(
+    large: parseImage(map['large']),
+    normal: parseImage(
+      map['normal'] ?? map['medium'] ?? map['small'] ?? map['grid'],
+    ),
+  );
+}
+
+Map<String, dynamic>? _actorImagesToJson(ActorImages? value) {
+  if (value == null) return null;
+  return {
+    'large': value.large?.toJson(),
+    'normal': value.normal?.toJson(),
+  };
+}
+
+Map<String, dynamic> _normalizeActorJson(Map<String, dynamic> json) {
+  final map = Map<String, dynamic>.from(json);
+  if ((map['character'] == null || map['character'].toString().isEmpty) &&
+      map['career'] is List) {
+    final career = (map['career'] as List)
+        .map((e) => e?.toString().trim() ?? '')
+        .where((e) => e.isNotEmpty)
+        .toList();
+    if (career.isNotEmpty) {
+      map['character'] = career.first;
+    }
+  }
+  if ((map['profile_path'] == null ||
+          map['profile_path'].toString().trim().isEmpty) &&
+      map['images'] is Map) {
+    final images = Map<String, dynamic>.from(map['images'] as Map);
+    final raw =
+        images['large'] ?? images['medium'] ?? images['small'] ?? images['grid'];
+    if (raw is String && raw.trim().isNotEmpty) {
+      map['profile_path'] = raw.trim();
+    } else if (raw is Map) {
+      final url = raw['url']?.toString().trim();
+      if (url != null && url.isNotEmpty) {
+        map['profile_path'] = url;
+      }
+    }
+  }
+  return map;
+}

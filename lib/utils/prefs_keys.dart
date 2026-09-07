@@ -18,3 +18,10 @@ const String kDownloadSheetLastDownloaderKey = 'download_sheet_last_downloader';
 
 /// 下载面板：上次选择的保存目录
 const String kDownloadSheetLastDirectoryKey = 'download_sheet_last_directory';
+
+/// 插件备份：是否启用每日自动备份
+const String kPluginAutoBackupEnabledKey = 'plugin_auto_backup_enabled';
+
+/// 插件备份：某服务器作用域上次自动备份日期（yyyy-MM-dd）
+String kPluginAutoBackupLastDateKey(String scopeKey) =>
+    'plugin_auto_backup_last_$scopeKey';

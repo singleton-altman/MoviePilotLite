@@ -8,6 +8,8 @@ class PluginBackupFile {
     required this.plugins,
     this.fileName = '',
     this.filePath = '',
+    this.imported = false,
+    this.auto = false,
   });
 
   final int version;
@@ -16,6 +18,8 @@ class PluginBackupFile {
   final List<PluginItem> plugins;
   final String fileName;
   final String filePath;
+  final bool imported;
+  final bool auto;
 
   static const int currentVersion = 1;
 
@@ -23,6 +27,8 @@ class PluginBackupFile {
     'version': version,
     'created_at': createdAt.toUtc().toIso8601String(),
     'scope_key': scopeKey,
+    'imported': imported,
+    'auto': auto,
     'plugins': plugins.map(_pluginToBackupJson).toList(),
   };
 
@@ -48,13 +54,20 @@ class PluginBackupFile {
       }
     }
     final createdRaw = json['created_at']?.toString();
+    final importedFlag = json['imported'] == true;
+    final autoFlag = json['auto'] == true;
+    final importedByName = fileName.startsWith('plugins_import_');
+    final autoByName = fileName.startsWith('plugins_auto_');
     return PluginBackupFile(
       version: _asInt(json['version'], fallback: currentVersion),
-      createdAt: DateTime.tryParse(createdRaw ?? '')?.toLocal() ?? DateTime.now(),
+      createdAt:
+          DateTime.tryParse(createdRaw ?? '')?.toLocal() ?? DateTime.now(),
       scopeKey: json['scope_key']?.toString() ?? '',
       plugins: plugins,
       fileName: fileName,
       filePath: filePath,
+      imported: importedFlag || importedByName,
+      auto: autoFlag || autoByName,
     );
   }
 
@@ -92,12 +105,16 @@ class PluginBackupListItem {
     required this.filePath,
     required this.createdAt,
     required this.pluginCount,
+    this.imported = false,
+    this.auto = false,
   });
 
   final String fileName;
   final String filePath;
   final DateTime createdAt;
   final int pluginCount;
+  final bool imported;
+  final bool auto;
 }
 
 class PluginBatchInstallProgress {

@@ -6,53 +6,74 @@ import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_widget_sty
 import 'package:moviepilot_mobile/modules/plugin/controllers/plugin_controller.dart';
 import 'package:moviepilot_mobile/modules/plugin/models/plugin_backup_models.dart';
 import 'package:moviepilot_mobile/modules/plugin/models/plugin_models.dart';
+import 'package:moviepilot_mobile/modules/plugin/pages/plugin_backup_diff_sheet.dart';
+import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
 import 'package:moviepilot_mobile/widgets/app_loading.dart';
 import 'package:moviepilot_mobile/widgets/cached_image.dart';
+import 'package:share_plus/share_plus.dart';
 
-Future<void> showPluginBackupCenterSheet(BuildContext context) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    isDismissible: true,
-    showDragHandle: false,
-    backgroundColor: Colors.transparent,
-    builder: (_) => DraggableScrollableSheet(
-      initialChildSize: 0.92,
-      minChildSize: 0.36,
-      maxChildSize: 1,
-      expand: false,
-      builder: (context, scrollController) {
-        return ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
-          child: PluginBackupCenterSheet(scrollController: scrollController),
-        );
-      },
-    ),
-  );
+Future<void> showPluginBackupCenterSheet(BuildContext context) async {
+  final palette = DashboardPalette.of(context);
+  final appService = Get.find<AppService>();
+  appService.hideBottomNavBar.value = true;
+  await WidgetsBinding.instance.endOfFrame;
+  try {
+    if (!context.mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useRootNavigator: true,
+      isDismissible: true,
+      showDragHandle: false,
+      backgroundColor: palette.pageBackground,
+      barrierColor: Colors.black.withValues(alpha: 0.45),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.92,
+        minChildSize: 0.4,
+        maxChildSize: 0.96,
+        expand: false,
+        builder: (context, scrollController) {
+          return ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            child: PluginBackupCenterSheet(scrollController: scrollController),
+          );
+        },
+      ),
+    );
+  } finally {
+    appService.hideBottomNavBar.value = false;
+  }
 }
 
 Future<void> showPluginBackupSelectSheet(
   BuildContext context,
   PluginBackupFile backup,
 ) {
+  final palette = DashboardPalette.of(context);
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    useSafeArea: true,
+    useRootNavigator: true,
     isDismissible: true,
     showDragHandle: false,
-    backgroundColor: Colors.transparent,
+    backgroundColor: palette.pageBackground,
+    barrierColor: Colors.black.withValues(alpha: 0.45),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
     builder: (_) => DraggableScrollableSheet(
       initialChildSize: 0.92,
       minChildSize: 0.42,
-      maxChildSize: 1,
+      maxChildSize: 0.96,
       expand: false,
       builder: (context, scrollController) {
         return ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           child: PluginBackupSelectSheet(
             backup: backup,
             scrollController: scrollController,
@@ -80,6 +101,8 @@ class _PluginBackupCenterSheetState extends State<PluginBackupCenterSheet> {
   bool _openingBackup = false;
   String? _errorText;
   List<PluginBackupListItem> _backups = const [];
+  bool _diffMode = false;
+  String? _diffFirstPath;
 
   @override
   void initState() {
@@ -128,6 +151,7 @@ class _PluginBackupCenterSheetState extends State<PluginBackupCenterSheet> {
             _SheetHeader(
               palette: palette,
               title: '备份中心',
+              subtitle: '本地插件清单 · 导入导出',
               onClose: () => Get.back(),
             ),
             Expanded(
@@ -143,39 +167,104 @@ class _PluginBackupCenterSheetState extends State<PluginBackupCenterSheet> {
                     20 + bottomSafe + bottomInset,
                   ),
                   children: [
-                    _InfoBanner(
-                      palette: palette,
-                      icon: Icons.info_outline_rounded,
-                      text:
-                          '在此备份已安装插件、导入 JSON，或从本地备份恢复。缺仓库地址时会自动反推并多仓尝试。',
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _ActionTile(
+                            palette: palette,
+                            icon: Icons.backup_rounded,
+                            label: backingUp ? '备份中' : '立即备份',
+                            color: palette.primary,
+                            loading: backingUp,
+                            onTap: busy ? null : _backupNow,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _ActionTile(
+                            palette: palette,
+                            icon: Icons.file_open_rounded,
+                            label: _openingBackup ? '读取中' : '导入 JSON',
+                            color: palette.coolAccent,
+                            outlined: true,
+                            loading: _openingBackup,
+                            onTap: busy ? null : _importFromFile,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 14),
-                    _PrimaryActionButton(
+                    const SizedBox(height: 12),
+                    _AutoBackupSwitch(
                       palette: palette,
-                      icon: Icons.backup_outlined,
-                      label: backingUp ? '备份中…' : '立即备份',
-                      loading: backingUp,
-                      onPressed: busy ? null : _backupNow,
-                    ),
-                    const SizedBox(height: 10),
-                    _PrimaryActionButton(
-                      palette: palette,
-                      icon: Icons.file_open_outlined,
-                      label: _openingBackup ? '读取中…' : '导入 JSON',
-                      onPressed: busy ? null : _importFromFile,
-                      outlined: true,
-                      loading: _openingBackup,
+                      enabled: _controller.autoBackupEnabled.value,
+                      onChanged: busy
+                          ? null
+                          : (value) async {
+                              await _controller.setAutoBackupEnabled(value);
+                              if (value && mounted) {
+                                await _reloadBackupList();
+                              }
+                            },
                     ),
                     const SizedBox(height: 18),
-                    Text(
-                      '本地备份',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.1,
-                        color: palette.mutedText,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          '本地备份',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.2,
+                            color: palette.titleText,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (!_loadingList && _backups.length >= 2)
+                          _MiniActionChip(
+                            palette: palette,
+                            label: _diffMode
+                                ? (_diffFirstPath == null
+                                      ? '选择第 1 份'
+                                      : '选择第 2 份')
+                                : '对比',
+                            selected: _diffMode,
+                            onTap: busy
+                                ? null
+                                : () {
+                                    setState(() {
+                                      if (_diffMode) {
+                                        _diffMode = false;
+                                        _diffFirstPath = null;
+                                      } else {
+                                        _diffMode = true;
+                                        _diffFirstPath = null;
+                                      }
+                                    });
+                                  },
+                          ),
+                        if (!_loadingList && _backups.isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          Text(
+                            '${_backups.length} 份',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: palette.mutedText,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
+                    if (_diffMode) ...[
+                      const SizedBox(height: 8),
+                      _InfoBanner(
+                        palette: palette,
+                        icon: Icons.compare_arrows_rounded,
+                        text: _diffFirstPath == null
+                            ? '请点选第一份备份作为基准（通常为较旧）'
+                            : '再点选第二份备份开始对比',
+                      ),
+                    ],
                     const SizedBox(height: 10),
                     if (_loadingList)
                       const Padding(
@@ -196,10 +285,19 @@ class _PluginBackupCenterSheetState extends State<PluginBackupCenterSheet> {
                         _BackupFileCard(
                           palette: palette,
                           item: _backups[i],
+                          selected: _diffMode &&
+                              _diffFirstPath == _backups[i].filePath,
                           onTap: busy
                               ? () {}
+                              : () => _onBackupTap(_backups[i]),
+                          onRestore: busy
+                              ? () {}
                               : () => _openBackup(_backups[i].filePath),
+                          onExport: () => _exportBackup(_backups[i]),
                           onDelete: () => _deleteBackup(_backups[i]),
+                          onCompare: _backups.length < 2
+                              ? null
+                              : () => _startDiffWith(_backups[i]),
                         ),
                         if (i != _backups.length - 1)
                           const SizedBox(height: 10),
@@ -220,6 +318,17 @@ class _PluginBackupCenterSheetState extends State<PluginBackupCenterSheet> {
       if (!mounted) return;
       ToastUtil.success('已备份 ${saved.plugins.length} 个插件');
       await _reloadBackupList();
+    } catch (e) {
+      ToastUtil.error(e.toString().replaceFirst('Bad state: ', ''));
+    }
+  }
+
+  Future<void> _exportBackup(PluginBackupListItem item) async {
+    try {
+      final status = await _controller.exportPluginBackup(item.filePath);
+      if (status == ShareResultStatus.success) {
+        ToastUtil.success('导出成功');
+      }
     } catch (e) {
       ToastUtil.error(e.toString().replaceFirst('Bad state: ', ''));
     }
@@ -251,7 +360,69 @@ class _PluginBackupCenterSheetState extends State<PluginBackupCenterSheet> {
     }
   }
 
+  void _onBackupTap(PluginBackupListItem item) {
+    if (_diffMode) {
+      _pickDiffTarget(item);
+      return;
+    }
+    _openBackup(item.filePath);
+  }
+
+  void _startDiffWith(PluginBackupListItem item) {
+    setState(() {
+      _diffMode = true;
+      _diffFirstPath = item.filePath;
+    });
+  }
+
+  Future<void> _pickDiffTarget(PluginBackupListItem item) async {
+    final first = _diffFirstPath;
+    if (first == null) {
+      setState(() {
+        _diffFirstPath = item.filePath;
+      });
+      return;
+    }
+    if (first == item.filePath) {
+      ToastUtil.info('请选择另一份备份');
+      return;
+    }
+    await _openDiff(first, item.filePath);
+  }
+
+  Future<void> _openDiff(String leftPath, String rightPath) async {
+    setState(() {
+      _openingBackup = true;
+      _errorText = null;
+    });
+    try {
+      final left = await _controller.readPluginBackup(leftPath);
+      final right = await _controller.readPluginBackup(rightPath);
+      if (!mounted) return;
+      setState(() {
+        _openingBackup = false;
+        _diffMode = false;
+        _diffFirstPath = null;
+      });
+      await showPluginBackupDiffSheet(
+        context: context,
+        left: left,
+        right: right,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ToastUtil.error('读取备份失败');
+      setState(() {
+        _openingBackup = false;
+      });
+    }
+  }
+
   Future<void> _importFromFile() async {
+    setState(() {
+      _openingBackup = true;
+      _errorText = null;
+    });
     try {
       final result = await fp.FilePicker.pickFiles(
         type: fp.FileType.custom,
@@ -261,24 +432,31 @@ class _PluginBackupCenterSheetState extends State<PluginBackupCenterSheet> {
       if (result == null || result.files.isEmpty) return;
       final file = result.files.first;
       final bytes = file.bytes;
-      if (bytes == null) {
-        if (file.path == null || file.path!.isEmpty) {
-          ToastUtil.error('无法读取所选文件');
-          return;
-        }
-        final backup = await _controller.readPluginBackup(file.path!);
-        if (!mounted) return;
-        await _openSelectSheet(backup);
+      final PluginBackupFile backup;
+      if (bytes != null) {
+        backup = await _controller.importPluginBackup(
+          bytes: bytes,
+          fileName: file.name,
+        );
+      } else if (file.path != null && file.path!.isNotEmpty) {
+        backup = await _controller.importPluginBackup(path: file.path);
+      } else {
+        ToastUtil.error('无法读取所选文件');
         return;
       }
-      final backup = await _controller.readPluginBackupBytes(
-        bytes,
-        fileName: file.name,
-      );
+      if (!mounted) return;
+      ToastUtil.success('已导入并保存 ${backup.plugins.length} 个插件备份');
+      await _reloadBackupList();
       if (!mounted) return;
       await _openSelectSheet(backup);
-    } catch (_) {
-      ToastUtil.error('导入备份失败');
+    } catch (e) {
+      ToastUtil.error(e.toString().replaceFirst('Bad state: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _openingBackup = false;
+        });
+      }
     }
   }
 
@@ -582,40 +760,56 @@ class _SheetHeader extends StatelessWidget {
     required this.palette,
     required this.title,
     required this.onClose,
+    this.subtitle,
   });
 
   final DashboardPaletteData palette;
   final String title;
+  final String? subtitle;
   final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         Container(
-          width: 40,
+          width: 36,
           height: 4,
           decoration: BoxDecoration(
-            color: palette.mutedText.withValues(alpha: 0.28),
+            color: palette.faintText.withValues(alpha: 0.45),
             borderRadius: BorderRadius.circular(999),
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
+          padding: const EdgeInsets.fromLTRB(16, 14, 8, 10),
           child: Row(
             children: [
-              const SizedBox(width: 40),
               Expanded(
-                child: Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.3,
-                    color: palette.titleText,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.3,
+                        color: palette.titleText,
+                      ),
+                    ),
+                    if (subtitle != null && subtitle!.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: palette.mutedText,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
               _HeaderIconButton(
@@ -627,6 +821,170 @@ class _SheetHeader extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ActionTile extends StatelessWidget {
+  const _ActionTile({
+    required this.palette,
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+    this.outlined = false,
+    this.loading = false,
+  });
+
+  final DashboardPaletteData palette;
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback? onTap;
+  final bool outlined;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    final bg = outlined
+        ? palette.pageBackgroundAlt
+        : Color.alphaBlend(
+            color.withValues(alpha: palette.isDark ? 0.28 : 0.14),
+            palette.pageBackgroundAlt,
+          );
+    return Material(
+      color: bg,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: outlined
+                  ? palette.tileBorder
+                  : color.withValues(alpha: enabled ? 0.4 : 0.18),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: palette.isDark ? 0.22 : 0.12),
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: loading
+                    ? SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: color,
+                        ),
+                      )
+                    : Icon(icon, size: 15, color: color),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: enabled ? palette.titleText : palette.faintText,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AutoBackupSwitch extends StatelessWidget {
+  const _AutoBackupSwitch({
+    required this.palette,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final DashboardPaletteData palette;
+  final bool enabled;
+  final ValueChanged<bool>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
+      decoration: BoxDecoration(
+        color: palette.pageBackgroundAlt,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: palette.tileBorder),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Color.alphaBlend(
+                palette.successAccent.withValues(
+                  alpha: palette.isDark ? 0.26 : 0.12,
+                ),
+                palette.pageBackgroundAlt,
+              ),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              Icons.autorenew_rounded,
+              size: 17,
+              color: palette.successAccent,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '每日自动备份',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: palette.titleText,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '开启后每天启动 App 自动备份一次',
+                  style: TextStyle(
+                    fontSize: 12,
+                    height: 1.3,
+                    color: palette.mutedText,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch.adaptive(
+            value: enabled,
+            onChanged: onChanged,
+            activeThumbColor: palette.successAccent,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -747,7 +1105,7 @@ class _EmptyBackupCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '点上方「立即备份」或「导入 JSON」开始。',
+            '点上方「立即备份」或「导入 JSON」开始。导出可分享到文件/隔空投送。',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
@@ -767,7 +1125,6 @@ class _PrimaryActionButton extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onPressed,
-    this.outlined = false,
     this.loading = false,
   });
 
@@ -775,35 +1132,10 @@ class _PrimaryActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback? onPressed;
-  final bool outlined;
   final bool loading;
 
   @override
   Widget build(BuildContext context) {
-    final enabled = onPressed != null;
-    if (outlined) {
-      return SizedBox(
-        width: double.infinity,
-        height: 48,
-        child: OutlinedButton.icon(
-          onPressed: onPressed,
-          icon: Icon(icon, size: 18),
-          label: Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: palette.primary,
-            side: BorderSide(
-              color: palette.primary.withValues(alpha: enabled ? 0.45 : 0.2),
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-        ),
-      );
-    }
     final onPrimary = Theme.of(context).colorScheme.onPrimary;
     return SizedBox(
       width: double.infinity,
@@ -822,7 +1154,10 @@ class _PrimaryActionButton extends StatelessWidget {
             : Icon(icon, size: 18),
         label: Text(
           label,
-          style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.2),
+          style: const TextStyle(
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.2,
+          ),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: palette.primary,
@@ -888,101 +1223,146 @@ class _BackupFileCard extends StatelessWidget {
     required this.palette,
     required this.item,
     required this.onTap,
+    required this.onRestore,
+    required this.onExport,
     required this.onDelete,
+    this.selected = false,
+    this.onCompare,
   });
 
   final DashboardPaletteData palette;
   final PluginBackupListItem item;
   final VoidCallback onTap;
+  final VoidCallback onRestore;
+  final VoidCallback onExport;
   final VoidCallback onDelete;
+  final bool selected;
+  final VoidCallback? onCompare;
 
-  static const double _hPad = 12;
-  static const double _icon = 44;
-  static const double _gap = 12;
-  static const double _chevron = 28;
+  static const double _cardHeight = 88;
 
   @override
   Widget build(BuildContext context) {
-    final time =
+    final dateLabel =
         '${item.createdAt.year.toString().padLeft(4, '0')}-'
         '${item.createdAt.month.toString().padLeft(2, '0')}-'
-        '${item.createdAt.day.toString().padLeft(2, '0')} '
+        '${item.createdAt.day.toString().padLeft(2, '0')}';
+    final timeLabel =
         '${item.createdAt.hour.toString().padLeft(2, '0')}:'
         '${item.createdAt.minute.toString().padLeft(2, '0')}';
+    final accent = selected ? palette.primary : palette.coolAccent;
+    final borderColor = selected
+        ? palette.primary.withValues(alpha: 0.55)
+        : palette.tileBorder;
+
     final card = Material(
       color: palette.pageBackgroundAlt,
       borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 72),
-          padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
+        child: Ink(
+          height: _cardHeight,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: palette.tileBorder),
-            boxShadow: [
-              BoxShadow(
-                color: palette.shadow,
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
+            border: Border.all(color: borderColor, width: selected ? 1.5 : 1),
           ),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Container(width: 4, color: accent),
+              const SizedBox(width: 12),
               Container(
-                width: _icon,
-                height: _icon,
+                width: 44,
+                height: 44,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: palette.coolAccent.withValues(
-                    alpha: palette.isDark ? 0.18 : 0.12,
+                  color: Color.alphaBlend(
+                    accent.withValues(alpha: palette.isDark ? 0.26 : 0.12),
+                    palette.pageBackgroundAlt,
                   ),
-                  borderRadius: BorderRadius.circular(13),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
-                  Icons.inventory_2_outlined,
-                  color: palette.coolAccent,
-                  size: 22,
+                  selected
+                      ? Icons.check_rounded
+                      : Icons.inventory_2_rounded,
+                  color: accent,
+                  size: 20,
                 ),
               ),
-              const SizedBox(width: _gap),
+              const SizedBox(width: 12),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.fileName,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.2,
-                        height: 1.3,
-                        color: palette.titleText,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              dateLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.25,
+                                height: 1.2,
+                                color: palette.titleText,
+                              ),
+                            ),
+                          ),
+                          if (item.auto) ...[
+                            const SizedBox(width: 8),
+                            _BackupMetaChip(
+                              palette: palette,
+                              icon: Icons.autorenew_rounded,
+                              label: '自动',
+                              color: palette.successAccent,
+                            ),
+                          ] else if (item.imported) ...[
+                            const SizedBox(width: 8),
+                            _BackupMetaChip(
+                              palette: palette,
+                              icon: Icons.download_rounded,
+                              label: '导入',
+                              color: palette.warningAccent,
+                            ),
+                          ],
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$time · ${item.pluginCount} 个插件',
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        color: palette.mutedText,
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          _BackupMetaChip(
+                            palette: palette,
+                            icon: Icons.schedule_rounded,
+                            label: timeLabel,
+                          ),
+                          const SizedBox(width: 6),
+                          _BackupMetaChip(
+                            palette: palette,
+                            icon: Icons.extension_rounded,
+                            label: '${item.pluginCount} 插件',
+                            color: accent,
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Icon(
-                  CupertinoIcons.chevron_right,
-                  size: 16,
-                  color: palette.mutedText,
-                ),
+              Icon(
+                selected
+                    ? Icons.compare_arrows_rounded
+                    : CupertinoIcons.chevron_right,
+                size: 15,
+                color: selected ? accent : palette.faintText,
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 12),
             ],
           ),
         ),
@@ -992,6 +1372,31 @@ class _BackupFileCard extends StatelessWidget {
     return CupertinoContextMenu.builder(
       enableHapticFeedback: true,
       actions: [
+        CupertinoContextMenuAction(
+          trailingIcon: CupertinoIcons.share,
+          onPressed: () {
+            Navigator.of(context).pop();
+            onExport();
+          },
+          child: const Text('导出备份'),
+        ),
+        CupertinoContextMenuAction(
+          trailingIcon: CupertinoIcons.arrow_down_doc,
+          onPressed: () {
+            Navigator.of(context).pop();
+            onRestore();
+          },
+          child: const Text('恢复安装'),
+        ),
+        if (onCompare != null)
+          CupertinoContextMenuAction(
+            trailingIcon: CupertinoIcons.arrow_right_arrow_left,
+            onPressed: () {
+              Navigator.of(context).pop();
+              onCompare!();
+            },
+            child: const Text('作为对比基准'),
+          ),
         CupertinoContextMenuAction(
           isDestructiveAction: true,
           trailingIcon: CupertinoIcons.delete,
@@ -1003,30 +1408,105 @@ class _BackupFileCard extends StatelessWidget {
         ),
       ],
       builder: (context, animation) {
-        final maxWidth = MediaQuery.sizeOf(context).width - 32;
-        final textWidth =
-            maxWidth - _hPad - _icon - _gap - _chevron - 8;
-        final namePainter = TextPainter(
-          text: TextSpan(
-            text: item.fileName,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.2,
-              height: 1.3,
-            ),
-          ),
-          textDirection: TextDirection.ltr,
-        )..layout(maxWidth: textWidth.clamp(80, maxWidth));
-        final height = (24 + namePainter.height + 4 + 18 + 12)
-            .clamp(72.0, MediaQuery.sizeOf(context).height * 0.32);
-        namePainter.dispose();
         return SizedBox(
-          width: maxWidth,
-          height: height,
+          width: MediaQuery.sizeOf(context).width - 32,
+          height: _cardHeight,
           child: card,
         );
       },
+    );
+  }
+}
+
+class _MiniActionChip extends StatelessWidget {
+  const _MiniActionChip({
+    required this.palette,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final DashboardPaletteData palette;
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = palette.primary;
+    return Material(
+      color: selected
+          ? Color.alphaBlend(
+              accent.withValues(alpha: palette.isDark ? 0.28 : 0.14),
+              palette.pageBackgroundAlt,
+            )
+          : palette.surfaceAlt,
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: selected
+                  ? accent.withValues(alpha: 0.45)
+                  : palette.tileBorder,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: selected ? accent : palette.mutedText,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BackupMetaChip extends StatelessWidget {
+  const _BackupMetaChip({
+    required this.palette,
+    required this.icon,
+    required this.label,
+    this.color,
+  });
+
+  final DashboardPaletteData palette;
+  final IconData icon;
+  final String label;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final tone = color ?? palette.mutedText;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(7, 4, 8, 4),
+      decoration: BoxDecoration(
+        color: palette.surfaceAlt,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: palette.tileBorder),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: tone),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              color: tone,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

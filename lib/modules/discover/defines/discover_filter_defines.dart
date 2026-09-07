@@ -219,4 +219,87 @@ class DiscoverFilterDefines {
     DiscoverFilterOption(label: '2018', value: '2018'),
     DiscoverFilterOption(label: '2017', value: '2017'),
   ];
+
+  static const List<DiscoverFilterOption> anilistSortOptions = [
+    DiscoverFilterOption(label: '热度', value: 'POPULARITY_DESC'),
+    DiscoverFilterOption(label: '趋势', value: 'TRENDING_DESC'),
+    DiscoverFilterOption(label: '评分', value: 'SCORE_DESC'),
+    DiscoverFilterOption(label: '收藏', value: 'FAVOURITES_DESC'),
+    DiscoverFilterOption(label: '开播时间', value: 'START_DATE_DESC'),
+    DiscoverFilterOption(label: '更新时间', value: 'UPDATED_AT_DESC'),
+  ];
+
+  static const Map<String, String> anilistSortLabels = {
+    'POPULARITY_DESC': '热度',
+    'TRENDING_DESC': '趋势',
+    'SCORE_DESC': '评分',
+    'FAVOURITES_DESC': '收藏',
+    'START_DATE_DESC': '开播时间',
+    'UPDATED_AT_DESC': '更新时间',
+  };
+
+  static const List<DiscoverFilterOption> anilistFormatOptions = [
+    DiscoverFilterOption(label: 'TV', value: 'TV'),
+    DiscoverFilterOption(label: 'TV Short', value: 'TV_SHORT'),
+    DiscoverFilterOption(label: '剧场版', value: 'MOVIE'),
+    DiscoverFilterOption(label: '特别篇', value: 'SPECIAL'),
+    DiscoverFilterOption(label: 'OVA', value: 'OVA'),
+    DiscoverFilterOption(label: 'ONA', value: 'ONA'),
+    DiscoverFilterOption(label: '音乐', value: 'MUSIC'),
+  ];
+
+  static const List<DiscoverFilterOption> anilistSeasonOptions = [
+    DiscoverFilterOption(label: '冬', value: 'WINTER'),
+    DiscoverFilterOption(label: '春', value: 'SPRING'),
+    DiscoverFilterOption(label: '夏', value: 'SUMMER'),
+    DiscoverFilterOption(label: '秋', value: 'FALL'),
+  ];
+
+  static const List<DiscoverFilterOption> anilistStatusOptions = [
+    DiscoverFilterOption(label: '已完结', value: 'FINISHED'),
+    DiscoverFilterOption(label: '放送中', value: 'RELEASING'),
+    DiscoverFilterOption(label: '未放送', value: 'NOT_YET_RELEASED'),
+    DiscoverFilterOption(label: '已取消', value: 'CANCELLED'),
+    DiscoverFilterOption(label: '休刊', value: 'HIATUS'),
+  ];
+
+  static const List<DiscoverFilterOption> anilistCountryOptions = [
+    DiscoverFilterOption(label: '日本', value: 'JP'),
+    DiscoverFilterOption(label: '中国', value: 'CN'),
+    DiscoverFilterOption(label: '韩国', value: 'KR'),
+    DiscoverFilterOption(label: '台湾', value: 'TW'),
+  ];
+
+  static const List<DiscoverFilterOption> anilistGenreOptions = [
+    DiscoverFilterOption(label: '动作', value: 'Action'),
+    DiscoverFilterOption(label: '冒险', value: 'Adventure'),
+    DiscoverFilterOption(label: '喜剧', value: 'Comedy'),
+    DiscoverFilterOption(label: '剧情', value: 'Drama'),
+    DiscoverFilterOption(label: 'Ecchi', value: 'Ecchi'),
+    DiscoverFilterOption(label: '奇幻', value: 'Fantasy'),
+    DiscoverFilterOption(label: '恐怖', value: 'Horror'),
+    DiscoverFilterOption(label: '魔法少女', value: 'Mahou Shoujo'),
+    DiscoverFilterOption(label: '机甲', value: 'Mecha'),
+    DiscoverFilterOption(label: '音乐', value: 'Music'),
+    DiscoverFilterOption(label: '悬疑', value: 'Mystery'),
+    DiscoverFilterOption(label: '心理', value: 'Psychological'),
+    DiscoverFilterOption(label: '恋爱', value: 'Romance'),
+    DiscoverFilterOption(label: '科幻', value: 'Sci-Fi'),
+    DiscoverFilterOption(label: '日常', value: 'Slice of Life'),
+    DiscoverFilterOption(label: '运动', value: 'Sports'),
+    DiscoverFilterOption(label: '超自然', value: 'Supernatural'),
+    DiscoverFilterOption(label: '惊悚', value: 'Thriller'),
+  ];
+
+  static const List<DiscoverFilterOption> anilistSeasonYearOptions = [
+    DiscoverFilterOption(label: '2026', value: '2026'),
+    DiscoverFilterOption(label: '2025', value: '2025'),
+    DiscoverFilterOption(label: '2024', value: '2024'),
+    DiscoverFilterOption(label: '2023', value: '2023'),
+    DiscoverFilterOption(label: '2022', value: '2022'),
+    DiscoverFilterOption(label: '2021', value: '2021'),
+    DiscoverFilterOption(label: '2020', value: '2020'),
+    DiscoverFilterOption(label: '2019', value: '2019'),
+    DiscoverFilterOption(label: '2018', value: '2018'),
+  ];
 }

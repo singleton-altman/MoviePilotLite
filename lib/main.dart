@@ -593,7 +593,9 @@ class MyApp extends StatelessWidget {
                 () => PluginPaletteCache(),
                 fenix: true,
               );
-              Get.put(PluginController(), permanent: false);
+              if (!Get.isRegistered<PluginController>()) {
+                Get.put(PluginController(), permanent: true);
+              }
             }),
             middlewares: permissionGuards('/plugin'),
           ),

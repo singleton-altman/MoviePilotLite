@@ -17,13 +17,11 @@ class MemoryWidget extends StatelessWidget {
     final palette = DashboardPalette.of(context);
 
     return Obx(() {
-      final memoryData = controller.memoryData;
-      final memoryUsed = memoryData.isNotEmpty ? memoryData.first : 0;
-      final memoryUsage = memoryData.length > 1 ? memoryData.last : 0;
+      final info = controller.memoryInfo.value;
+      final memoryUsed = info?.used ?? 0;
+      final memoryUsage = info?.usage ?? 0.0;
+      final freeMemory = info?.available ?? 0;
       final chartData = controller.memoryChartData;
-
-      const totalMemory = 16 * 1024 * 1024 * 1024;
-      final freeMemory = totalMemory - memoryUsed;
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,7 +44,7 @@ class MemoryWidget extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           DashboardProgressBar(
-            value: memoryUsage / 100,
+            value: (memoryUsage / 100).clamp(0.0, 1.0),
             color: palette.coolAccent,
             height: 6,
           ),
@@ -110,8 +108,9 @@ class MemoryWidget extends StatelessWidget {
     final palette = DashboardPalette.of(context);
 
     return Obx(() {
-      final memoryData = controller.memoryData;
-      final memoryUsed = memoryData.isNotEmpty ? memoryData.first : 0;
+      final info = controller.memoryInfo.value;
+      final memoryUsed = info?.used ?? 0;
+      final memoryUsage = info?.usage ?? 0.0;
       final chartData = controller.memoryChartData;
 
       return Container(
@@ -124,14 +123,28 @@ class MemoryWidget extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '内存',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.2,
-                color: palette.faintText,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '内存',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2,
+                      color: palette.faintText,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${memoryUsage.toStringAsFixed(0)}%',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: palette.mutedText,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 6),
             SizedBox(

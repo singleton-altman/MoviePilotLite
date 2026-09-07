@@ -18,7 +18,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 enum DiscoverSource {
   tmdb('TheMovieDB'),
   douban('豆瓣'),
-  bangumi('Bangumi');
+  bangumi('Bangumi'),
+  anilist('AniList');
 
   const DiscoverSource(this.label);
 
@@ -520,6 +521,12 @@ class DiscoverController extends GetxController {
     DiscoverSource source,
     DiscoverFilters filter,
   ) {
+    if (source == DiscoverSource.anilist) {
+      return _DiscoverRequest(
+        path: '/api/v1/anilist/discover',
+        query: filter.toAnilistQueryParameters(),
+      );
+    }
     final endpoint = _endpointFor(source, filter);
     return _DiscoverRequest(
       path: '/api/v1/discover/$endpoint',
@@ -563,6 +570,11 @@ class DiscoverController extends GetxController {
           bangumiCategory: '',
           sortBy: 'rank',
         );
+      case DiscoverSource.anilist:
+        return const DiscoverFilters(
+          mediaType: '',
+          sortBy: 'POPULARITY_DESC',
+        );
     }
   }
 
@@ -574,6 +586,8 @@ class DiscoverController extends GetxController {
         return _isTvType(filter.mediaType) ? 'douban_tvs' : 'douban_movies';
       case DiscoverSource.bangumi:
         return 'bangumi';
+      case DiscoverSource.anilist:
+        return 'anilist';
     }
   }
 
@@ -589,6 +603,9 @@ class DiscoverController extends GetxController {
   ) {
     if (source == DiscoverSource.douban) {
       return _buildDoubanQuery(filter);
+    }
+    if (source == DiscoverSource.anilist) {
+      return filter.toAnilistQueryParameters();
     }
     final options = _queryOptionsFor(source, filter);
     final params = filter.toQueryParameters(
@@ -704,6 +721,18 @@ class DiscoverController extends GetxController {
           filter.bangumiCategory.isEmpty ? '类别:全部' : filter.bangumiCategory,
           _labelForSort(DiscoverFilterDefines.bangumiSortLabels, filter.sortBy),
           filter.bangumiYear.isEmpty ? '年份:全部' : filter.bangumiYear,
+        ]);
+      case DiscoverSource.anilist:
+        return _joinSummary([
+          source.label,
+          _labelForSort(DiscoverFilterDefines.anilistSortLabels, filter.sortBy),
+          filter.anilistFormat.isEmpty ? '形态:全部' : filter.anilistFormat,
+          filter.anilistGenre.isEmpty ? '风格:全部' : filter.anilistGenre,
+          filter.anilistSeason.isEmpty
+              ? '季度:全部'
+              : '${filter.anilistSeasonYear.isEmpty ? '' : filter.anilistSeasonYear}${filter.anilistSeason}',
+          filter.anilistStatus.isEmpty ? '状态:全部' : filter.anilistStatus,
+          filter.anilistCountry.isEmpty ? '地区:全部' : filter.anilistCountry,
         ]);
     }
   }

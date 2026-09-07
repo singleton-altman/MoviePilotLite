@@ -41,7 +41,14 @@ class _SiteSelectSheetState extends State<SiteSelectSheet> {
   static const _prefsKeyPrefix = 'site_select_last';
   static const _prefsKeyPrefixSeason = 'media_search_last_season';
 
+  Set<int> get _disabledSiteIds => {
+    ...?widget.disabledIds,
+    for (final item in siteController.items)
+      if (!item.site.isActive) item.site.id,
+  };
+
   void _done() {
+    _filterSelection(allowEmpty: true);
     if (widget.scene == SiteSelectScene.search) {
       _persistSelection();
       _persistSeason();
@@ -130,12 +137,12 @@ class _SiteSelectSheetState extends State<SiteSelectSheet> {
     return '$_prefsKeyPrefix:$baseUrl:$userId';
   }
 
-  void _filterSelection() {
-    if (siteController.items.isEmpty) {
+  void _filterSelection({bool allowEmpty = false}) {
+    if (siteController.items.isEmpty && !allowEmpty) {
       return;
     }
     final ids = siteController.items.map((e) => e.site.id).toSet();
-    final disabled = (widget.disabledIds ?? const <int>[]).toSet();
+    final disabled = _disabledSiteIds;
     final filtered = selectedSite
         .where((id) => ids.contains(id) && !disabled.contains(id))
         .toList();
@@ -293,10 +300,7 @@ class _SiteSelectSheetState extends State<SiteSelectSheet> {
                                       child: Obx(
                                         () => Text(
                                           () {
-                                            final disabled =
-                                                (widget.disabledIds ??
-                                                        const <int>[])
-                                                    .toSet();
+                                            final disabled = _disabledSiteIds;
                                             final enabledCount = siteController
                                                 .items
                                                 .where(
@@ -320,10 +324,7 @@ class _SiteSelectSheetState extends State<SiteSelectSheet> {
                                     Obx(
                                       () => InkWell(
                                         onTap: () {
-                                          final disabled =
-                                              (widget.disabledIds ??
-                                                      const <int>[])
-                                                  .toSet();
+                                          final disabled = _disabledSiteIds;
                                           final enabledIds = siteController
                                               .items
                                               .map((e) => e.site.id)
@@ -351,9 +352,7 @@ class _SiteSelectSheetState extends State<SiteSelectSheet> {
                                               Icon(
                                                 () {
                                                   final disabled =
-                                                      (widget.disabledIds ??
-                                                              const <int>[])
-                                                          .toSet();
+                                                      _disabledSiteIds;
                                                   final enabledCount =
                                                       siteController.items
                                                           .where(
@@ -377,9 +376,7 @@ class _SiteSelectSheetState extends State<SiteSelectSheet> {
                                               Text(
                                                 () {
                                                   final disabled =
-                                                      (widget.disabledIds ??
-                                                              const <int>[])
-                                                          .toSet();
+                                                      _disabledSiteIds;
                                                   final enabledCount =
                                                       siteController.items
                                                           .where(
@@ -679,9 +676,7 @@ class _SiteSelectSheetState extends State<SiteSelectSheet> {
     final theme = Theme.of(context);
     return Obx(() {
       final isSelected = selectedSite.contains(item.site.id);
-      final disabled = (widget.disabledIds ?? const <int>[]).toSet().contains(
-        item.site.id,
-      );
+      final disabled = _disabledSiteIds.contains(item.site.id);
 
       return Material(
         color: Colors.transparent,

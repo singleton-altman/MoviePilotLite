@@ -15,6 +15,12 @@ class DiscoverFilters {
     this.releaseDate = '',
     this.bangumiCategory = '',
     this.bangumiYear = '',
+    this.anilistGenre = '',
+    this.anilistFormat = '',
+    this.anilistSeason = '',
+    this.anilistSeasonYear = '',
+    this.anilistStatus = '',
+    this.anilistCountry = '',
   });
 
   final int page;
@@ -32,6 +38,12 @@ class DiscoverFilters {
   final String releaseDate;
   final String bangumiCategory;
   final String bangumiYear;
+  final String anilistGenre;
+  final String anilistFormat;
+  final String anilistSeason;
+  final String anilistSeasonYear;
+  final String anilistStatus;
+  final String anilistCountry;
 
   DiscoverFilters copyWith({
     int? page,
@@ -49,6 +61,12 @@ class DiscoverFilters {
     String? releaseDate,
     String? bangumiCategory,
     String? bangumiYear,
+    String? anilistGenre,
+    String? anilistFormat,
+    String? anilistSeason,
+    String? anilistSeasonYear,
+    String? anilistStatus,
+    String? anilistCountry,
   }) {
     return DiscoverFilters(
       page: page ?? this.page,
@@ -66,6 +84,12 @@ class DiscoverFilters {
       releaseDate: releaseDate ?? this.releaseDate,
       bangumiCategory: bangumiCategory ?? this.bangumiCategory,
       bangumiYear: bangumiYear ?? this.bangumiYear,
+      anilistGenre: anilistGenre ?? this.anilistGenre,
+      anilistFormat: anilistFormat ?? this.anilistFormat,
+      anilistSeason: anilistSeason ?? this.anilistSeason,
+      anilistSeasonYear: anilistSeasonYear ?? this.anilistSeasonYear,
+      anilistStatus: anilistStatus ?? this.anilistStatus,
+      anilistCountry: anilistCountry ?? this.anilistCountry,
     );
   }
 
@@ -104,6 +128,23 @@ class DiscoverFilters {
     if (useProductionCountries && regionCodes.isNotEmpty) {
       params['production_countries'] = regionCodes.join('|');
     }
+    return params;
+  }
+
+  Map<String, String> toAnilistQueryParameters() {
+    final params = <String, String>{
+      'page': page.toString(),
+      'count': '20',
+    };
+    if (anilistGenre.isNotEmpty) params['genre'] = anilistGenre;
+    if (anilistFormat.isNotEmpty) params['format'] = anilistFormat;
+    if (anilistSeason.isNotEmpty) params['season'] = anilistSeason;
+    if (anilistSeasonYear.isNotEmpty) {
+      params['season_year'] = anilistSeasonYear;
+    }
+    if (anilistStatus.isNotEmpty) params['status'] = anilistStatus;
+    if (anilistCountry.isNotEmpty) params['country'] = anilistCountry;
+    if (sortBy.isNotEmpty) params['sort'] = sortBy;
     return params;
   }
 
