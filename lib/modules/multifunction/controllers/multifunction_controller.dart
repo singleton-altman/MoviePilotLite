@@ -12,6 +12,7 @@ import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/services/hive_service.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
+import 'package:moviepilot_mobile/utils/media_identity_util.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -551,7 +552,11 @@ class MultifunctionController extends GetxController {
   }
 
   Future<void> _buildCalendarInfo(List<Map<String, dynamic>> subscribes) async {
-    final tvItems = subscribes
+    // Normalize every subscribe item first so V3 media_source/media_id
+    // fields get back-filled into legacy tmdbid/doubanid etc. keys.
+    final normalizedSubscribes =
+        subscribes.map(normalizeSubscribeJson).toList();
+    final tvItems = normalizedSubscribes
         .where((item) {
           final type = (item['type']?.toString() ?? '').trim().toLowerCase();
           return type.contains('tv') || type.contains('电视剧');
