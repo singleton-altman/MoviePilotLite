@@ -38,6 +38,9 @@ class SearchMediaController extends GetxController {
   var sites = <int>[];
   late SearchType searchType;
 
+  /// 本轮流式搜索的 HTTP 状态(失败时用于区分"流式失败"与"本地失败")
+  int? _lastStreamStatus;
+
   final items = <SearchResultItem>[].obs;
   final isLoading = false.obs;
   final errorText = RxnString();
@@ -199,6 +202,7 @@ class SearchMediaController extends GetxController {
     _progressSessionId++;
     final sessionId = _progressSessionId;
     _streamTerminalHandled = false;
+    _lastStreamStatus = null;
 
     items.clear();
     isLoading.value = true;
@@ -260,41 +264,52 @@ class SearchMediaController extends GetxController {
     required String token,
     required int sessionId,
   }) async {
-    try {
-      final stream = await _apiClient.streamLines(
-        _streamPath(),
-        token: token,
-        handleAuth: false,
-      );
-      if (sessionId != _progressSessionId) return true;
-      _searchStreamSubscription = stream.listen(
-        (line) {
-          if (sessionId != _progressSessionId) return;
-          _handleSearchStreamLine(line);
-        },
-        onError: (Object e, StackTrace st) {
-          if (!_consumeStreamTerminal(sessionId)) return;
-          _log.handle(e, stackTrace: st, message: '搜索 SSE 失败');
-          unawaited(_recoverAfterStream(token: token, sessionId: sessionId));
-        },
-        onDone: () {
-          if (!_consumeStreamTerminal(sessionId)) return;
-          unawaited(_completeStreamSearch(token: token, sessionId: sessionId));
-        },
-        cancelOnError: false,
-      );
-      return true;
-    } on ApiHttpException catch (e, st) {
-      _log.handle(
-        e,
-        stackTrace: st,
-        message: '搜索 SSE HTTP ${e.statusCode}，回退阻塞搜索',
-      );
-      return false;
-    } catch (e, st) {
-      _log.handle(e, stackTrace: st, message: '搜索 SSE 不可用，回退阻塞搜索');
-      return false;
+    // 形态不确定:先按首选形态发起,被 422/404 拒时换另一种形态再试一次
+    // (两台真实服务器认的形态不同:一台缺 media_source 直接 422,
+    //  另一台旧式前缀形态会挂住不返回)
+    for (var index = 0; index < 2; index++) {
+      final path = await _streamPathForIndex(index);
+      try {
+        final stream = await _apiClient.streamLines(
+          path,
+          token: token,
+          handleAuth: false,
+        );
+        if (sessionId != _progressSessionId) return true;
+        _searchStreamSubscription = stream.listen(
+          (line) {
+            if (sessionId != _progressSessionId) return;
+            _handleSearchStreamLine(line);
+          },
+          onError: (Object e, StackTrace st) {
+            if (!_consumeStreamTerminal(sessionId)) return;
+            _log.handle(e, stackTrace: st, message: '搜索 SSE 失败');
+            unawaited(_recoverAfterStream(token: token, sessionId: sessionId));
+          },
+          onDone: () {
+            if (!_consumeStreamTerminal(sessionId)) return;
+            unawaited(_completeStreamSearch(token: token, sessionId: sessionId));
+          },
+          cancelOnError: false,
+        );
+        return true;
+      } on ApiHttpException catch (e, st) {
+        _lastStreamStatus = e.statusCode;
+        _log.handle(
+          e,
+          stackTrace: st,
+          message: '搜索 SSE HTTP ${e.statusCode}(形态 ${index + 1}) $path',
+        );
+        // ignore: avoid_print
+        print('[Search] 流式搜索 HTTP ${e.statusCode} 形态${index + 1}: $path');
+        if (searchType == SearchType.title) return false;
+        if (e.statusCode != 422 && e.statusCode != 404) return false;
+      } catch (e, st) {
+        _log.handle(e, stackTrace: st, message: '搜索 SSE 不可用，回退阻塞搜索');
+        return false;
+      }
     }
+    return false;
   }
 
   String _streamPath() {
@@ -304,6 +319,150 @@ class SearchMediaController extends GetxController {
       SearchType.title => '/api/v1/search/title/stream',
     };
     return query.isEmpty ? base : '$base?$query';
+  }
+
+  /// 标题搜索/媒体搜索的流式请求地址。
+  /// 媒体搜索按 [mediaSearchForms] 的候选形态:优先服务端能力表的形态,
+  /// 失败再回退另一种(见 [_startStreamSearch])。
+  Future<String> _streamPathForIndex(int index) async {
+    if (searchType == SearchType.title) return _streamPath();
+    final forms = await _mediaSearchForms(_streamQueryParametersForMedia());
+    final form = forms[index.clamp(0, forms.length - 1)];
+    final query = Uri(queryParameters: form.query).query;
+    final base = '${form.path}/stream';
+    return query.isEmpty ? base : '$base?$query';
+  }
+
+  /// 媒体搜索的通用查询参数(两种形态共用的一部分)
+  Map<String, String> _streamQueryParametersForMedia() => {
+        'mtype': mtype,
+        'area': area == 'title' ? 'title' : 'imdbid',
+        if (searchText.value.isNotEmpty) 'title': searchText.value,
+        if (year.isNotEmpty) 'year': year,
+        'sites': sites.join(','),
+        if (season != null && season!.isNotEmpty && season != '0')
+          'season': season!,
+      };
+
+  /// 媒体搜索的候选请求形态(按优先级):
+  /// ① 有媒体标识(`来源:数字`,如 tmdb:123):
+  ///    新式 `/api/v1/search/media/<数字标识>` + `media_source=<来源>`;
+  /// ② 无媒体标识(详情页在 tmdb 路径下传进来的是**标题**):
+  ///    改走**标题搜索接口** `/api/v1/search/title?keyword=<标题>&sites=...`。
+  ///
+  /// 为什么必须分开:两台真实服务器(2026-09-28 实测)都是 v3 契约,媒体搜索接口
+  /// **强制要求 media_source**,而标题形态拿不到来源值 → 用标题调媒体接口必然 422
+  /// (真机日志:`[{location: [query, media_source], message: Field required}]`);
+  /// 标题搜索接口不要求该参数,两台实测均 200。
+  Future<List<({String path, Map<String, dynamic> query})>> _mediaSearchForms(
+    Map<String, dynamic> baseQuery,
+  ) async {
+    final identity = MediaIdentity.parse(mediaSearchKey);
+    // ① 没有媒体标识(拿到的其实是标题):走标题搜索接口;
+    //    旧行为(标题当媒体标识调媒体接口)保留为兜底,老服务端仍可用
+    if (identity == null) {
+      return [
+        (
+          path: '/api/v1/search/title',
+          query: <String, dynamic>{
+            'keyword': searchText.value.isNotEmpty
+                ? searchText.value
+                : mediaSearchKey,
+            'sites': sites.join(','),
+          },
+        ),
+        (path: '/api/v1/search/media/$mediaSearchKey', query: baseQuery),
+      ];
+    }
+    // ② 按 IMDb 检索:保持原媒体接口语义,不做形态替换
+    if (area != 'title') {
+      return [
+        (path: '/api/v1/search/media/$mediaSearchKey', query: baseQuery),
+      ];
+    }
+    // ③ 有媒体标识且按标题检索:优先新式(数字标识 + media_source),失败再退回旧式。
+    // 形态优先级:搜索自己的实测记忆 > 服务端能力表;已知不需要新形态时不再打探测。
+    final legacy =
+        (path: '/api/v1/search/media/$mediaSearchKey', query: baseQuery);
+    final learned = _serverApiVersionService.searchNeedsMediaSource;
+    final preferNew = learned ?? await _serverApiVersionService.isV3();
+    final sources = learned == false
+        ? null
+        : await _serverApiVersionService.mediaSourceValues();
+    final newForm = (
+      path: '/api/v1/search/media/${identity.id}',
+      query: <String, dynamic>{
+        ...baseQuery,
+        'media_source': _pickSourceValue(identity.source, sources),
+      },
+    );
+    return preferNew ? [newForm, legacy] : [legacy, newForm];
+  }
+
+  /// 选服务端认的来源值:优先用服务端能力表里的写法(大小写/别名更稳),
+  /// 否则用媒体标识自身归一化后的来源(如 themoviedb)
+  String _pickSourceValue(String source, Set<String>? advertised) {
+    if (advertised != null && advertised.isNotEmpty) {
+      final wanted = source.toLowerCase();
+      for (final value in advertised) {
+        if (value == wanted) return value;
+      }
+      // 兼容 tmdb/themoviedb 这类同源不同写法
+      if (wanted == 'themoviedb' && advertised.contains('tmdb')) return 'tmdb';
+      if (wanted == 'tmdb' && advertised.contains('themoviedb')) {
+        return 'themoviedb';
+      }
+    }
+    return source;
+  }
+
+  /// 从服务端错误响应里提取可读原因。要兼容三种真实出现的形状:
+  /// 1) **裸数组**:服务端自带信封 `{success,message,data:[...]}` 被 ApiClient 解封后,
+  ///    校验错误列表直接成为 response.data(真机日志实证:422 拿到的就是这一种);
+  /// 2) **FastAPI 原始体**:`{detail:[{loc:[...],msg:'Field required'}]}`;
+  /// 3) **未解封的信封**:`{message:..., data:[...]}`。
+  /// 字段名取 loc/location 的最后一段,原因取 msg/message;都没有时退回顶层 msg/message。
+  String _serverErrorReason(dynamic body) {
+    final parts = <String>[];
+
+    void addItem(Object? item) {
+      if (item is! Map) return;
+      final loc = item['loc'] ?? item['location'];
+      var name = '';
+      if (loc is List && loc.isNotEmpty) {
+        name = loc.last.toString();
+      } else if (loc != null) {
+        name = loc.toString();
+      }
+      final reason = (item['msg'] ?? item['message'] ?? '').toString().trim();
+      if (name.isNotEmpty && reason.isNotEmpty) {
+        parts.add('$name: $reason');
+      } else if (reason.isNotEmpty) {
+        parts.add(reason);
+      }
+    }
+
+    if (body is List) {
+      for (final item in body) {
+        addItem(item);
+      }
+    } else if (body is Map) {
+      for (final key in const ['detail', 'data']) {
+        final list = body[key];
+        if (list is List) {
+          for (final item in list) {
+            addItem(item);
+          }
+        }
+      }
+      if (parts.isEmpty) {
+        final message = (body['message'] ?? body['msg'] ?? '').toString().trim();
+        if (message.isNotEmpty) parts.add(message);
+      }
+    }
+
+    // 去重后拼接(同一字段可能在 detail 与 data 里各出现一次)
+    return parts.toSet().join(' | ');
   }
 
   Map<String, String> _streamQueryParameters() {
@@ -455,44 +614,74 @@ class SearchMediaController extends GetxController {
     required int sessionId,
   }) async {
     _startProgressTracking();
-    final queryParameters = <String, dynamic>{
+    final baseQuery = <String, dynamic>{
       'mtype': mtype,
       'area': area == 'title' ? 'title' : 'imdbid',
       if (searchText.value.isNotEmpty) 'title': searchText.value,
       if (year.isNotEmpty) 'year': year,
       'sites': sites.join(','),
       'keyword': searchText.value,
+      if (season != null && season!.isNotEmpty && season != '0')
+        'season': season!,
     };
 
-    if (season != null && season!.isNotEmpty && season != '0') {
-      queryParameters['season'] = season!;
-    }
-    final identity = MediaIdentity.parse(mediaSearchKey);
-    final useV3 =
-        searchType == SearchType.media &&
-        identity != null &&
-        await _serverApiVersionService.isV3();
-    if (useV3) {
-      queryParameters['media_source'] = identity.source;
-    }
-    final endpoint = switch (searchType) {
-      SearchType.media => useV3
-          ? '/api/v1/search/media/${identity.id}'
-          : '/api/v1/search/media/$mediaSearchKey',
-      SearchType.title => '/api/v1/search/title',
-    };
-    final response = await _apiClient.get<dynamic>(
-      endpoint,
-      queryParameters: queryParameters,
-      token: token,
-      timeout: 60 * max(sites.length, 1),
-    );
+    final forms = searchType == SearchType.media
+        ? await _mediaSearchForms(baseQuery)
+        : <({String path, Map<String, dynamic> query})>[
+            (path: '/api/v1/search/title', query: baseQuery),
+          ];
 
-    if (sessionId != _progressSessionId) return;
+    dynamic response;
+    var failureReason = '';
+    var winnerHasSource = false;
+    for (var index = 0; index < forms.length; index++) {
+      final form = forms[index];
+      final printable = Uri(
+        queryParameters:
+            form.query.map((k, v) => MapEntry(k, v.toString())),
+      ).query;
+      // ignore: avoid_print
+      print('[Search] 请求(${index + 1}/${forms.length}) ${form.path}?$printable');
+      response = await _apiClient.get<dynamic>(
+        form.path,
+        queryParameters: form.query,
+        token: token,
+        timeout: 60 * max(sites.length, 1),
+      );
+      if (sessionId != _progressSessionId) return;
 
-    final status = response.statusCode ?? 0;
+      final status = response.statusCode ?? 0;
+      if (status < 400) {
+        winnerHasSource = form.query.containsKey('media_source');
+        // 形态确认:记住这台服务器认哪种,后续搜索不再试错。
+        // 只写搜索专用的形态记忆——写进全局 isV3 会连带影响信封解封、详情页、
+        // 订阅、字幕搜索、存储等模块的契约判断(评审阻塞项)。
+        if (searchType == SearchType.media) {
+          _serverApiVersionService.markSearchNeedsMediaSource(winnerHasSource);
+        }
+        break;
+      }
+
+      failureReason = _serverErrorReason(response.data);
+      final body = response.data?.toString() ?? '';
+      // ignore: avoid_print
+      print('[Search] 失败 HTTP $status ${form.path}?$printable '
+          '原因=$failureReason 响应=${body.length > 300 ? '${body.substring(0, 300)}…' : body}');
+      // 422/404 视为"形态不对":换另一种形态再试一次
+      if (index == 0 &&
+          forms.length > 1 &&
+          (status == 422 || status == 404)) {
+        continue;
+      }
+      break;
+    }
+
+    final status = response?.statusCode ?? 0;
     if (status >= 400) {
-      _finishSearchSession(sessionId, error: '请求失败 (HTTP $status)');
+      _finishSearchSession(
+        sessionId,
+        error: _searchFailureText(status, failureReason),
+      );
       return;
     }
 
@@ -504,6 +693,18 @@ class SearchMediaController extends GetxController {
     if (sessionId != _progressSessionId) return;
     _assignSearchResults(list);
     _finishSearchSession(sessionId);
+  }
+
+  /// 搜索失败文案:带上服务端给的原因(例如"media_source: Field required"),
+  /// 并区分流式与本地两次尝试,避免只看到一句 HTTP 码。
+  String _searchFailureText(int status, String reason) {
+    final buffer = StringBuffer('请求失败 (HTTP $status)');
+    if (reason.isNotEmpty) buffer.write('：$reason');
+    final streamStatus = _lastStreamStatus;
+    if (streamStatus != null) {
+      buffer.write('\n流式搜索 HTTP $streamStatus,已回退本地搜索');
+    }
+    return buffer.toString();
   }
 
   void _assignSearchResults(List<dynamic> list) {
