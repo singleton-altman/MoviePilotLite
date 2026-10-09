@@ -42,6 +42,9 @@ class LoginController extends GetxController {
   final isLoading = false.obs;
   final isPasswordVisible = false.obs;
 
+  /// 自动登录时连接服务器失败（进入主页前探测未通过）
+  final connectFailed = false.obs;
+
   /// 当前步骤：1=仅服务器，2=账号密码
   final step = 1.obs;
   final isAutoLogin = false.obs;
@@ -113,27 +116,26 @@ class LoginController extends GetxController {
     super.onClose();
   }
 
-  /// 进入下一步：验证服务器、获取壁纸、进入步骤 2
+  /// 进入下一步：进入账号密码步骤，壁纸改为后台加载，不阻塞步骤切换
   Future<void> goToNextStep() async {
     final server = _validatedServerInput();
     if (server == null) return;
     serverController.text = server;
 
-    isLoading.value = true;
+    step.value = 2;
+    unawaited(_loadWallpapersForServer(server));
+  }
+
+  Future<void> _loadWallpapersForServer(String server) async {
     try {
       final list = await _repository.fetchWallpapers(server);
       wallpapers.assignAll(list.isNotEmpty ? list : defaultWallpapers);
-      currentWallpaperIndex.value = 0;
-      step.value = 2;
-      _startWallpaperTimer();
     } catch (e) {
       _talker.warning('获取壁纸失败: $e');
       wallpapers.assignAll(defaultWallpapers);
-      _startWallpaperTimer();
-      step.value = 2;
-    } finally {
-      isLoading.value = false;
     }
+    currentWallpaperIndex.value = 0;
+    _startWallpaperTimer();
   }
 
   /// 返回步骤 1（保留壁纸以保持背景一致）
@@ -160,7 +162,14 @@ class LoginController extends GetxController {
   void resetForLogout() {
     isAutoLogin.value = false;
     isLoading.value = false;
+    connectFailed.value = false;
     step.value = 1;
+  }
+
+  /// 连接失败后由用户手动重试自动登录
+  Future<void> retryBootstrap() async {
+    connectFailed.value = false;
+    await _bootstrapSavedSession();
   }
 
   Future<void> _bootstrapSavedSession() async {
@@ -176,6 +185,18 @@ class LoginController extends GetxController {
 
     isAutoLogin.value = true;
     try {
+      // 进入主页前先用短超时探测服务器连通性，避免连不上时在主页挂 2 分钟。
+      final reachable = await _repository.probeServerConnectivity(
+        server: latestProfile.server,
+        accessToken: latestProfile.accessToken,
+      );
+      if (!reachable) {
+        _talker.warning('启动连接服务器失败: ${latestProfile.server}');
+        isAutoLogin.value = false;
+        connectFailed.value = true;
+        return;
+      }
+
       _repository.restoreLocalSession(profile: latestProfile);
       _talker.info('已恢复本地登录态');
 
@@ -186,9 +207,7 @@ class LoginController extends GetxController {
         Get.offAllNamed('/main');
       }
       imageUtil.loadGlobalCachedConfig();
-      Future.delayed(const Duration(seconds: 1), () {
-        isAutoLogin.value = false;
-      });
+      isAutoLogin.value = false;
     } catch (e) {
       _talker.warning('恢复本地登录态失败: $e');
       isAutoLogin.value = false;

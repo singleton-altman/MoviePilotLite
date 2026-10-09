@@ -141,7 +141,9 @@ class DashboardController extends GetxController {
 
   /// 启动周期性刷新
   void _startPeriodicRefresh() {
-    final duration = const Duration(seconds: kDebugMode ? 1000000 : 5);
+    // release 由 5 秒放宽到 15 秒：全量组件刷新会并发 10+ 个请求，
+    // 过密会在弱网下与启动初始化争抢带宽；debug 保持不自动刷。
+    final duration = const Duration(seconds: kDebugMode ? 1000000 : 15);
     _refreshTimer?.cancel();
     _refreshTimer = Timer.periodic(duration, (_) {
       _loadDataBasedOnConfig();

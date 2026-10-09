@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:get/get.dart' hide Response;
 import 'package:hive_ce/hive.dart';
+import 'package:altman_totp/services/totp_service.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:moviepilot_mobile/modules/profile/models/user_info.dart';
 import 'package:moviepilot_mobile/modules/profile/models/user_global_config.dart';
@@ -27,6 +28,56 @@ class AuthRepository extends GetxService {
       Get.find<ServerApiVersionService>();
 
   Box<LoginProfile> get _loginBox => Get.find<HiveService>().loginProfileBox;
+
+  TotpService get _totpService => Get.find<TotpService>();
+
+  @override
+  void onInit() {
+    super.onInit();
+    _api.setAuthRecoveryHandler(_attemptSilentRelogin);
+  }
+
+  /// 服务器连通性探测（GET /api/v1/system/ping，短超时）。
+  Future<bool> probeServerConnectivity({
+    required String server,
+    String? accessToken,
+  }) {
+    return _api.probeConnectivity(server: server, accessToken: accessToken);
+  }
+
+  /// 401/403 后用最近一次使用的账号档案静默重登；成功返回 true，会话无缝续期。
+  Future<bool> _attemptSilentRelogin() async {
+    try {
+      final profiles = _loginBox.values.toList()
+        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      if (profiles.isEmpty) {
+        _talker.warning('静默重登失败: 无已保存的账号');
+        return false;
+      }
+      final profile = profiles.first;
+      final server = _normalizeServer(profile.server);
+      final username = profile.username.trim();
+      final password = profile.password;
+      if (server.isEmpty || username.isEmpty || password.isEmpty) {
+        _talker.warning('静默重登失败: 账号档案缺少服务器地址或密码');
+        return false;
+      }
+      final otpPassword = Get.isRegistered<TotpService>()
+          ? (_totpService.generateCurrentCode(server, username) ?? '')
+          : '';
+      _talker.info('尝试静默重登: $username @ $server');
+      await login(
+        server: server,
+        username: username,
+        password: password,
+        otpPassword: otpPassword,
+      );
+      return true;
+    } catch (e) {
+      _talker.warning('静默重登失败: $e');
+      return false;
+    }
+  }
 
   void _syncSystemMessagePolling() {
     if (_appService.isSuperuser) {

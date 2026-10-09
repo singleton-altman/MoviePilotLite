@@ -1,3 +1,4 @@
+import 'package:moviepilot_mobile/modules/player/widgets/detail_play_section.dart';
 import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
@@ -1258,107 +1259,19 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
         return const SizedBox.shrink();
       }
 
-      return Row(
-        children: [
-          if (canSearch)
-            Expanded(
-              child: _buildSearchPillButton(
-                context,
-                enabled: !isLoading,
-                onPressed: () => _openSearch(context),
-              ),
-            )
-          else
-            const Spacer(),
-          if (canSubscribe) ...[
-            if (canSearch) const SizedBox(width: 10),
-            _buildCircleActionButton(
-              context,
-              icon: controller.subscribeLoadingState.value
-                  ? CupertinoIcons.arrow_2_circlepath
-                  : (isSubscribed
-                        ? CupertinoIcons.bell_fill
-                        : CupertinoIcons.bell),
-              accentColor: isSubscribed
-                  ? const Color(0xFFFF6B6B)
-                  : Colors.white,
-              onPressed: isLoading || controller.subscribeLoadingState.value
-                  ? null
-                  : () => _onSubscribePressed(context, detail, isSubscribed),
-            ),
-          ],
-          if (canSearch) ...[
-            const SizedBox(width: 8),
-            _buildCircleActionButton(
-              context,
-              icon: CupertinoIcons.text_bubble,
-              onPressed: isLoading ? null : () => _openSubtitleSearch(context),
-            ),
-          ],
-        ],
+      return DetailPlaySection(
+        detail: detail,
+        isLoading: isLoading,
+        mediaKey: controller.args.path,
+        canSearch: canSearch,
+        canSubscribe: canSubscribe,
+        isSubscribed: isSubscribed,
+        subscribeLoading: controller.subscribeLoadingState.value,
+        onSearch: () => _openSearch(context),
+        onSubscribe: () => _onSubscribePressed(context, detail, isSubscribed),
+        onSubtitleSearch: () => _openSubtitleSearch(context),
       );
     });
-  }
-
-  Widget _buildSearchPillButton(
-    BuildContext context, {
-    required bool enabled,
-    required VoidCallback onPressed,
-  }) {
-    final accent = Theme.of(context).colorScheme.primary;
-    return Opacity(
-      opacity: enabled ? 1 : 0.52,
-      child: Material(
-        color: accent,
-        borderRadius: BorderRadius.circular(999),
-        child: InkWell(
-          onTap: enabled ? onPressed : null,
-          borderRadius: BorderRadius.circular(999),
-          child: const SizedBox(
-            height: 48,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.search, size: 18, color: Colors.white),
-                SizedBox(width: 8),
-                Text(
-                  '搜索资源',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCircleActionButton(
-    BuildContext context, {
-    required IconData icon,
-    Color accentColor = Colors.white,
-    VoidCallback? onPressed,
-  }) {
-    return Opacity(
-      opacity: onPressed == null ? 0.52 : 1,
-      child: Material(
-        color: Colors.white.withValues(alpha: 0.14),
-        shape: const CircleBorder(),
-        child: InkWell(
-          onTap: onPressed,
-          customBorder: const CircleBorder(),
-          child: SizedBox(
-            width: 48,
-            height: 48,
-            child: Icon(icon, size: 20, color: accentColor),
-          ),
-        ),
-      ),
-    );
   }
 
   Future<void> _onSubscribePressed(
@@ -1366,6 +1279,8 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
     MediaDetail detail,
     bool isSubscribed,
   ) async {
+    // ignore: avoid_print
+    print('[DetailPage] subscribe tapped');
     try {
       if (_isTv(detail)) {
         await _openTvSubscribeSheet(context, detail);
@@ -1807,12 +1722,29 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
     );
   }
 
+  /// path 是否为媒体标识(tmdb:xxx 等),而非真实文件路径
+  bool _isMediaIdPath(String path) {
+    final t = path.trim().toLowerCase();
+    return t.startsWith('tmdb:') ||
+        t.startsWith('douban:') ||
+        t.startsWith('bangumi:') ||
+        t.startsWith('tvdb:');
+  }
+
   void _openSearch(BuildContext context) async {
+    // ignore: avoid_print
+    print('[DetailPage] _openSearch tapped');
+
     if (!Get.find<AppService>().canSearch) {
       ToastUtil.info('当前帐号无资源搜索权限');
       return;
     }
-    final searchKey = controller.args.path;
+    // path 为 tmdb:xxx 等媒体标识时,改用标题作为搜索关键字
+    final searchKey = _isMediaIdPath(controller.args.path)
+        ? (controller.mediaDetail.value?.title ??
+            controller.mediaDetail.value?.en_title ??
+            '')
+        : controller.args.path;
     final detail = controller.mediaDetail.value;
     final result = await Get.bottomSheet<({String area, List<int> sites})>(
       SiteSelectSheet(
@@ -1846,11 +1778,19 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
   }
 
   void _openSubtitleSearch(BuildContext context) async {
+    // ignore: avoid_print
+    print('[DetailPage] _openSubtitleSearch tapped');
+
     if (!Get.find<AppService>().canSearch) {
       ToastUtil.info('当前帐号无资源搜索权限');
       return;
     }
-    final searchKey = controller.args.path;
+    // path 为媒体标识时改用标题(同 _openSearch)
+    final searchKey = _isMediaIdPath(controller.args.path)
+        ? (controller.mediaDetail.value?.title ??
+            controller.mediaDetail.value?.en_title ??
+            '')
+        : controller.args.path;
     final detail = controller.mediaDetail.value;
     final result = await Get.bottomSheet<({String area, List<int> sites})>(
       SiteSelectSheet(

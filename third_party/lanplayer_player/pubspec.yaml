@@ -1,0 +1,35 @@
+name: lanplayer_player
+description: Embedded player kit extracted from lanplayer (engines, player screen, media server SDK, danmaku, subtitles).
+publish_to: 'none'
+version: 0.1.0+1
+environment:
+  sdk: ^3.8.1
+dependencies:
+  flutter:
+    sdk: flutter
+  dio: ^5.4.0
+  flutter_riverpod: ^2.4.9
+  video_player: ^2.11.1
+  fast_gbk: ^1.0.0
+  drift: ^2.18.0
+  sqlite3_flutter_libs: ^0.5.24
+  crypto: ^3.0.3
+  screen_brightness: ^0.2.2
+  path: ^1.9.0
+  path_provider: ^2.1.2
+  shared_preferences: ^2.2.2
+  cached_network_image: ^3.3.1
+  file_picker: ">=8.0.0 <12.0.0"
+  url_launcher: ^6.2.2
+  palette_generator: ^0.3.3+7
+  flutter_animate: ^4.3.0
+  shimmer: ^3.0.0
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  build_runner: ^2.4.8
+  drift_dev: ^2.18.0
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/shaders/

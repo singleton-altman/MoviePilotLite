@@ -81,7 +81,7 @@ List<SettingsCategory> get settingsCategories => [
   SettingsCategory(
     id: SettingsCategoryId.system,
     title: '系统',
-    subtitle: '基础、高级设置、下载器、媒体服务器',
+    subtitle: '基础、高级设置、下载器、媒体服务器、弹幕设置',
     icon: Icons.settings_suggest_outlined,
     items: const [
       SettingsSubItem(
@@ -111,6 +111,13 @@ List<SettingsCategory> get settingsCategories => [
         subtitle: '同步、扩展名、重命名',
         route: '/mediaserver-config',
         icon: Icons.live_tv_outlined,
+      ),
+      SettingsSubItem(
+        id: 'danmaku',
+        title: '弹幕设置',
+        subtitle: '弹幕源服务器与匹配设置',
+        route: '/settings/system/danmaku',
+        icon: Icons.speaker_notes_outlined,
       ),
     ],
   ),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:altman_downloader_control/controller/downloader_config.dart';
 import 'package:altman_downloader_control/page/downloader_shell_page.dart';
 import 'package:moviepilot_mobile/utils/downloader_controller_adaptor.dart';
@@ -45,6 +47,10 @@ import 'modules/dashboard/controllers/dashboard_controller.dart';
 import 'modules/dashboard/pages/dashboard_page.dart';
 import 'modules/dashboard/pages/background_task_list_page.dart';
 import 'modules/login/pages/login_page.dart';
+import 'modules/player/controllers/player_launch_controller.dart';
+import 'modules/player/pages/player_page.dart';
+import 'modules/player/pages/media_library_browser_page.dart';
+import 'modules/player/pages/danmaku_settings_page.dart';
 import 'theme/app_theme.dart';
 import 'theme/app_scaffold_background.dart';
 import 'modules/profile/controllers/profile_controller.dart';
@@ -160,12 +166,12 @@ Future<void> main() async {
       () => IosWidgetNavigationService().init(),
       permanent: true,
     );
-    await Get.putAsync(() => JPushService().init(), permanent: true);
+    Get.put(JPushService(), permanent: true);
     Get.put(IosSharedSessionService(), permanent: true);
     Get.put(AppService());
     Get.put(ApiClient());
-    final updateService = Get.put(AppUpdateService(), permanent: true);
-    await updateService.cleanupExpiredApkCache(maxAge: Duration.zero);
+    Get.put(PlayerLaunchController.to);
+    Get.put(AppUpdateService(), permanent: true);
     Get.put(MediaDetailService());
     Get.put(ImageUtil());
     // 注册 vue 模式插件适配器
@@ -199,6 +205,28 @@ Future<void> main() async {
   registerSubtitleManualUploadRenderer();
   registerBrushFlowRenderer();
   runApp(const MyApp());
+  // 非关键路径的初始化移到首帧之后，避免阻塞启动
+  unawaited(_postLaunchInit());
+}
+
+/// 首帧之后执行的初始化：推送 SDK 注册、APK 更新缓存清理
+Future<void> _postLaunchInit() async {
+  try {
+    if (Get.isRegistered<JPushService>()) {
+      await Get.find<JPushService>().init();
+    }
+  } catch (e) {
+    debugPrint('JPush init failed: $e');
+  }
+  try {
+    if (Get.isRegistered<AppUpdateService>()) {
+      await Get.find<AppUpdateService>().cleanupExpiredApkCache(
+        maxAge: Duration.zero,
+      );
+    }
+  } catch (e) {
+    debugPrint('APK cache cleanup failed: $e');
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -239,6 +267,18 @@ class MyApp extends StatelessWidget {
             },
           ),
           GetPage(name: '/login', page: () => const LoginPage()),
+          GetPage(name: '/player', page: () => const PlayerPage()),
+          GetPage(
+            name: '/media-library-browser',
+            page: () => const MediaLibraryBrowserPage(),
+          ),
+          GetPage(
+            name: '/settings/system/danmaku',
+            page: () => const DanmakuSettingsPage(),
+            binding: BindingsBuilder(() {
+              Get.put(DanmakuSettingsController());
+            }),
+          ),
           GetPage(name: '/totp-manage', page: () => const TotpManagePage()),
           GetPage(
             name: '/dashboard',

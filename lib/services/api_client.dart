@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
@@ -59,6 +60,14 @@ class ApiClient extends g.GetxController {
   bool _authRedirecting = false;
   bool _authClearing = false;
 
+  /// 401/403 时的静默恢复钩子，由 AuthRepository 注册；返回 true 表示已重新登录成功。
+  Future<bool> Function()? _authRecoveryHandler;
+  bool _silentRecoveryInProgress = false;
+  DateTime? _lastSilentRecoveryAt;
+
+  /// 两次静默重登尝试之间的最小间隔，避免旧 token 的并发 401 反复触发重登。
+  static const Duration _silentRecoveryCooldown = Duration(seconds: 15);
+
   static const Duration _cookieCacheTtl = Duration(seconds: 30);
 
   String? get baseUrl {
@@ -77,7 +86,9 @@ class ApiClient extends g.GetxController {
       BaseOptions(
         // 初始时 baseUrl 为空，后续在登录时根据服务器地址进行配置。
         baseUrl: _appService.baseUrl ?? '',
-        connectTimeout: const Duration(seconds: 120),
+        // 连接超时收紧到 10 秒：服务器不可达时快速失败，而不是挂 2 分钟。
+        connectTimeout: const Duration(seconds: 10),
+        // 接收超时保留较大值：搜索等长耗时接口依赖它。
         receiveTimeout: const Duration(seconds: 120),
         // FormData 需要 multipart/form-data；这里不强行设置，
         // 让 dio 根据 data 类型自动推导 Content-Type。
@@ -365,6 +376,45 @@ class ApiClient extends g.GetxController {
   void setToken(String token) {
     this.token = token;
     _log.info('更新 API Token');
+  }
+
+  /// 注册 401/403 时的静默恢复钩子（由 AuthRepository 在初始化时调用）。
+  void setAuthRecoveryHandler(Future<bool> Function()? handler) {
+    _authRecoveryHandler = handler;
+  }
+
+  /// 探测服务器连通性：请求 GET /api/v1/system/ping（Swagger 定义），
+  /// 短超时；只要收到任意 HTTP 响应（含 401/403）即视为网络可达。
+  Future<bool> probeConnectivity({
+    required String server,
+    String? accessToken,
+    Duration connectTimeout = const Duration(seconds: 5),
+    Duration receiveTimeout = const Duration(seconds: 8),
+  }) async {
+    final normalized = server.trim();
+    if (normalized.isEmpty) return false;
+    final probe = Dio(
+      BaseOptions(
+        connectTimeout: connectTimeout,
+        receiveTimeout: receiveTimeout,
+        headers: const {'accept': 'application/json'},
+        validateStatus: (_) => true,
+      ),
+    );
+    try {
+      final response = await probe.get<dynamic>(
+        '$normalized/api/v1/system/ping',
+        options: Options(
+          headers: {
+            if (accessToken != null && accessToken.isNotEmpty)
+              'authorization': 'Bearer $accessToken',
+          },
+        ),
+      );
+      return response.statusCode != null;
+    } catch (_) {
+      return false;
+    }
   }
 
   /// 清理当前传输层会话，避免切换账号时复用上一个账号的 Cookie。
@@ -754,6 +804,37 @@ class ApiClient extends g.GetxController {
     if (status != 401 && status != 403) return;
     if (_authRedirecting) return;
     if (!_hasEnteredMain()) return;
+    unawaited(_recoverOrLogout());
+  }
+
+  /// 401/403 的处理：优先尝试用本地保存的账号静默重登恢复会话；
+  /// 恢复失败或无法恢复时才清理会话并踢回登录页。
+  Future<void> _recoverOrLogout() async {
+    final handler = _authRecoveryHandler;
+    if (handler != null) {
+      if (_silentRecoveryInProgress) return;
+      final last = _lastSilentRecoveryAt;
+      if (last != null &&
+          DateTime.now().difference(last) < _silentRecoveryCooldown) {
+        // 冷却期内：最近一次恢复要么成功要么正在进行，静默忽略而非踢出。
+        return;
+      }
+      _silentRecoveryInProgress = true;
+      bool recovered = false;
+      try {
+        recovered = await handler();
+      } catch (_) {
+        recovered = false;
+      } finally {
+        _silentRecoveryInProgress = false;
+        _lastSilentRecoveryAt = DateTime.now();
+      }
+      if (recovered) {
+        _log.info('会话已通过静默重登恢复');
+        return;
+      }
+    }
+
     _authRedirecting = true;
     _clearSession();
     ToastUtil.error('会话已过期，请重新登录');

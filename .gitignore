@@ -61,3 +61,21 @@ app.*.map.json
 oh_modules/
 node_modules/
 .hvigor
+
+# ── 本地开发/工具目录(不入库) ──
+.zcode/
+.zcodeignore
+
+# ── Android 本地与构建缓存 ──
+android/local.properties
+android/.gradle/
+android/.kotlin/
+
+# ── iOS/macOS 生成文件 ──
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+ios/Flutter/ephemeral/
+ios/Runner/GeneratedPluginRegistrant.h
+ios/Runner/GeneratedPluginRegistrant.m
+macos/Flutter/GeneratedPluginRegistrant.swift
+macos/Flutter/ephemeral/

@@ -51,6 +51,8 @@ dependencies:
   flutter_floating_bottom_bar: ^2.0.2
   native_glass_navbar:
     path: third_party/native_glass_navbar
+  lanplayer_player:
+    path: third_party/lanplayer_player
 dev_dependencies:
   flutter_test:
     sdk: flutter

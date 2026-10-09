@@ -9,6 +9,7 @@ import 'package:moviepilot_mobile/modules/dashboard/widgets/cpu_widget.dart';
 import 'package:moviepilot_mobile/modules/dashboard/widgets/media_stats_widget.dart';
 import 'package:moviepilot_mobile/modules/dashboard/widgets/memory_widget.dart';
 import 'package:moviepilot_mobile/modules/dashboard/widgets/my_media_library_widget.dart';
+import 'package:moviepilot_mobile/modules/player/controllers/player_launch_controller.dart';
 import 'package:moviepilot_mobile/modules/dashboard/widgets/network_traffic_widget.dart';
 import 'package:moviepilot_mobile/modules/dashboard/widgets/recent_added_widget.dart';
 import 'package:moviepilot_mobile/modules/dashboard/widgets/recently_added_widget.dart';
@@ -327,6 +328,14 @@ class DashboardPage extends GetView<DashboardController> {
           accentColor: palette.coolAccent,
           child: MyMediaLibraryWidget(
             onTap: (library) {
+              // 管理员进入 MP 内嵌媒体库浏览;普通用户维持网页方式
+              if (PlayerLaunchController.to.canNativePlay) {
+                Get.toNamed('/media-library-browser', arguments: {
+                  'libraryId': library.id,
+                  'libraryName': library.name,
+                });
+                return;
+              }
               WebUtil.open(url: library.link);
             },
           ),

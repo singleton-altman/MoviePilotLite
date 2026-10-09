@@ -1,8 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:moviepilot_mobile/utils/toast_util.dart';
 import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_widget_styles.dart';
 import 'package:moviepilot_mobile/modules/mediaserver/controllers/mediaserver_controller.dart';
+import 'package:moviepilot_mobile/modules/player/controllers/player_launch_controller.dart';
 import 'package:moviepilot_mobile/modules/mediaserver/models/latest_media_model.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
 import 'package:moviepilot_mobile/widgets/cached_image.dart';
@@ -469,6 +471,62 @@ class _WideFeatureRow extends StatelessWidget {
   }
 }
 
+
+/// 卡片点击:进入 MP 媒体详情页;继续观看卡片携带媒体服务器续播上下文,
+/// 详情页播放区消费后可一键续播(原生播放)或回退网页播放。
+Future<void> _openMediaDetail(LatestMedia media, {bool withResume = false}) async {
+  final launch = PlayerLaunchController.to;
+  if (!launch.canNativePlay) {
+    await launch.webPlay(media.id);
+    return;
+  }
+  try {
+    // 从媒体服务器反查 TMDB 身份,带媒体标识进详情页(详情接口必需)
+    final item = await launch.fetchKitItem(
+      itemId: media.id,
+      serverName: media.libraryName,
+      serverType: media.serverType,
+    );
+    final tmdbId = item?.tmdbId;
+    // 条目身份先写进上下文:详情页据此立即渲染播放与选集按钮并可直接开播
+    // (播放入口只需要条目 id),不必等 MP 详情加载完、也不必等媒体服务器探测。
+    // 「继续观看」入口额外带上进度,用于详情页的续播进度行。
+    if (tmdbId != null && tmdbId > 0) {
+      launch.resumeContexts['tmdb:$tmdbId'] = ResumeContext(
+        itemId: media.id,
+        serverName: media.libraryName,
+        serverType: media.serverType,
+        percent: withResume && media.percent != null
+            ? media.percent! / 100
+            : null,
+        label: withResume && media.subtitle.isNotEmpty
+            ? media.subtitle
+            : null,
+        isSeries: media.type.contains('剧') ||
+            media.type.toLowerCase().contains('tv'),
+      );
+    }
+    if (tmdbId != null && tmdbId > 0) {
+      Get.toNamed('/media-detail', parameters: {
+        'path': 'tmdb:$tmdbId',
+        'title': media.title,
+        if (media.type.isNotEmpty) 'type_name': media.type,
+      });
+      return;
+    }
+    // 无 TMDB 映射:直接起播
+    await launch.playByItemId(
+      itemId: media.id,
+      serverName: media.libraryName,
+      serverType: media.serverType,
+      title: media.title,
+      subtitle: media.type.isNotEmpty ? media.type : null,
+    );
+  } catch (e) {
+    ToastUtil.error('获取媒体信息失败: $e');
+  }
+}
+
 class _PosterCard extends StatelessWidget {
   const _PosterCard({
     required this.media,
@@ -491,7 +549,9 @@ class _PosterCard extends StatelessWidget {
     return Semantics(
       button: true,
       label: '${media.title}，最近添加',
-      child: Container(
+      child: GestureDetector(
+          onTap: () => _openMediaDetail(media, withResume: true),
+          child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
@@ -585,6 +645,7 @@ class _PosterCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }

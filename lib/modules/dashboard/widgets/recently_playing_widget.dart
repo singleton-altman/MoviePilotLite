@@ -1,8 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:moviepilot_mobile/utils/toast_util.dart';
 import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_widget_styles.dart';
 import 'package:moviepilot_mobile/modules/mediaserver/controllers/mediaserver_controller.dart';
+import 'package:moviepilot_mobile/modules/player/controllers/player_launch_controller.dart';
 import 'package:moviepilot_mobile/modules/mediaserver/models/latest_media_model.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
 import 'package:moviepilot_mobile/widgets/cached_image.dart';
@@ -476,6 +478,25 @@ class _WideFeatureRow extends StatelessWidget {
   }
 }
 
+
+/// 卡片点击:继续观看统一直接播放(原生/网页回退)。
+Future<void> _openMediaDetail(LatestMedia media, {bool withResume = false}) async {
+  final launch = PlayerLaunchController.to;
+  if (!launch.canNativePlay) {
+    await launch.webPlay(media.id);
+    return;
+  }
+  // 继续观看统一直接播放:剧集自动定位「下一集未看完的单集」,
+  // 续播位置由媒体服务器的观看进度决定
+  await launch.playByItemId(
+    itemId: media.id,
+    serverName: media.libraryName,
+    serverType: media.serverType,
+    title: media.title,
+    subtitle: media.type.isNotEmpty ? media.type : null,
+  );
+}
+
 class _ContinuePosterCard extends StatelessWidget {
   const _ContinuePosterCard({
     required this.media,
@@ -499,7 +520,9 @@ class _ContinuePosterCard extends StatelessWidget {
     return Semantics(
       button: true,
       label: '${media.title}，继续观看',
-      child: Container(
+      child: GestureDetector(
+        onTap: () => _openMediaDetail(media, withResume: true),
+        child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
@@ -617,6 +640,7 @@ class _ContinuePosterCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }
