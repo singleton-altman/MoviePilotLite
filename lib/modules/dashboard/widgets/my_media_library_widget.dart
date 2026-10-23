@@ -186,15 +186,17 @@ class _LibraryCard extends StatelessWidget {
   }
 
   String _primaryImageUrl(MediaLibrary library) {
-    final image = (library.image ?? '').trim();
-    if (image.isNotEmpty) {
-      return ImageUtil.convertInternalImageUrl(image);
-    }
+    // library.image 是服务端合成的拼图，带透明留白，铺不满卡片会露出底色；
+    // 优先取 image_list 里的单张海报，保证封面贴边铺满。
     for (final candidate in library.image_list ?? const <String>[]) {
       final trimmed = candidate.trim();
       if (trimmed.isNotEmpty) {
         return ImageUtil.convertInternalImageUrl(trimmed);
       }
+    }
+    final image = (library.image ?? '').trim();
+    if (image.isNotEmpty) {
+      return ImageUtil.convertInternalImageUrl(image);
     }
     return '';
   }
