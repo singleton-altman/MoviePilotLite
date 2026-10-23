@@ -112,10 +112,25 @@ class _LibraryCard extends StatelessWidget {
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          Colors.black.withValues(alpha: 0.08),
-                          Colors.black.withValues(alpha: 0.62),
+                          Colors.black.withValues(alpha: 0.10),
+                          Colors.black.withValues(alpha: 0.58),
                         ],
-                        stops: const [0.42, 0.68, 1.0],
+                        stops: const [0.54, 0.82, 1.0],
+                      ),
+                    ),
+                  ),
+                  // 底图偏暗时圆角轮廓会和深色页面背景融在一起，用极细描边勾出卡片边界。
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: palette.isDark
+                                ? Colors.white.withValues(alpha: 0.10)
+                                : Colors.black.withValues(alpha: 0.06),
+                          ),
+                        ),
                       ),
                     ),
                   ),
