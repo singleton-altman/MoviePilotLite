@@ -4,10 +4,10 @@ import 'package:get/get.dart';
 import 'package:moviepilot_mobile/modules/dashboard/controllers/dashboard_controller.dart';
 import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_skeletons.dart';
 import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_widget_styles.dart';
-import 'package:moviepilot_mobile/modules/dashboard/widgets/mixed_img_widget.dart';
 import 'package:moviepilot_mobile/modules/mediaserver/controllers/mediaserver_controller.dart';
 import 'package:moviepilot_mobile/modules/mediaserver/models/library_model.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
+import 'package:moviepilot_mobile/widgets/cached_image.dart';
 
 /// 我的媒体库组件
 class MyMediaLibraryWidget extends StatelessWidget {
@@ -68,10 +68,17 @@ class _LibraryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = DashboardPalette.of(context);
+    final serverLabel = library.server_type.trim();
+    final semanticLabel = [
+      library.name.trim().isNotEmpty
+          ? library.name.trim()
+          : library.type.trim(),
+      if (serverLabel.isNotEmpty) serverLabel,
+    ].where((e) => e.isNotEmpty).join('，');
 
     return Semantics(
       button: true,
-      label: '${library.name}，媒体库',
+      label: semanticLabel.isEmpty ? '媒体库' : '$semanticLabel，媒体库',
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(16),
@@ -104,68 +111,19 @@ class _LibraryCard extends StatelessWidget {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          Colors.black.withValues(alpha: 0.02),
-                          Colors.black.withValues(alpha: 0.06),
-                          Colors.black.withValues(alpha: 0.5),
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.08),
+                          Colors.black.withValues(alpha: 0.62),
                         ],
-                        stops: const [0.0, 0.56, 1.0],
+                        stops: const [0.42, 0.68, 1.0],
                       ),
                     ),
                   ),
                   Positioned(
-                    top: 12,
-                    left: 12,
-                    right: 12,
-                    child: Row(
-                      children: [
-                        if (library.type.isNotEmpty)
-                          Flexible(
-                            child: _GlassPill(
-                              text: library.type.toUpperCase(),
-                              icon: CupertinoIcons.rectangle_stack_fill,
-                            ),
-                          ),
-                        const Spacer(),
-                        if (library.server_type.isNotEmpty)
-                          _AccentPill(text: library.server_type.toUpperCase()),
-                      ],
-                    ),
-                  ),
-                  Positioned(
                     left: 16,
-                    right: 14,
-                    bottom: 16,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                library.name,
-                                style: const TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w800,
-                                  height: 1.12,
-                                  color: Colors.white,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 6),
-                              _LibraryMetaLine(library: library),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        _CircleButton(
-                          icon: CupertinoIcons.chevron_right,
-                          size: 32,
-                        ),
-                      ],
-                    ),
+                    right: 16,
+                    bottom: 14,
+                    child: _LibraryCaption(library: library),
                   ),
                 ],
               ),
@@ -177,15 +135,9 @@ class _LibraryCard extends StatelessWidget {
   }
 
   Widget _buildLibraryImage(MediaLibrary library) {
-    final imageUrls = library.image_list?.isNotEmpty == true
-        ? library.image_list!
-        : [library.image ?? ''];
-    final normalizedUrls = imageUrls
-        .map((e) => ImageUtil.convertInternalImageUrl(e))
-        .where((e) => e.trim().isNotEmpty)
-        .toList();
+    final imageUrl = _primaryImageUrl(library);
 
-    if (normalizedUrls.isEmpty) {
+    if (imageUrl.isEmpty) {
       final palette = DashboardPalette.of(Get.context!);
       return DecoratedBox(
         decoration: BoxDecoration(
@@ -215,140 +167,64 @@ class _LibraryCard extends StatelessWidget {
       );
     }
 
-    return MixedImgWidget(
-      imageUrls: normalizedUrls,
-      borderRadius: BorderRadius.zero,
-    );
+    return CachedImage(imageUrl: imageUrl, fit: BoxFit.cover);
+  }
+
+  String _primaryImageUrl(MediaLibrary library) {
+    final image = (library.image ?? '').trim();
+    if (image.isNotEmpty) {
+      return ImageUtil.convertInternalImageUrl(image);
+    }
+    for (final candidate in library.image_list ?? const <String>[]) {
+      final trimmed = candidate.trim();
+      if (trimmed.isNotEmpty) {
+        return ImageUtil.convertInternalImageUrl(trimmed);
+      }
+    }
+    return '';
   }
 }
 
-class _GlassPill extends StatelessWidget {
-  const _GlassPill({required this.text, this.icon});
-
-  final String text;
-  final IconData? icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.24),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 11, color: Colors.white),
-            const SizedBox(width: 4),
-          ],
-          Flexible(
-            child: Text(
-              text,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.6,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AccentPill extends StatelessWidget {
-  const _AccentPill({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = DashboardPalette.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.26),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: palette.warningAccent.withValues(alpha: 0.28),
-        ),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.6,
-          color: palette.warningAccent,
-        ),
-      ),
-    );
-  }
-}
-
-class _CircleButton extends StatelessWidget {
-  const _CircleButton({required this.icon, this.size = 36});
-
-  final IconData icon;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.12),
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
-      ),
-      child: Icon(icon, color: Colors.white, size: size * 0.48),
-    );
-  }
-}
-
-class _LibraryMetaLine extends StatelessWidget {
-  const _LibraryMetaLine({required this.library});
+/// 卡片左下角的一行说明：媒体库名称 · 服务器类型
+class _LibraryCaption extends StatelessWidget {
+  const _LibraryCaption({required this.library});
 
   final MediaLibrary library;
 
   @override
   Widget build(BuildContext context) {
-    final meta = [
-      if (library.type.isNotEmpty) library.type,
-      if (library.server_type.isNotEmpty) library.server_type,
-    ].join(' · ');
+    final name = library.name.trim().isNotEmpty
+        ? library.name.trim()
+        : library.type.trim();
+    final server = library.server_type.trim();
 
-    if (meta.isEmpty) return const SizedBox.shrink();
+    if (name.isEmpty && server.isEmpty) return const SizedBox.shrink();
 
-    return Row(
-      children: [
-        Icon(
-          CupertinoIcons.rectangle_stack,
-          size: 12,
-          color: Colors.white.withValues(alpha: 0.68),
-        ),
-        const SizedBox(width: 5),
-        Expanded(
-          child: Text(
-            meta,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Colors.white.withValues(alpha: 0.7),
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
+    const nameStyle = TextStyle(
+      fontSize: 17,
+      fontWeight: FontWeight.w800,
+      height: 1.15,
+      color: Colors.white,
+    );
+    final serverStyle = TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w600,
+      color: Colors.white.withValues(alpha: 0.72),
+    );
+
+    return Text.rich(
+      TextSpan(
+        children: [
+          if (name.isNotEmpty) TextSpan(text: name, style: nameStyle),
+          if (name.isNotEmpty && server.isNotEmpty) ...[
+            TextSpan(text: ' · ', style: serverStyle),
+            TextSpan(text: server, style: serverStyle),
+          ] else if (server.isNotEmpty)
+            TextSpan(text: server, style: nameStyle),
+        ],
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
     );
   }
 }
