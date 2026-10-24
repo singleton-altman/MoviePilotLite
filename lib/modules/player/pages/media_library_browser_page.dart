@@ -78,6 +78,11 @@ class _MediaLibraryBrowserPageState extends State<MediaLibraryBrowserPage> {
   /// 同时携带媒体服务器条目上下文,详情页播放区可直连起播;返回 false 交给
   /// kit 默认详情页(无 TMDB 映射的条目)。
   bool _openItemDetail(kit.MediaItem item) {
+    // 合集(BoxSet)交给播放器自己的合集详情页:它会列出合集内的影视。
+    // 合集携带的是"合集级 TMDB 标识",拿它去查 MP 媒体详情会返回不完整数据
+    // (2026-10-10 v3 真机实测:合集点进去显示「请求错误 · 媒体信息不完整」,
+    //  而且会渲染出一个点了必然失败的播放入口)。
+    if (item.isBoxSet) return false;
     final tmdbId = item.tmdbId;
     if (tmdbId == null || tmdbId <= 0) return false;
     final pathKey = 'tmdb:$tmdbId';
