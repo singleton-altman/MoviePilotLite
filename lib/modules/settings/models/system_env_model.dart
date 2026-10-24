@@ -1,7 +1,33 @@
+import 'dart:convert';
+
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'system_env_model.freezed.dart';
 part 'system_env_model.g.dart';
+
+/// 解析前净化 env 载荷:v2 的配置值都是字符串,v3 会下发原生类型(bool/int/对象)。
+/// 模型对字符串字段是硬转型(`as String?`),遇到 bool 会抛
+/// "type 'bool' is not a subtype of type 'String?'"——2026-10-10 v3 真机实测,
+/// 基础设置页整页报这个错。这里把**标量**统一字符串化(数组保持原样),
+/// 而模型里数值/布尔字段的 fromJson 都能吃字符串
+/// (_intFromJson/_boolFromJson/_doubleFromJson),因此对 v2 / v3 都安全;
+/// 放在模型层可以让所有调用点(基础/高级设置、站点、动态表单等)一次修好。
+Map<String, dynamic> sanitizeEnvJson(Map<String, dynamic> json) {
+  final data = json['data'];
+  if (data is! Map) return json;
+  final sanitized = <String, dynamic>{};
+  data.forEach((key, value) {
+    final name = key.toString();
+    if (value == null || value is String || value is List) {
+      sanitized[name] = value;
+    } else if (value is Map) {
+      sanitized[name] = jsonEncode(value);
+    } else {
+      sanitized[name] = value.toString();
+    }
+  });
+  return <String, dynamic>{...json, 'data': sanitized};
+}
 
 int? _intFromJson(dynamic v) {
   if (v == null) return null;
@@ -60,7 +86,7 @@ class SystemEnvResponse with _$SystemEnvResponse {
   }) = _SystemEnvResponse;
 
   factory SystemEnvResponse.fromJson(Map<String, dynamic> json) =>
-      _$SystemEnvResponseFromJson(json);
+      _$SystemEnvResponseFromJson(sanitizeEnvJson(json));
 }
 
 /// 系统环境变量数据，对应 GET /api/v1/system/env 的 data 字段

@@ -1,8 +1,6 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
-import 'package:get/get.dart' as g;
-import 'package:moviepilot_mobile/services/server_api_version_service.dart';
 
 /// RequestOptions.extra 里标记跳过 V3 信封解包的键。
 /// 与 [unwrapV3EnvelopeOnResponse] 的拦截判断、调用方构造 Options 共用。
@@ -87,22 +85,11 @@ Future<void> unwrapV3EnvelopeOnResponse(
     return;
   }
 
-  if (!g.Get.isRegistered<ServerApiVersionService>()) {
-    handler.next(response);
-    return;
-  }
-
-  try {
-    final isV3 = await g.Get.find<ServerApiVersionService>().isV3();
-    if (!isV3) {
-      handler.next(response);
-      return;
-    }
-  } catch (_) {
-    handler.next(response);
-    return;
-  }
-
+  // 按**响应形状**判定信封,不再依赖全局的 v3 判定(2026-10-10 真机实测):
+  // - v3 的列表接口返回 {success, data: [...]}(v2 是裸数组),这里统一取出载荷;
+  // - Map 载荷用"合并"语义:载荷字段优先,同时把 success/message/data 回填,
+  //   因此"读载荷字段"与"读 data.xxx"两种既有习惯都能工作;
+  // - 与 v3 探测时机/被其它模块翻转无关,避免冷启动窗口内列表页读不到数据。
   final data = envelope['data'];
   if (data == null) {
     handler.next(response);
