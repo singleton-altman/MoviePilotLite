@@ -685,8 +685,13 @@ class EmbyService extends MediaServerService implements AudioSearchCapability {
               'mp4,mkv,mov,m4v,webm,avi,ts,m2ts,mts,wmv,flv,3gp,ogv,mpg,mpeg',
           'Type': 'Video',
           'VideoCodec': 'h264,hevc,av1,vp9,mpeg4,mpeg2video',
+          // dts/truehd/mlp 也要申报:系统没有这些解码器,但**客户端自带软解**
+          // (Exo 的 FfmpegAudioRenderer 已注册、mpv 的 FFmpeg 也带 dca/truehd)。
+          // 不申报的后果(2026-10-24 真机实证):默认音轨是 DTS 的片子会被服务端
+          // 判为「必须转码」→ 走 stream.ts 转封装 → 杜比视界 P5 的 RPU/标记丢失
+          // → 画面整片偏绿(Exo 与原生内核都绿,因为流本身已经错了)。
           'AudioCodec':
-              'aac,mp3,ac3,eac3,flac,opus,vorbis,alac,mp2,pcm_s16le,pcm_s24le',
+              'aac,mp3,ac3,eac3,dts,truehd,mlp,flac,opus,vorbis,alac,mp2,pcm_s16le,pcm_s24le',
         },
       ],
       'TranscodingProfiles': [

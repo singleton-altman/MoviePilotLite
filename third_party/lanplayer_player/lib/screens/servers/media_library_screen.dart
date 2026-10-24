@@ -417,6 +417,9 @@ class _LibraryItemsScreenState extends ConsumerState<LibraryItemsScreen> {
             server: widget.server,
             serverService: widget.serverService,
             library: item,
+            // 宿主钩子要一并传下去：否则合集内的条目会走播放器自己的详情页，
+            // 与「库条目打开 MP 详情页」的宿主约定不一致（MP 内嵌实测发现）。
+            onOpenItem: widget.onOpenItem,
           ),
           type: PageTransitionType.fadeSlide,
         ),
