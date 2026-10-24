@@ -18,6 +18,7 @@ import '../../player/core/player_screen_awake.dart';
 import '../../player/subtitle/libass_style.dart';
 import '../../player/subtitle/ass_style_normalizer.dart';
 import '../../player/core/player_manager.dart';
+import '../../player/native_surface/native_surface_engine.dart';
 import '../../player/subtitle/subtitle_overlay.dart';
 import '../../player/subtitle/libass_bridge.dart';
 import '../../player/danmaku/danmaku_controller.dart';
@@ -199,6 +200,20 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
   Timer? _prepareDelayTimer;
   Timer? _prepareTimeoutTimer;
 
+  // ── 横竖屏切换闸门（消除旋转叠影）──
+  // 系统旋转动画会拿"旋转起点"的整窗截图做缩放卡片叠在实时画面上；如果
+  // 播放器 UI 在动画期间已经绘制出来，快照就会和实时画面叠成两份（真机：
+  // HyperOS 旋转动画约 0.5-0.7s）。所以进入时先黑屏，等横屏布局就绪后
+  // **继续黑屏一个动画时长**再显示；退出时先黑屏再恢复竖屏，让旋转动画
+  // 只能叠到黑底上。
+  bool _layoutReady = true;
+  Timer? _layoutFallbackTimer;
+  Timer? _revealTimer;
+  DateTime? _landscapeSince;
+  bool _exiting = false;
+  Timer? _exitWaitTimer;
+  bool _popIssued = false;
+
   /// 该媒体是不是原盘 ISO（决定加载文案是"正在解析原盘…"还是"正在连接服务端…"）
   bool get _mediaLooksLikeIso {
     final vt = widget.media.videoTracks;
@@ -263,6 +278,30 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
   MediaItem? _currentMedia;
   MediaItem get _activeMedia => _currentMedia ?? widget.media;
   bool get _isAudio => _activeMedia.type == MediaType.audio;
+
+  /// 是否杜比视界 Profile 5(单层 IPTPQc2、无 HDR10 基础层)。
+  ///
+  /// P5 交给原生内核时必须**软解**:硬解帧不带杜比 RPU,libplacebo 无法做
+  /// reshape → 整片偏绿(2026-10-24 真机实证)。P7/P8.1 有 HDR10 基础层,
+  /// 硬解正常,不要浪费 CPU 去软解。
+  bool get _isDolbyVisionProfile5 => _isDolbyVisionP5(_activeMedia);
+
+  bool _isDolbyVisionP5(MediaItem media) {
+    final vt = media.videoTracks;
+    if (vt == null || vt.isEmpty) return false;
+    for (final t in vt) {
+      final range = (t['VideoRange'] ?? '').toString();
+      final sub = (t['ExtendedVideoSubType'] ?? '').toString();
+      if (range == 'DolbyVision' && sub.contains('DoviProfile5')) return true;
+      if (range == 'DolbyVision' && sub.isEmpty) {
+        // 极端情况:服务器没给 ExtendedVideoSubType。P5 没有色彩传输标记
+        // (HDR10 兼容的 P7/P8.1 会带 smpte2084),按"无标记"视作 P5。
+        final transfer = (t['ColorTransfer'] ?? '').toString();
+        if (transfer.isEmpty) return true;
+      }
+    }
+    return false;
+  }
   bool _audioOpening = false;
 
   /// 是否有可用的选集列表（上一集/下一集按钮据此显示）
@@ -395,7 +434,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
 
     final settings = ref.read(playerSettingsProvider);
     _cachedDisplay = ref.read(danmakuDisplayProvider);
-    _danmakuEnabled = settings.enableDanmakuByDefault;
+    // 弹幕开关按"上次使用状态"恢复；没有记录时才用设置里的默认值。
+    // 旧实现每次都拿默认值重置，用户关掉后下次进来又变开。
+    _danmakuEnabled = (StorageService.isInitialized
+            ? StorageService.getBool(StorageService.danmakuEnabledKey)
+            : null) ??
+        settings.enableDanmakuByDefault;
     // 创建弹幕控制器并初始化（屏幕尺寸在 build 中更新）
     _danmakuController = DanmakuController(this);
     _danmakuController.init(
@@ -417,6 +461,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
         (eps == null || eps.isEmpty) ? 0 : eps.indexWhere((e) => e.id == widget.media.id);
     if (_currentEpisodeIndex < 0) _currentEpisodeIndex = 0;
     _currentMedia = widget.media;
+    // 杜比 P5 → 原生内核必须软解(硬解丢 RPU 会偏绿),须在创建引擎之前确定
+    NativeSurfaceEngine.forceSoftwareDecode = _isDolbyVisionProfile5;
     _initPlayer();
     _loadDanmaku();
     _loadIntroSkip();
@@ -430,6 +476,15 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
         DeviceOrientation.landscapeLeft,
         DeviceOrientation.landscapeRight,
       ]);
+      // 旋转动画开始前先把画面切成纯黑：快照里只有黑底，不会出现两份 UI。
+      // 横屏布局就绪后再多黑一个动画时长（didChangeDependencies 里放行）；
+      // 系统拒绝旋转时由 1.2s 兜底，避免一直黑屏。
+      _layoutReady = false;
+      _layoutFallbackTimer?.cancel();
+      _layoutFallbackTimer = Timer(const Duration(milliseconds: 1200), () {
+        if (!mounted || _isDisposed || _layoutReady || _exiting) return;
+        setState(() => _layoutReady = true);
+      });
     }
     // 提前获取屏幕尺寸，确保弹幕更新时 _screenWidth != 0
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -441,6 +496,45 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
         _danmakuController.setDevicePixelRatio(MediaQuery.of(context).devicePixelRatio);
       }
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_isAudio) return;
+    final orientation = MediaQuery.of(context).orientation;
+    if (_exiting) {
+      // 退出流程：等方向真正回到竖屏后再出栈（导航放到帧末，避免在
+      // build 阶段触发路由变更）。
+      if (orientation == Orientation.portrait) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _finishExit());
+      }
+      return;
+    }
+    if (!_layoutReady && orientation == Orientation.landscape) {
+      // 横屏布局已就绪，但系统旋转动画还在跑，而且流可能还没出画面。
+      // 继续黑屏（转圈）到动画过完、画面真正开始，再显示播放器 UI：
+      // 纯黑画面上的控制栏没有意义，也最容易和动画残留快照叠影。
+      _layoutFallbackTimer?.cancel();
+      _layoutFallbackTimer = null;
+      _landscapeSince ??= DateTime.now();
+      _revealTimer ??= Timer(const Duration(milliseconds: 700), _maybeReveal);
+    }
+  }
+
+  void _maybeReveal() {
+    if (!mounted || _isDisposed || _exiting || _layoutReady) return;
+    final waited = _landscapeSince == null
+        ? Duration.zero
+        : DateTime.now().difference(_landscapeSince!);
+    // 画面还没真正开始（解码/缓冲中）时继续显示加载态；最多等到 2.2s，
+    // 避免个别片源迟迟不出画面时用户一直看不到控制栏。
+    if (!_isPlaying && waited < const Duration(milliseconds: 2200)) {
+      _revealTimer = Timer(const Duration(milliseconds: 150), _maybeReveal);
+      return;
+    }
+    setState(() => _layoutReady = true);
+    AppLog.i('Player', '旋转动画结束/画面就绪，显示播放器 UI');
   }
 
   @override
@@ -471,6 +565,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
     _prepareDelayTimer = null;
     _prepareTimeoutTimer?.cancel();
     _prepareTimeoutTimer = null;
+    _layoutFallbackTimer?.cancel();
+    _layoutFallbackTimer = null;
+    _revealTimer?.cancel();
+    _revealTimer = null;
+    _exitWaitTimer?.cancel();
+    _exitWaitTimer = null;
     WidgetsBinding.instance.removeObserver(this);
     _cleanup();
     super.dispose();
@@ -2576,11 +2676,20 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
     _danmakuController.seekTo(clamped);
   }
 
-  void _toggleDanmaku() {
+  void _toggleDanmaku() => _setDanmakuEnabled(!_danmakuEnabled);
+
+  /// 弹幕开关的唯一写入点：内存状态 + 渲染器 + 本地持久化。
+  /// 持久化之后，退出重进或换别的视频都会沿用上次的开关状态。
+  void _setDanmakuEnabled(bool value) {
+    if (_danmakuEnabled == value) return;
     setState(() {
-      _danmakuEnabled = !_danmakuEnabled;
-      _danmakuController.setEnabled(_danmakuEnabled);
+      _danmakuEnabled = value;
+      _danmakuController.setEnabled(value);
     });
+    if (StorageService.isInitialized) {
+      unawaited(
+          StorageService.setBool(StorageService.danmakuEnabledKey, value));
+    }
   }
 
   void _setFitMode(BoxFit? mode) {
@@ -3014,6 +3123,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
 
       // Audio may start reporting synchronously during open; use its new ID.
       if (audio) _currentMedia = episode;
+      // 杜比 P5 → 原生内核软解:必须在 open 之前按新一集判定
+      // (硬解帧不带杜比 RPU,libplacebo 无法 reshape → 偏绿)
+      NativeSurfaceEngine.forceSoftwareDecode = _isDolbyVisionP5(episode);
       // 重新打开新集数
       await _engine?.open(
         url: url, httpHeaders: headers, autoPlay: !_isAppBackground,
@@ -3201,13 +3313,36 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
     _danmakuController.updateScreenSize(_screenWidth, _screenHeight);
     if (_isAudio) return _buildAudioPlayer();
 
+    // 旋转过渡期只画纯黑：视频层/控制栏都不建，系统旋转动画的快照里
+    // 就只有黑底，不会出现"两份播放器界面"。退出时不画任何东西。
+    if (!_layoutReady) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop) _requestExit();
+        },
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: Center(
+            child: _exiting
+                ? const SizedBox.shrink()
+                : const SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.4,
+                      color: Colors.white70,
+                    ),
+                  ),
+          ),
+        ),
+      );
+    }
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) {
-          _cleanup();
-          Navigator.pop(context);
-        }
+        if (!didPop) _requestExit();
       },
       child: Scaffold(
         backgroundColor: Colors.black,
@@ -3259,7 +3394,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
                       ),
                       SizedBox(height: 24),
                       TextButton(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: _requestExit,
                         child: Text('返回', style: TextStyle(color: Colors.white)),
                       ),
                     ],
@@ -3549,6 +3684,47 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
     SystemChrome.setPreferredOrientations(DeviceOrientation.values);
   }
 
+  /// 退出播放页：先把画面切成纯黑并让黑帧真正上屏，再恢复竖屏，等方向
+  /// 真正变回来（或 450ms 兜底）后才清理并出栈。旋转动画只会在黑底上做
+  /// 缩放卡片。
+  void _requestExit() {
+    if (_exiting) return;
+    _exiting = true;
+    _layoutFallbackTimer?.cancel();
+    _layoutFallbackTimer = null;
+    _revealTimer?.cancel();
+    _revealTimer = null;
+    _hideTimer?.cancel();
+    setState(() => _layoutReady = false);
+    _engine?.pause();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      // 合成器至少落后一帧：立刻转屏会把"还没变黑"的播放器画面抓进旋转
+      // 快照（真机证实会出现半透明播放器 UI 叠在旋转卡片上）。等黑帧稳定
+      // 呈现后再请求转屏。
+      Future<void>.delayed(const Duration(milliseconds: 120), () {
+        if (!mounted) return;
+        _restoreOrientation();
+        if (MediaQuery.of(context).orientation == Orientation.portrait) {
+          // 本来就是竖屏（比如还没转横屏就退出），无需等旋转
+          _finishExit();
+          return;
+        }
+        _exitWaitTimer?.cancel();
+        _exitWaitTimer = Timer(const Duration(milliseconds: 450), _finishExit);
+      });
+    });
+  }
+
+  void _finishExit() {
+    if (!mounted || _popIssued) return;
+    _popIssued = true;
+    _exitWaitTimer?.cancel();
+    _exitWaitTimer = null;
+    _cleanup();
+    Navigator.pop(context);
+  }
+
   Widget _buildTopBar() {
     // 全宽渐变 scrim：与底栏呼应的 Netflix/Streama 式顶部渐变压暗。
     // 贴顶不悬浮：按钮为纯白图标（仅阴影），去掉玻璃浮层感；
@@ -3579,7 +3755,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
         ),
         child: Row(
           children: [
-            _buildTopBarIcon(Icons.arrow_back_rounded, () => Navigator.pop(context), size: 24),
+            _buildTopBarIcon(Icons.arrow_back_rounded, _requestExit, size: 24),
             const SizedBox(width: 4),
             Expanded(
               child: Row(
@@ -3716,12 +3892,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
         : _activeMedia.title;
     return _DanmakuRightPanel(
       danmakuEnabled: _danmakuEnabled,
-      onToggleDanmaku: (v) {
-        setState(() {
-          _danmakuEnabled = v;
-          _danmakuController.setEnabled(v);
-        });
-      },
+      onToggleDanmaku: _setDanmakuEnabled,
       onClose: () => setState(() => _rightPanelType = null),
       danmakuCount: _loadedDanmakuCount,
       danmakuSourceName: _loadedDanmakuSource,
@@ -4543,22 +4714,27 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
   /// 加载章节标记（Emby/Jellyfin Chapters API），在进度条上绘制 tick
   Future<void> _loadChapters() async {
     if (_isAudio) return;
+    if (_chaptersLoaded) return;
     final svc = widget.service;
-    if (svc == null || _chaptersLoaded) return;
+    if (svc == null) return;
     try {
-      final chapters = await svc.getChapters(_activeMedia.id);
-      if (!mounted || chapters.isEmpty) return;
+      // 进度条只画「片头 / 片尾」两个位置:整轨压制的片源常有 20~30 个章节
+      // (年会不能停！2 有 26 章,每 5 分钟一条),逐章画刻度会让进度条看起来
+      // "断成一节一节"(2026-10-24 用户反馈)。拿不到片头片尾信息则不画刻度。
+      final skip = _introSkip ?? await svc.getIntroSkipInfo(_activeMedia.id);
+      if (!mounted) return;
       _chaptersLoaded = true;
-      final markers = chapters
-          .map((c) => c.startDuration.inMilliseconds)
-          .where((ms) => ms > 1000)
-          .toList();
+      final markers = <int>[
+        if (skip?.hasIntro == true) skip!.introStartDuration.inMilliseconds,
+        if (skip?.hasCredits == true)
+          skip!.creditsStartDuration?.inMilliseconds ?? 0,
+      ].where((ms) => ms > 1000).toList();
       if (markers.isNotEmpty) {
         setState(() => _chapterMarkers = markers);
-        AppLog.i('Player', '章节标记: ${markers.length} 个 (${chapters.map((c) => c.name).join(' / ')})');
+        AppLog.i('Player', '进度条标记(仅片头片尾): $markers');
       }
     } catch (e) {
-      AppLog.d('Player', '加载章节标记失败: $e');
+      AppLog.d('Player', '加载片头片尾标记失败: $e');
     }
   }
 
