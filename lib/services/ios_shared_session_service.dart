@@ -1,6 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+/// 把登录会话同步给桌面小组件。
+///
+/// iOS 写入 App Group UserDefaults（WidgetKit 读取），Android 写入小组件专用
+/// SharedPreferences（WorkManager 后台刷新读取）；两边共用同一组 MethodChannel 方法名。
 class IosSharedSessionService {
   static const _channel = MethodChannel('org.moviepilot/ios_shared_session');
 
@@ -46,5 +50,7 @@ class IosSharedSessionService {
   }
 
   bool get _isSupportedPlatform =>
-      !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.android);
 }
