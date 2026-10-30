@@ -23,6 +23,7 @@ internal object SubscribeCalendarWidgetRenderer {
     private const val MAX_ROWS = 6
     private const val FIXED_CHROME_DP = 42f
     private const val ROW_HEIGHT_DP = 40f
+    private const val POSTER_WIDTH_DP = 24f
 
     fun renderAll(context: Context) {
         val manager = AppWidgetManager.getInstance(context)
@@ -142,7 +143,23 @@ internal object SubscribeCalendarWidgetRenderer {
             R.id.row_countdown,
             if (daysAway != null && daysAway <= 1L) 0xFF4ADE80.toInt() else 0xFF7DD3FC.toInt(),
         )
+        bindPoster(context, row, episode)
         return row
+    }
+
+    /** 只读本地已缓存的海报；没有素材时保留占位底色，行内容照常可读。 */
+    private fun bindPoster(context: Context, row: RemoteViews, episode: CalendarEpisode) {
+        val poster = if (episode.posterUrl.isEmpty()) {
+            null
+        } else {
+            val widthPx = (POSTER_WIDTH_DP * context.resources.displayMetrics.density).toInt()
+            WidgetPosterCache.loadBitmap(context, episode.posterUrl, widthPx * 2)
+        }
+        if (poster != null) {
+            row.setImageViewBitmap(R.id.row_poster, poster)
+        } else {
+            row.setImageViewResource(R.id.row_poster, R.drawable.widget_poster_placeholder)
+        }
     }
 
     private fun episodeSubtitle(episode: CalendarEpisode): String {

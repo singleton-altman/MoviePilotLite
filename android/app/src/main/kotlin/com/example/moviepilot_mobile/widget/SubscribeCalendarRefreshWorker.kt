@@ -28,6 +28,13 @@ class SubscribeCalendarRefreshWorker(
 
         return try {
             val items = SubscribeCalendarService().fetch(session.server, session.accessToken)
+            // 海报在后台线程下载并落盘，渲染阶段只读本地文件
+            WidgetPosterCache.prune(context, items.map { it.posterUrl })
+            items.forEach { episode ->
+                if (episode.posterUrl.isNotEmpty()) {
+                    WidgetPosterCache.download(context, episode.posterUrl)
+                }
+            }
             WidgetSessionStore.saveCache(
                 context = context,
                 payload = SubscribeCalendarCodec.encode(items),

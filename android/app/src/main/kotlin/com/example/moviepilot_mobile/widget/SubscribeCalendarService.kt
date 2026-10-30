@@ -15,6 +15,7 @@ internal data class CalendarEpisode(
     val seasonNumber: Int,
     val episodeNumber: Int,
     val episodeTitle: String,
+    val posterUrl: String = "",
 )
 
 /**
@@ -38,7 +39,7 @@ internal class SubscribeCalendarService {
             if (System.currentTimeMillis() > deadline) break
             val subscribe = subscribes.optJSONObject(index) ?: continue
             if (!isTv(subscribe.optString("type"))) continue
-            val tmdbId = readInt(subscribe, "tmdbid") ?: continue
+            val tmdbId = resolveTmdbId(subscribe) ?: continue
             if (tmdbId <= 0) continue
 
             val season = (readInt(subscribe, "season") ?: 1).coerceAtLeast(1)
@@ -50,9 +51,11 @@ internal class SubscribeCalendarService {
             }
 
             val showName = subscribe.optString("name").trim().ifEmpty { "剧集 $tmdbId" }
+            val posterUrl = subscribe.optString("poster").trim()
             for (episodeIndex in 0 until episodes.length()) {
                 val episode = episodes.optJSONObject(episodeIndex) ?: continue
                 val airDate = episode.optString("air_date").trim()
+                // 小组件只排「近期上映」，没有播出日期的分集无法排序，直接跳过
                 if (airDate.isEmpty()) continue
                 val parsedDate = runCatching { LocalDate.parse(airDate) }.getOrNull() ?: continue
                 if (parsedDate.isBefore(today)) continue
@@ -63,6 +66,7 @@ internal class SubscribeCalendarService {
                         seasonNumber = season,
                         episodeNumber = readInt(episode, "episode_number") ?: 0,
                         episodeTitle = episode.optString("name").trim().ifEmpty { "待播出" },
+                        posterUrl = posterUrl,
                     ),
                 )
             }
@@ -110,6 +114,26 @@ internal class SubscribeCalendarService {
         return value == "tv" || value.contains("tv") || value.contains("电视剧")
     }
 
+    /**
+     * v3 服务端的订阅只带 `media_source` + `media_id`，旧版才直接给 `tmdbid`。
+     * 这里按与 App 相同的规则还原 TMDB 标识，否则整个订阅列表都会被跳过。
+     */
+    private fun resolveTmdbId(subscribe: JSONObject): Int? {
+        readInt(subscribe, "tmdbid")?.takeIf { it > 0 }?.let { return it }
+
+        val source = subscribe.optString("media_source").trim().lowercase()
+        if (source != "tmdb" && source != "themoviedb") return null
+
+        val rawMediaId = when (val value = subscribe.opt("media_id")) {
+            is Number -> value.toString()
+            is String -> value.trim()
+            else -> ""
+        }
+        // media_id 可能是 "tv:12345" 这类带前缀的形态
+        val digits = rawMediaId.substringAfterLast(':').trim()
+        return digits.toIntOrNull()?.takeIf { it > 0 }
+    }
+
     private fun readInt(source: JSONObject, key: String): Int? {
         if (!source.has(key) || source.isNull(key)) return null
         return when (val value = source.opt(key)) {
@@ -139,6 +163,7 @@ internal object SubscribeCalendarCodec {
                     put("seasonNumber", item.seasonNumber)
                     put("episodeNumber", item.episodeNumber)
                     put("episodeTitle", item.episodeTitle)
+                    put("posterUrl", item.posterUrl)
                 },
             )
         }
@@ -160,6 +185,7 @@ internal object SubscribeCalendarCodec {
                     seasonNumber = item.optInt("seasonNumber", 1),
                     episodeNumber = item.optInt("episodeNumber", 0),
                     episodeTitle = item.optString("episodeTitle"),
+                    posterUrl = item.optString("posterUrl"),
                 ),
             )
         }
