@@ -4,6 +4,7 @@ import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_calendar_mo
 import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_models.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
+import 'package:moviepilot_mobile/services/ios_shared_session_service.dart';
 import 'package:moviepilot_mobile/utils/media_identity_util.dart';
 
 /// 订阅日历：基于用户 TV 订阅拉取各剧集播出信息，按日期时间轴展示
@@ -35,6 +36,9 @@ class SubscribeCalendarController extends GetxController {
   void onReady() {
     super.onReady();
     load();
+    if (Get.isRegistered<IosSharedSessionService>()) {
+      Get.find<IosSharedSessionService>().reloadWidgets();
+    }
   }
 
   static String get _todayUtc =>

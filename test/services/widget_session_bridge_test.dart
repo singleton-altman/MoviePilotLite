@@ -59,4 +59,13 @@ void main() {
 
     expect(calls, isEmpty);
   });
+
+  test('短时间内重复刷新小组件只触发一次', () async {
+    final service = IosSharedSessionService();
+
+    await service.reloadWidgets();
+    await service.reloadWidgets();
+
+    expect(calls.map((call) => call.method), ['reloadWidgets']);
+  });
 }
