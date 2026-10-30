@@ -3,6 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/utils/deep_link_route.dart';
 
+/// 桌面小组件/推送深链跳转。
+///
+/// 通道由 iOS AppDelegate 与 Android MainActivity 共同实现：启动时取回
+/// 冷启动挂起的路由，运行中接收 `openWidgetRoute` 立即跳转。
 class IosWidgetNavigationService extends GetxService {
   static const _channel = MethodChannel('org.moviepilot/widget_navigation');
   static const _duplicateWindow = Duration(milliseconds: 800);
@@ -12,7 +16,7 @@ class IosWidgetNavigationService extends GetxService {
   DateTime? _lastNavigationAt;
 
   Future<IosWidgetNavigationService> init() async {
-    if (!_isIos) return this;
+    if (!_isSupportedPlatform) return this;
     _channel.setMethodCallHandler(_handleMethodCall);
     try {
       final route = await _channel.invokeMethod<String>(
@@ -80,7 +84,10 @@ class IosWidgetNavigationService extends GetxService {
     });
   }
 
-  bool get _isIos => !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+  bool get _isSupportedPlatform =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.android);
 
   String _navigationKeyFor(DeepLinkTarget target) {
     if (target.parameters.isEmpty) return target.route;
