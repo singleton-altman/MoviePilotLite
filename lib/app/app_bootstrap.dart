@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:get/get.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/widgets.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:moviepilot_mobile/modules/media_detail/controllers/media_detail_service.dart';
 import 'package:moviepilot_mobile/modules/search/services/app_update_service.dart';
@@ -80,6 +80,17 @@ Future<void> bootstrapApp() async {
   registerAppLitePushRenderer();
   registerSubtitleManualUploadRenderer();
   registerBrushFlowRenderer();
+  WidgetsBinding.instance.addObserver(_WidgetRefreshLifecycle());
+}
+
+/// App 回到前台时让桌面小组件重新拉取，避免登录后的空缓存一直留在桌面。
+class _WidgetRefreshLifecycle with WidgetsBindingObserver {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    if (!Get.isRegistered<IosSharedSessionService>()) return;
+    Get.find<IosSharedSessionService>().reloadWidgets();
+  }
 }
 
 /// 首帧之后执行的初始化：慢帧诊断、推送 SDK 注册、APK 更新缓存清理
