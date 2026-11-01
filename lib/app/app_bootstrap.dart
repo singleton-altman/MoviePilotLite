@@ -22,11 +22,13 @@ import 'package:moviepilot_mobile/modules/dynamic_form/adapters/plugin_form_adap
 import 'package:moviepilot_mobile/modules/dynamic_form/adapters/brush_flow_form_controller.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/adapters/p115_strm_helper_form_controller.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/adapters/proxmox_ve_backup_form_controller.dart';
+import 'package:moviepilot_mobile/modules/dynamic_form/adapters/random_pic_form_controller.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/adapters/subtitle_manual_upload_form_controller.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/adapters/trash_clean_form_controller.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/widgets/VueStyle/applitepush/app_lite_push_widgets.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/widgets/VueStyle/brush_flow/brush_flow_widgets.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/widgets/VueStyle/proxmox_ve/proxmox_ve_backup_widgets.dart';
+import 'package:moviepilot_mobile/modules/dynamic_form/widgets/VueStyle/random_pic/random_pic_widgets.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/widgets/VueStyle/subtitle_manual_upload/subtitle_manual_upload_widgets.dart';
 
 /// 启动期依赖注册与插件适配器注册。
@@ -72,12 +74,17 @@ Future<void> bootstrapApp() async {
       'BrushFlow',
       ({required formMode}) => BrushFlowFormController(formMode: formMode),
     );
+    PluginFormAdapterRegistry.register(
+      'RandomPic',
+      ({required formMode}) => RandomPicFormController(formMode: formMode),
+    );
   } catch (e) {
     debugPrint('Error initializing app: $e');
   }
 
   registerProxmoxVeBackupRenderer();
   registerAppLitePushRenderer();
+  registerRandomPicRenderer();
   registerSubtitleManualUploadRenderer();
   registerBrushFlowRenderer();
   WidgetsBinding.instance.addObserver(_WidgetRefreshLifecycle());
