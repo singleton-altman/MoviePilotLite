@@ -20,10 +20,14 @@ import java.util.Locale
 
 internal object SubscribeCalendarWidgetRenderer {
     private const val DEEP_LINK = "moviepilot://subscribe-calendar"
-    private const val MAX_ROWS = 6
+    private const val MAX_ROWS = 10
     private const val FIXED_CHROME_DP = 42f
     private const val ROW_HEIGHT_DP = 40f
     private const val POSTER_WIDTH_DP = 24f
+
+    // 低于该宽度（dp）时隐藏海报与标题旁的统计副标题，保证剧名可读
+    private const val POSTER_MIN_WIDTH_DP = 200f
+    private const val SUBTITLE_MIN_WIDTH_DP = 140f
 
     fun renderAll(context: Context) {
         val manager = AppWidgetManager.getInstance(context)
@@ -97,16 +101,27 @@ internal object SubscribeCalendarWidgetRenderer {
         }
 
         views.removeAllViews(R.id.calendar_rows)
-        val maxRows = maxRows(context, manager.getAppWidgetOptions(widgetId))
+        val options = manager.getAppWidgetOptions(widgetId)
+        val widthDp = widthDp(context, options)
+        val maxRows = maxRows(context, options)
+        val showPoster = widthDp >= POSTER_MIN_WIDTH_DP
         state.items.take(maxRows).forEach { episode ->
-            views.addView(R.id.calendar_rows, buildRow(context, episode))
+            views.addView(R.id.calendar_rows, buildRow(context, episode, showPoster))
         }
+        views.setViewVisibility(
+            R.id.widget_subtitle,
+            if (widthDp >= SUBTITLE_MIN_WIDTH_DP) View.VISIBLE else View.GONE,
+        )
 
         views.setOnClickPendingIntent(R.id.widget_root, contentIntent(context))
         manager.updateAppWidget(widgetId, views)
     }
 
-    private fun buildRow(context: Context, episode: CalendarEpisode): RemoteViews {
+    private fun buildRow(
+        context: Context,
+        episode: CalendarEpisode,
+        showPoster: Boolean,
+    ): RemoteViews {
         val row = RemoteViews(context.packageName, R.layout.subscribe_calendar_widget_row)
         val today = LocalDate.now(ZoneOffset.UTC)
         val date = runCatching { LocalDate.parse(episode.date) }.getOrNull()
@@ -124,26 +139,16 @@ internal object SubscribeCalendarWidgetRenderer {
             daysAway == 1L -> R.drawable.widget_date_badge_tomorrow
             else -> R.drawable.widget_date_badge_default
         }
-        val countdown = when {
-            date == null -> ""
-            daysAway != null && daysAway <= 0L ->
-                context.getString(R.string.widget_subscribe_calendar_today)
-            daysAway == 1L -> context.getString(R.string.widget_subscribe_calendar_tomorrow)
-            daysAway != null ->
-                context.getString(R.string.widget_subscribe_calendar_days_away, daysAway)
-            else -> ""
-        }
 
         row.setTextViewText(R.id.row_date, badgeText)
         row.setInt(R.id.row_date, "setBackgroundResource", badgeBackground)
         row.setTextViewText(R.id.row_title, episode.showName)
         row.setTextViewText(R.id.row_subtitle, episodeSubtitle(episode))
-        row.setTextViewText(R.id.row_countdown, countdown)
-        row.setTextColor(
-            R.id.row_countdown,
-            if (daysAway != null && daysAway <= 1L) 0xFF4ADE80.toInt() else 0xFF7DD3FC.toInt(),
-        )
-        bindPoster(context, row, episode)
+        if (showPoster) {
+            bindPoster(context, row, episode)
+        } else {
+            row.setViewVisibility(R.id.row_poster, View.GONE)
+        }
         return row
     }
 
@@ -186,6 +191,20 @@ internal object SubscribeCalendarWidgetRenderer {
         }
         val available = heightDp - FIXED_CHROME_DP
         return (available / ROW_HEIGHT_DP).toInt().coerceIn(1, MAX_ROWS)
+    }
+
+    /** 当前显示宽度（dp），与 maxRows 同理：竖屏取较小值，横屏取较大值。 */
+    private fun widthDp(context: Context, options: Bundle): Float {
+        val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0).toFloat()
+        val maxWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, 0).toFloat()
+        val landscape =
+            context.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        return when {
+            landscape && maxWidth > 0f -> maxWidth
+            !landscape && minWidth > 0f -> minWidth
+            minWidth > 0f -> minWidth
+            else -> 250f
+        }
     }
 
     private fun contentIntent(context: Context): PendingIntent {

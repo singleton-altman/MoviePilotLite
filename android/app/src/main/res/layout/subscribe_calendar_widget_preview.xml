@@ -87,15 +87,6 @@
                     android:textColor="#9BA9BC"
                     android:textSize="9sp" />
             </LinearLayout>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:maxLines="1"
-                android:text="@string/widget_subscribe_calendar_today"
-                android:textColor="#4ADE80"
-                android:textSize="9sp" />
         </LinearLayout>
 
         <LinearLayout
@@ -144,15 +135,6 @@
                     android:textColor="#9BA9BC"
                     android:textSize="9sp" />
             </LinearLayout>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:maxLines="1"
-                android:text="@string/widget_subscribe_calendar_tomorrow"
-                android:textColor="#4ADE80"
-                android:textSize="9sp" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

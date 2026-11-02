@@ -11,7 +11,6 @@
     <string name="widget_subscribe_calendar_offline">离线</string>
     <string name="widget_subscribe_calendar_today">今天</string>
     <string name="widget_subscribe_calendar_tomorrow">明天</string>
-    <string name="widget_subscribe_calendar_days_away">%1$d 天后</string>
     <string name="widget_subscribe_calendar_undated">--</string>
     <string name="widget_subscribe_calendar_preview_subtitle">近期上映 · 2 条</string>
     <string name="widget_subscribe_calendar_preview_show">片名示例</string>

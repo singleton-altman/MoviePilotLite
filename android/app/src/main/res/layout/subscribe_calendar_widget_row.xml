@@ -54,13 +54,4 @@
             android:textColor="#9BA9BC"
             android:textSize="9sp" />
     </LinearLayout>
-
-    <TextView
-        android:id="@+id/row_countdown"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="6dp"
-        android:maxLines="1"
-        android:textColor="#7DD3FC"
-        android:textSize="9sp" />
 </LinearLayout>
