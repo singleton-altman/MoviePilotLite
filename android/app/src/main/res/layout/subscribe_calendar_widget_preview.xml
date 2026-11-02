@@ -48,23 +48,20 @@
             android:background="@drawable/widget_row_background"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingStart="7dp"
-            android:paddingEnd="8dp">
+            android:paddingStart="5dp"
+            android:paddingEnd="6dp">
 
-            <TextView
-                android:layout_width="44dp"
-                android:layout_height="28dp"
-                android:background="@drawable/widget_date_badge_today"
-                android:gravity="center"
-                android:text="@string/widget_subscribe_calendar_today"
-                android:textColor="#FFFFFF"
-                android:textSize="10sp"
-                android:textStyle="bold" />
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="7dp"
+                android:background="@drawable/widget_poster_placeholder"
+                android:contentDescription="@null"
+                android:scaleType="centerCrop" />
 
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
                 android:layout_weight="1"
                 android:orientation="vertical">
 
@@ -87,6 +84,19 @@
                     android:textColor="#9BA9BC"
                     android:textSize="9sp" />
             </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="22dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/widget_date_badge_today"
+                android:gravity="center"
+                android:paddingLeft="8dp"
+                android:paddingRight="8dp"
+                android:text="@string/widget_subscribe_calendar_today"
+                android:textColor="#4ADE80"
+                android:textSize="9sp"
+                android:textStyle="bold" />
         </LinearLayout>
 
         <LinearLayout
@@ -96,23 +106,20 @@
             android:background="@drawable/widget_row_background"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingStart="7dp"
-            android:paddingEnd="8dp">
+            android:paddingStart="5dp"
+            android:paddingEnd="6dp">
 
-            <TextView
-                android:layout_width="44dp"
-                android:layout_height="28dp"
-                android:background="@drawable/widget_date_badge_tomorrow"
-                android:gravity="center"
-                android:text="@string/widget_subscribe_calendar_tomorrow"
-                android:textColor="#FFFFFF"
-                android:textSize="10sp"
-                android:textStyle="bold" />
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="7dp"
+                android:background="@drawable/widget_poster_placeholder"
+                android:contentDescription="@null"
+                android:scaleType="centerCrop" />
 
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
                 android:layout_weight="1"
                 android:orientation="vertical">
 
@@ -135,6 +142,19 @@
                     android:textColor="#9BA9BC"
                     android:textSize="9sp" />
             </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="22dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/widget_date_badge_tomorrow"
+                android:gravity="center"
+                android:paddingLeft="8dp"
+                android:paddingRight="8dp"
+                android:text="@string/widget_subscribe_calendar_tomorrow"
+                android:textColor="#FBBF24"
+                android:textSize="9sp"
+                android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

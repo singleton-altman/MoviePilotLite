@@ -142,6 +142,14 @@ internal object SubscribeCalendarWidgetRenderer {
 
         row.setTextViewText(R.id.row_date, badgeText)
         row.setInt(R.id.row_date, "setBackgroundResource", badgeBackground)
+        row.setTextColor(
+            R.id.row_date,
+            when {
+                daysAway != null && daysAway <= 0L -> 0xFF4ADE80.toInt()
+                daysAway == 1L -> 0xFF_FBBF24.toInt()
+                else -> 0xFF7DD3FC.toInt()
+            },
+        )
         row.setTextViewText(R.id.row_title, episode.showName)
         row.setTextViewText(R.id.row_subtitle, episodeSubtitle(episode))
         if (showPoster) {
