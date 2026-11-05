@@ -6,6 +6,7 @@ import 'package:moviepilot_mobile/modules/settings/models/system_env_model.dart'
 import 'package:moviepilot_mobile/modules/settings/state/settings_field_state.dart';
 import 'package:moviepilot_mobile/modules/settings/state/settings_form_manager.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
+import 'package:moviepilot_mobile/services/llm_api_service.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
 
 /// 高级设置详情控制器：加载系统环境数据，支持编辑保存
@@ -32,6 +33,7 @@ class SettingsAdvancedDetailController extends GetxController {
 
   final llmModelOptions = <SettingsEnumOption>[].obs;
   final _llmModelsLoaded = false.obs;
+  late final _llmApi = LlmApiService(apiClient: _apiClient);
 
   /// 所有区块：(标题, 字段列表)
   List<(String, List<SettingsFieldConfig>)> get sections => [
@@ -143,33 +145,18 @@ class SettingsAdvancedDetailController extends GetxController {
     }
 
     try {
-      final resp = await _apiClient.get<Map<String, dynamic>>(
-        '/api/v1/system/llm-models',
-        queryParameters: {
-          'provider': provider,
-          'api_key': apiKey,
-          'base_url': baseUrl,
-        },
+      // v2 为 GET /llm/models,v3.1.5 为 POST /llm/manage
+      // (target=provider, action=list_models),契约细节由 LlmApiService 处理,
+      // 不再使用未经证实的 /system/llm-models 回退。
+      final catalog = await _llmApi.listModels(
+        provider: provider,
+        apiKey: apiKey,
+        baseUrl: baseUrl,
       );
-      final status = resp.statusCode ?? 0;
-      final body = resp.data;
-      if (status < 200 || status >= 300 || body == null) {
-        return '请求失败($status)';
-      }
-      final success = body['success'] == true;
-      if (!success) {
-        final msg = body['message']?.toString();
-        return msg == null || msg.isEmpty ? '请求失败' : msg;
-      }
-      final data = body['data'];
-      if (data is! List) return '响应数据格式错误';
-      final models = data
-          .map((e) => e?.toString())
-          .whereType<String>()
-          .where((s) => s.trim().isNotEmpty)
-          .toList();
       llmModelOptions.assignAll(
-        models.map((m) => SettingsEnumOption(value: m, label: m)).toList(),
+        catalog.models
+            .map((m) => SettingsEnumOption(value: m.id, label: m.name))
+            .toList(),
       );
       return null;
     } catch (e) {

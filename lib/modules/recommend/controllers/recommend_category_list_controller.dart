@@ -9,11 +9,18 @@ import 'package:moviepilot_mobile/modules/recommend/models/recommend_api_item.da
 import 'package:moviepilot_mobile/modules/search_result/controllers/search_result_controller.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
+import 'package:moviepilot_mobile/utils/media_identity_util.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:moviepilot_mobile/modules/recommend/models/recommend_source.dart';
 
 /// 推荐分类列表控制器，支持分页加载
 class RecommendCategoryListController extends GetxController {
   static const _viewModePrefKey = 'recommend_category_list_view_mode';
+
+  /// 长列表页在全局预算之上收一档，避免无限滚动时把解码缓存吃满，
+  /// 但值不能压到「一屏都放不下」，否则页内自己就会反复淘汰重解码。
+  static const _routeImageCacheMaximumSize = 240;
+  static const _routeImageCacheMaximumSizeBytes = 80 * 1024 * 1024;
 
   RecommendCategoryListController({
     required String key,
@@ -32,8 +39,9 @@ class RecommendCategoryListController extends GetxController {
   final _authRepository = Get.find<AuthRepository>();
   final _appService = Get.find<AppService>();
 
-  static const String _basePath = '/api/v1/recommend/';
   bool _cookieRefreshTriggered = false;
+  int? _previousImageCacheMaximumSize;
+  int? _previousImageCacheMaximumSizeBytes;
 
   String get categoryTitle => _title;
 
@@ -49,7 +57,14 @@ class RecommendCategoryListController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _tightenImageCacheForLongList();
     unawaited(_restoreViewModePref());
+  }
+
+  @override
+  void onClose() {
+    _restoreImageCacheLimits();
+    super.onClose();
   }
 
   SearchResultViewMode resolvedViewMode({required bool isNarrowScreen}) {
@@ -119,10 +134,10 @@ class RecommendCategoryListController extends GetxController {
       error.value = null;
     }
     try {
-      final path = '$_basePath$_key';
+      final uri = Uri.parse(RecommendSource.resolveApiPath(_key));
       final response = await _apiClient.get<dynamic>(
-        path,
-        queryParameters: {'page': page, 'title': _title},
+        uri.path,
+        queryParameters: {...uri.queryParameters, 'page': page},
       );
       final statusCode = response.statusCode ?? 0;
       if (statusCode >= 400) {
@@ -136,7 +151,11 @@ class RecommendCategoryListController extends GetxController {
       final list = _extractList(payload);
       final parsed = list
           .whereType<Map>()
-          .map((e) => RecommendApiItem.fromJson(Map<String, dynamic>.from(e)))
+          .map(
+            (e) => RecommendApiItem.fromJson(
+              normalizeMediaJson(Map<String, dynamic>.from(e)),
+            ),
+          )
           .toList();
 
       if (append) {
@@ -246,6 +265,32 @@ class RecommendCategoryListController extends GetxController {
     final matched = SearchResultViewMode.values.where((e) => e.name == raw);
     if (matched.isNotEmpty) {
       preferredViewMode.value = matched.first;
+    }
+  }
+
+  void _tightenImageCacheForLongList() {
+    final cache = PaintingBinding.instance.imageCache;
+    _previousImageCacheMaximumSize = cache.maximumSize;
+    _previousImageCacheMaximumSizeBytes = cache.maximumSizeBytes;
+    if (cache.maximumSize > _routeImageCacheMaximumSize) {
+      cache.maximumSize = _routeImageCacheMaximumSize;
+    }
+    if (cache.maximumSizeBytes > _routeImageCacheMaximumSizeBytes) {
+      cache.maximumSizeBytes = _routeImageCacheMaximumSizeBytes;
+    }
+  }
+
+  void _restoreImageCacheLimits() {
+    // 只恢复限额，不清空缓存。此前这里会 whole-clear 全局解码缓存，
+    // 导致从任何分类列表页返回后，探索/推荐页的海报全部重新解码。
+    final cache = PaintingBinding.instance.imageCache;
+    final previousSize = _previousImageCacheMaximumSize;
+    final previousBytes = _previousImageCacheMaximumSizeBytes;
+    if (previousSize != null) {
+      cache.maximumSize = previousSize;
+    }
+    if (previousBytes != null) {
+      cache.maximumSizeBytes = previousBytes;
     }
   }
 }

@@ -23,7 +23,26 @@ class RecommondCategoryGroupEditPannelWidget extends StatelessWidget {
       scrollController: scrollController,
       builder: (context, scrollController) => ListView(
         controller: scrollController,
-        children: _buildCategoryCardGroup(context),
+        children: [
+          Obx(() {
+            final messages = [
+              controller.sourceLoadError.value,
+              controller.preferenceSyncError.value,
+            ].whereType<String>().join('\n');
+            return ListTile(
+              title: const Text('扩展推荐来源'),
+              subtitle: Text(
+                messages.isEmpty ? '包含服务端插件来源，分组偏好随账号同步' : messages,
+              ),
+              trailing: IconButton(
+                tooltip: '刷新推荐来源',
+                onPressed: controller.reloadSources,
+                icon: const Icon(Icons.refresh),
+              ),
+            );
+          }),
+          ..._buildCategoryCardGroup(context),
+        ],
       ),
     );
   }
@@ -75,7 +94,7 @@ class RecommondCategoryGroupEditPannelWidget extends StatelessWidget {
   }
 
   List<Widget> _buildSubCategoryTiles(RecommendCategory category) {
-    final subCategories = category.subCategories;
+    final subCategories = controller.subCategoriesFor(category);
     return List.generate(subCategories.length, (index) {
       final subCategory = subCategories[index];
       final isSubVisible = controller.isSubCategoryVisible(

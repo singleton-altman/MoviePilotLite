@@ -135,17 +135,28 @@ class SiteDetailController extends GetxController {
         return;
       }
       final raw = response.data;
-      if (raw is! Map<String, dynamic>) {
+      final List<SiteUserDataHistoryItem> list;
+      if (raw is List) {
+        list = raw
+            .whereType<Map>()
+            .map(
+              (item) => SiteUserDataHistoryItem.fromJson(
+                Map<String, dynamic>.from(item),
+              ),
+            )
+            .toList();
+      } else if (raw is Map<String, dynamic>) {
+        final res = SiteUserDataHistoryResponse.fromJson(raw);
+        if (!res.success) {
+          errorText.value = res.message ?? '请求失败';
+          historyItems.clear();
+          return;
+        }
+        list = res.data.toList();
+      } else {
         historyItems.clear();
         return;
       }
-      final res = SiteUserDataHistoryResponse.fromJson(raw);
-      if (!res.success) {
-        errorText.value = res.message ?? '请求失败';
-        historyItems.clear();
-        return;
-      }
-      final list = res.data.toList();
       list.sort((a, b) {
         final da = a.updatedDay;
         final db = b.updatedDay;
@@ -290,5 +301,80 @@ class SiteDetailController extends GetxController {
       loadUserdataHistory(),
       loadResources(),
     ]);
+  }
+
+  ({bool ok, String message}) _siteActionError(String action) =>
+      (ok: false, message: '站点信息不完整，无法$action');
+
+  ({bool ok, String message}) _parseActionResponse(
+    dynamic data,
+    int status,
+    String action,
+  ) {
+    if (status >= 400) {
+      return (ok: false, message: '$action失败 (HTTP $status)');
+    }
+    String? message;
+    if (data is Map) {
+      message = data['message']?.toString();
+      if (data['success'] == false) {
+        return (
+          ok: false,
+          message: (message?.isNotEmpty ?? false) ? message! : '$action失败'
+        );
+      }
+    }
+    return (
+      ok: true,
+      message: (message?.isNotEmpty ?? false) ? message! : '$action成功'
+    );
+  }
+
+  /// POST /api/v1/site/cookie/{site_id} 使用站点账号密码更新 Cookie&UA
+  Future<({bool ok, String message})> updateSiteCookie({
+    required String username,
+    required String password,
+    String? code,
+  }) async {
+    final id = siteId;
+    if (id == null) return _siteActionError('更新 Cookie');
+    try {
+      final response = await _apiClient.post<dynamic>(
+        '/api/v1/site/cookie/$id',
+        data: {
+          'username': username,
+          'password': password,
+          if (code != null && code.trim().isNotEmpty) 'code': code.trim(),
+        },
+      );
+      return _parseActionResponse(response.data, response.statusCode ?? 0, '更新 Cookie');
+    } catch (e, st) {
+      _log.handle(e, stackTrace: st, message: '更新站点 Cookie 失败');
+      return (ok: false, message: '更新 Cookie 失败，请稍后重试');
+    }
+  }
+
+  /// GET /api/v1/site/test/{site_id} 站点连接测试
+  Future<({bool ok, String message})> testSiteConnectivity() async {
+    final id = siteId;
+    if (id == null) return _siteActionError('测试连接');
+    try {
+      final response = await _apiClient.get<dynamic>('/api/v1/site/test/$id');
+      return _parseActionResponse(response.data, response.statusCode ?? 0, '连接测试');
+    } catch (e, st) {
+      _log.handle(e, stackTrace: st, message: '站点连接测试失败');
+      return (ok: false, message: '连接测试失败，请稍后重试');
+    }
+  }
+
+  /// GET /api/v1/site/cookiecloud 触发 CookieCloud 同步
+  Future<({bool ok, String message})> syncCookieCloud() async {
+    try {
+      final response = await _apiClient.get<dynamic>('/api/v1/site/cookiecloud');
+      return _parseActionResponse(response.data, response.statusCode ?? 0, 'CookieCloud 同步');
+    } catch (e, st) {
+      _log.handle(e, stackTrace: st, message: 'CookieCloud 同步失败');
+      return (ok: false, message: 'CookieCloud 同步失败，请稍后重试');
+    }
   }
 }

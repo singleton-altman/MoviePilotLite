@@ -15,6 +15,12 @@ class DiscoverFilters {
     this.releaseDate = '',
     this.bangumiCategory = '',
     this.bangumiYear = '',
+    this.anilistGenre = '',
+    this.anilistFormat = '',
+    this.anilistSeason = '',
+    this.anilistSeasonYear = '',
+    this.anilistStatus = '',
+    this.anilistCountry = '',
   });
 
   final int page;
@@ -32,6 +38,12 @@ class DiscoverFilters {
   final String releaseDate;
   final String bangumiCategory;
   final String bangumiYear;
+  final String anilistGenre;
+  final String anilistFormat;
+  final String anilistSeason;
+  final String anilistSeasonYear;
+  final String anilistStatus;
+  final String anilistCountry;
 
   DiscoverFilters copyWith({
     int? page,
@@ -49,6 +61,12 @@ class DiscoverFilters {
     String? releaseDate,
     String? bangumiCategory,
     String? bangumiYear,
+    String? anilistGenre,
+    String? anilistFormat,
+    String? anilistSeason,
+    String? anilistSeasonYear,
+    String? anilistStatus,
+    String? anilistCountry,
   }) {
     return DiscoverFilters(
       page: page ?? this.page,
@@ -66,6 +84,91 @@ class DiscoverFilters {
       releaseDate: releaseDate ?? this.releaseDate,
       bangumiCategory: bangumiCategory ?? this.bangumiCategory,
       bangumiYear: bangumiYear ?? this.bangumiYear,
+      anilistGenre: anilistGenre ?? this.anilistGenre,
+      anilistFormat: anilistFormat ?? this.anilistFormat,
+      anilistSeason: anilistSeason ?? this.anilistSeason,
+      anilistSeasonYear: anilistSeasonYear ?? this.anilistSeasonYear,
+      anilistStatus: anilistStatus ?? this.anilistStatus,
+      anilistCountry: anilistCountry ?? this.anilistCountry,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'page': page,
+      'sortBy': sortBy,
+      'mediaType': mediaType,
+      'selectedGenres': selectedGenres,
+      'selectedRegions': selectedRegions,
+      'selectedLanguages': selectedLanguages,
+      'selectedDecade': selectedDecade,
+      'withOriginalLanguage': withOriginalLanguage,
+      'withKeywords': withKeywords,
+      'withWatchProviders': withWatchProviders,
+      'voteAverage': voteAverage,
+      'voteCount': voteCount,
+      'releaseDate': releaseDate,
+      'bangumiCategory': bangumiCategory,
+      'bangumiYear': bangumiYear,
+      'anilistGenre': anilistGenre,
+      'anilistFormat': anilistFormat,
+      'anilistSeason': anilistSeason,
+      'anilistSeasonYear': anilistSeasonYear,
+      'anilistStatus': anilistStatus,
+      'anilistCountry': anilistCountry,
+    };
+  }
+
+  factory DiscoverFilters.fromJson(Map<String, dynamic> json) {
+    List<String> stringList(dynamic value) {
+      if (value is List) {
+        return value
+            .map((e) => e?.toString() ?? '')
+            .where((e) => e.isNotEmpty)
+            .toList();
+      }
+      return const <String>[];
+    }
+
+    int intValue(dynamic value, int fallback) {
+      if (value is int) return value;
+      if (value is num) return value.toInt();
+      if (value is String) return int.tryParse(value) ?? fallback;
+      return fallback;
+    }
+
+    String stringValue(dynamic value, String fallback) {
+      if (value is String) return value;
+      if (value == null) return fallback;
+      return value.toString();
+    }
+
+    const defaults = DiscoverFilters();
+    return DiscoverFilters(
+      page: intValue(json['page'], defaults.page),
+      sortBy: stringValue(json['sortBy'], defaults.sortBy),
+      mediaType: stringValue(json['mediaType'], defaults.mediaType),
+      selectedGenres: stringList(json['selectedGenres']),
+      selectedRegions: stringList(json['selectedRegions']),
+      selectedLanguages: stringList(json['selectedLanguages']),
+      selectedDecade: stringValue(json['selectedDecade'], defaults.selectedDecade),
+      withOriginalLanguage:
+          stringValue(json['withOriginalLanguage'], defaults.withOriginalLanguage),
+      withKeywords: stringValue(json['withKeywords'], defaults.withKeywords),
+      withWatchProviders:
+          stringValue(json['withWatchProviders'], defaults.withWatchProviders),
+      voteAverage: intValue(json['voteAverage'], defaults.voteAverage),
+      voteCount: intValue(json['voteCount'], defaults.voteCount),
+      releaseDate: stringValue(json['releaseDate'], defaults.releaseDate),
+      bangumiCategory: stringValue(json['bangumiCategory'], defaults.bangumiCategory),
+      bangumiYear: stringValue(json['bangumiYear'], defaults.bangumiYear),
+      anilistGenre: stringValue(json['anilistGenre'], defaults.anilistGenre),
+      anilistFormat: stringValue(json['anilistFormat'], defaults.anilistFormat),
+      anilistSeason: stringValue(json['anilistSeason'], defaults.anilistSeason),
+      anilistSeasonYear:
+          stringValue(json['anilistSeasonYear'], defaults.anilistSeasonYear),
+      anilistStatus: stringValue(json['anilistStatus'], defaults.anilistStatus),
+      anilistCountry: stringValue(json['anilistCountry'], defaults.anilistCountry),
     );
   }
 
@@ -96,6 +199,7 @@ class DiscoverFilters {
       'vote_average': voteAverage.toString(),
       'vote_count': voteCount.toString(),
       'release_date': release,
+      'year': release,
     };
     if (useOriginCountry && regionCodes.isNotEmpty) {
       params['origin_country'] = regionCodes.join('|');
@@ -103,6 +207,23 @@ class DiscoverFilters {
     if (useProductionCountries && regionCodes.isNotEmpty) {
       params['production_countries'] = regionCodes.join('|');
     }
+    return params;
+  }
+
+  Map<String, String> toAnilistQueryParameters() {
+    final params = <String, String>{
+      'page': page.toString(),
+      'count': '20',
+    };
+    if (anilistGenre.isNotEmpty) params['genre'] = anilistGenre;
+    if (anilistFormat.isNotEmpty) params['format'] = anilistFormat;
+    if (anilistSeason.isNotEmpty) params['season'] = anilistSeason;
+    if (anilistSeasonYear.isNotEmpty) {
+      params['season_year'] = anilistSeasonYear;
+    }
+    if (anilistStatus.isNotEmpty) params['status'] = anilistStatus;
+    if (anilistCountry.isNotEmpty) params['country'] = anilistCountry;
+    if (sortBy.isNotEmpty) params['sort'] = sortBy;
     return params;
   }
 

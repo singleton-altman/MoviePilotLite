@@ -1,0 +1,7 @@
+interface:
+  display_name: "Dashboard Scaffold Background"
+  short_description: "Reuse dashboard shell and background"
+  default_prompt: "Use $dashboard-scaffold-background to refactor this Flutter page onto the shared DashboardScaffold background."
+
+policy:
+  allow_implicit_invocation: true

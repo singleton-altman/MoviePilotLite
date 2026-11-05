@@ -49,6 +49,11 @@ class MediaOrganizePage extends GetView<MediaOrganizeController> {
       title: const Text('媒体整理'),
       centerTitle: false,
       actions: [
+        IconButton(
+          tooltip: '整理队列',
+          icon: const Icon(Icons.queue_rounded, size: 22),
+          onPressed: () => Get.toNamed('/transfer-queue'),
+        ),
         Obx(() {
           final mode = controller.viewMode.value;
           return Padding(
@@ -403,36 +408,81 @@ class MediaOrganizePage extends GetView<MediaOrganizeController> {
     bool selectionEnabled = false,
     bool showPopupMenu = true,
   }) {
-    return MediaOrganizeItemCard(
-      item: item,
-      srcStorageName: controller.getStorageName(item.src_storage),
-      destStorageName: controller.getStorageName(item.dest_storage),
-      margin: selectionEnabled
-          ? const EdgeInsets.only(bottom: 6)
-          : const EdgeInsets.only(bottom: 12),
-      selectionEnabled: selectionEnabled,
-      showPopupMenu: showPopupMenu,
-      selected: selectionEnabled && controller.isItemSelected(item),
-      onTap: selectionEnabled
-          ? () => controller.toggleItemSelection(item)
-          : () => MediaOrganizeDetailSheet.show(
-              context,
-              item: item,
-              srcStorageName: controller.getStorageName(item.src_storage),
-              destStorageName: controller.getStorageName(item.dest_storage),
-            ),
-      onSelectionChanged: selectionEnabled
-          ? (_) => controller.toggleItemSelection(item)
-          : null,
-      onDeleteTransferRecordOnly: () =>
-          _deleteTransferRecord(item, deletesrc: false, deletedest: false),
-      onDeleteTransferRecordAndSourceFile: () =>
-          _deleteTransferRecord(item, deletesrc: true, deletedest: false),
-      onDeleteTransferRecordAndMediaLibraryFile: () =>
-          _deleteTransferRecord(item, deletesrc: false, deletedest: true),
-      onDeleteTransferRecordAndSourceFileAndMediaLibraryFile: () =>
-          _deleteTransferRecord(item, deletesrc: true, deletedest: true),
+    return Obx(
+      () => MediaOrganizeItemCard(
+        item: item,
+        srcStorageName: controller.getStorageName(item.src_storage),
+        destStorageName: controller.getStorageName(item.dest_storage),
+        margin: selectionEnabled
+            ? const EdgeInsets.only(bottom: 6)
+            : const EdgeInsets.only(bottom: 12),
+        selectionEnabled: selectionEnabled,
+        showPopupMenu: showPopupMenu,
+        selected: selectionEnabled && controller.isItemSelected(item),
+        onTap: selectionEnabled
+            ? () => controller.toggleItemSelection(item)
+            : () => MediaOrganizeDetailSheet.show(
+                context,
+                item: item,
+                srcStorageName: controller.getStorageName(item.src_storage),
+                destStorageName: controller.getStorageName(item.dest_storage),
+              ),
+        onSelectionChanged: selectionEnabled
+            ? (_) => controller.toggleItemSelection(item)
+            : null,
+        onAiRedo:
+            controller.canAiRedo &&
+                !controller.aiRedoSubmitting.value &&
+                item.id != null &&
+                item.id! > 0
+            ? () => _confirmAiRedo(context, item)
+            : null,
+        onDeleteTransferRecordOnly: () =>
+            _deleteTransferRecord(item, deletesrc: false, deletedest: false),
+        onDeleteTransferRecordAndSourceFile: () =>
+            _deleteTransferRecord(item, deletesrc: true, deletedest: false),
+        onDeleteTransferRecordAndMediaLibraryFile: () =>
+            _deleteTransferRecord(item, deletesrc: false, deletedest: true),
+        onDeleteTransferRecordAndSourceFileAndMediaLibraryFile: () =>
+            _deleteTransferRecord(item, deletesrc: true, deletedest: true),
+      ),
     );
+  }
+
+  Future<void> _confirmAiRedo(
+    BuildContext context,
+    MediaOrganizeTransferItem item,
+  ) async {
+    if (!controller.canAiRedo || controller.aiRedoSubmitting.value) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('确认 AI 重新整理'),
+        content: Text(
+          '将对“${item.title ?? '未命名媒体'}”发起真实的文件重新整理，'
+          '不是预览，可能移动、重命名或替换媒体库文件。请确认路径并确保已有备份。\n\n'
+          '源：${item.src ?? '未记录'}\n目标：${item.dest ?? '由服务端决定'}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('确认重新整理'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    final result = await controller.aiRedoTransfer(item);
+    if (!context.mounted) return;
+    if (result.ok) {
+      ToastUtil.success(result.message);
+    } else {
+      ToastUtil.error(result.message);
+    }
   }
 
   Widget _buildQuickTitlePicker(BuildContext context) {

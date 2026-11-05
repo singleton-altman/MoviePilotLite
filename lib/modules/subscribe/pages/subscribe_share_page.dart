@@ -41,6 +41,28 @@ class SubscribeSharePage extends GetView<SubscribeShareController> {
             );
           }),
           Tooltip(
+            message: '只看关注',
+            child: Obx(
+              () => IconButton(
+                icon: Icon(
+                  controller.followOnly.value
+                      ? CupertinoIcons.person_crop_circle_badge_checkmark
+                      : CupertinoIcons.person_crop_circle,
+                  color: controller.followOnly.value
+                      ? const Color(0xFF30D158)
+                      : Theme.of(context).colorScheme.primary,
+                ),
+                onPressed: () {
+                  if (controller.followedUsers.isEmpty &&
+                      !controller.followOnly.value) {
+                    controller.loadFollowed();
+                  }
+                  controller.toggleFollowOnly();
+                },
+              ),
+            ),
+          ),
+          Tooltip(
             message: '分享统计',
             child: IconButton(
               icon: Icon(
@@ -168,6 +190,8 @@ class SubscribeSharePage extends GetView<SubscribeShareController> {
                     item: item,
                     onTap: () => _openSharedSubscribeDetailSheet(context, item),
                     onMoreTap: () {},
+                    isFollowed: controller.isFollowed(item),
+                    onFollowTap: () => controller.toggleFollow(item),
                   ),
                 );
               }, childCount: items.length),
@@ -239,7 +263,26 @@ class SubscribeSharePage extends GetView<SubscribeShareController> {
   ) {
     showModalBottomSheet<void>(
       context: context,
-      builder: (ctx) => SharedSubscribeDetailSheet(item: item),
+      isScrollControlled: true,
+      useSafeArea: true,
+      isDismissible: true,
+      showDragHandle: false,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.92,
+        minChildSize: 0.36,
+        maxChildSize: 1,
+        expand: false,
+        builder: (context, scrollController) {
+          return ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            child: SharedSubscribeDetailSheet(
+              item: item,
+              scrollController: scrollController,
+            ),
+          );
+        },
+      ),
     );
   }
 }

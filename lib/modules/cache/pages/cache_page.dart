@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:moviepilot_mobile/utils/open_url.dart';
 import 'package:moviepilot_mobile/utils/size_formatter.dart';
+import 'package:moviepilot_mobile/utils/toast_util.dart';
 
 import '../controllers/cache_controller.dart';
 import '../models/cache_model.dart';
@@ -14,15 +15,57 @@ import '../widgets/site_filter_sheet.dart';
 class CachePage extends GetView<CacheController> {
   const CachePage({super.key});
 
+  static const double _floatingBarHeight = 52;
+
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
+      backgroundColor: colors.surface,
       appBar: AppBar(
         title: const Text('缓存管理'),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        backgroundColor: colors.surface,
+        surfaceTintColor: Colors.transparent,
         leading: IconButton(
           icon: const Icon(CupertinoIcons.back),
           onPressed: () => Get.back(),
         ),
+        actions: [
+          PopupMenuButton<String>(
+            tooltip: '缓存操作',
+            icon: const Icon(CupertinoIcons.ellipsis_vertical, size: 20),
+            onSelected: (value) {
+              switch (value) {
+                case 'refresh':
+                  _runCacheAction(controller.refreshTorrentCache());
+                case 'clear-torrent':
+                  ToastUtil.warning(
+                    '将清空全部种子缓存,重新搜索时需重建,确定继续吗?',
+                    title: '清空种子缓存',
+                    onConfirm: () =>
+                        _runCacheAction(controller.clearTorrentCache()),
+                  );
+                case 'tmdb':
+                  _showTmdbCacheSheet(context, controller);
+                case 'clear-tmdb':
+                  ToastUtil.warning(
+                    '将清空全部 TMDB 识别缓存,确定继续吗?',
+                    title: '清空 TMDB 识别缓存',
+                    onConfirm: () => _runCacheAction(controller.clearTmdbCache()),
+                  );
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: 'refresh', child: Text('刷新种子缓存')),
+              PopupMenuItem(value: 'clear-torrent', child: Text('清空种子缓存')),
+              PopupMenuItem(value: 'tmdb', child: Text('查看 TMDB 识别缓存')),
+              PopupMenuItem(value: 'clear-tmdb', child: Text('清空 TMDB 识别缓存')),
+            ],
+          ),
+          const SizedBox(width: 6),
+        ],
       ),
       body: Obx(() => _buildBody(context, controller)),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
@@ -36,17 +79,8 @@ class CachePage extends GetView<CacheController> {
 
     return CustomScrollView(
       slivers: [
-        SliverToBoxAdapter(child: _buildFilterBar(context, controller)),
         if (controller.errorText.value != null)
-          SliverToBoxAdapter(
-            child: Text(
-              controller.errorText.value!,
-              style: const TextStyle(
-                color: CupertinoColors.systemRed,
-                fontSize: 12,
-              ),
-            ),
-          ),
+          SliverToBoxAdapter(child: _buildErrorBanner(context, controller)),
         if (controller.isLoading.value && !hasData)
           const SliverFillRemaining(
             hasScrollBody: false,
@@ -55,25 +89,17 @@ class CachePage extends GetView<CacheController> {
         else if (items.isEmpty)
           SliverFillRemaining(
             hasScrollBody: false,
-            child: Center(
-              child: Text(
-                controller.hasFilter ? '没有匹配的缓存' : '暂无缓存数据',
-                style: const TextStyle(color: CupertinoColors.systemGrey),
-              ),
-            ),
+            child: _buildEmptyState(context, controller),
           )
         else
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(8, 6, 8, 96),
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 108),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate((context, index) {
-                final isFirst = index == 0;
-                final isLast = index == items.length - 1;
                 return _buildSectionItem(
                   context,
                   items[index],
-                  isFirst: isFirst,
-                  isLast: isLast,
+                  isLast: index == items.length - 1,
                 );
               }, childCount: items.length),
             ),
@@ -82,178 +108,324 @@ class CachePage extends GetView<CacheController> {
     );
   }
 
-  Widget _buildFilterBar(BuildContext context, CacheController controller) {
-    final fieldColor = CupertinoDynamicColor.resolve(
-      CupertinoColors.systemGrey6,
-      context,
-    );
-
+  Widget _buildErrorBanner(BuildContext context, CacheController controller) {
+    final colors = Theme.of(context).colorScheme;
+    final error = colors.error;
     return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: CupertinoSearchTextField(
-        controller: controller.keywordController,
-        placeholder: '搜索标题、描述或资源信息',
-        backgroundColor: fieldColor,
-        onChanged: controller.updateKeyword,
-      ),
-    );
-  }
-
-  Widget _buildFloatingBar(BuildContext context, CacheController controller) {
-    final sites = controller.siteOptions;
-    final selectedSite = controller.selectedSiteLabel;
-    final selectedCount = controller.selectedSites.length;
-    final total = controller.totalCount;
-    final siteCount = controller.siteCount;
-    final filtered = controller.filteredItems.length;
-    final siteActive = controller.hasSiteFilter;
-    final siteColor = CupertinoDynamicColor.resolve(
-      siteActive ? CupertinoColors.activeBlue : CupertinoColors.secondaryLabel,
-      context,
-    );
-    const pillHeight = 42.0;
-
-    return Material(
-      color: Colors.transparent,
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: error.withValues(alpha: _isDark(context) ? 0.14 : 0.08),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: error.withValues(alpha: 0.22)),
+        ),
         child: Row(
           children: [
-            CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: sites.isEmpty
-                  ? null
-                  : () => _showSiteSelector(context, controller, sites),
-              child: _buildFrostedPill(
-                context,
-                height: pillHeight,
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                isActive: siteActive,
-                child: Row(
-                  children: [
-                    Icon(
-                      CupertinoIcons.collections,
-                      size: 16,
-                      color: siteColor,
-                    ),
-                    const SizedBox(width: 6),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 90),
-                      child: Text(
-                        selectedSite,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 11, color: siteColor),
-                      ),
-                    ),
-                    if (selectedCount > 1) ...[
-                      const SizedBox(width: 6),
-                      _buildCountBadge(selectedCount),
-                    ],
-                    const SizedBox(width: 4),
-                    Icon(
-                      CupertinoIcons.chevron_down,
-                      size: 14,
-                      color: siteColor,
-                    ),
-                  ],
-                ),
-              ),
+            Icon(
+              CupertinoIcons.exclamationmark_triangle_fill,
+              color: error,
+              size: 17,
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: _buildFrostedPill(
-                context,
-                height: pillHeight,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '总量 $total',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      '站点 $siteCount'
-                      '${controller.hasFilter ? ' · 筛选 $filtered' : ''}',
-                      style: const TextStyle(
-                        fontSize: 10,
-                        color: CupertinoColors.systemGrey,
-                      ),
-                    ),
-                  ],
+              child: Text(
+                controller.errorText.value ?? '',
+                style: TextStyle(
+                  color: colors.onSurface,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
-            const SizedBox(width: 8),
-            _buildActionGroup(context, controller, pillHeight),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildFrostedPill(
-    BuildContext context, {
-    required Widget child,
-    required EdgeInsets padding,
-    double? height,
-    bool isActive = false,
-  }) {
-    final baseColor = CupertinoDynamicColor.resolve(
-      CupertinoColors.systemBackground,
-      context,
-    ).withValues(alpha: 0.88);
-    final activeTint = CupertinoDynamicColor.resolve(
-      CupertinoColors.activeBlue,
-      context,
-    ).withValues(alpha: isActive ? 0.14 : 0.0);
-    final glassColor = Color.alphaBlend(activeTint, baseColor);
-
-    final pill = ClipRRect(
-      borderRadius: BorderRadius.circular(999),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Container(padding: padding, color: glassColor, child: child),
-      ),
-    );
-    if (height == null) return pill;
-    return SizedBox(height: height, child: pill);
-  }
-
-  Widget _buildCountBadge(int count) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: CupertinoColors.activeBlue.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        '$count',
-        style: const TextStyle(
-          fontSize: 10,
-          color: CupertinoColors.activeBlue,
-          fontWeight: FontWeight.w600,
+  Widget _buildEmptyState(BuildContext context, CacheController controller) {
+    final colors = Theme.of(context).colorScheme;
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 28),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: colors.outlineVariant.withValues(alpha: 0.38),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              controller.hasFilter
+                  ? CupertinoIcons.search
+                  : CupertinoIcons.archivebox,
+              color: colors.onSurfaceVariant,
+              size: 30,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              controller.hasFilter ? '没有匹配的缓存' : '暂无缓存数据',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: colors.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildActionGroup(
+  Widget _buildFloatingBar(BuildContext context, CacheController controller) {
+    final sites = controller.siteOptions;
+    final selectedCount = controller.selectedSites.length;
+    final siteActive = controller.hasSiteFilter;
+    final theme = Theme.of(context);
+    final child = Row(
+      children: [
+        _buildFloatingFilterButton(
+          context,
+          controller,
+          sites,
+          isActive: siteActive,
+          selectedCount: selectedCount,
+        ),
+        const SizedBox(width: 8),
+        Expanded(child: _buildKeywordTrigger(context, controller)),
+        const SizedBox(width: 8),
+        _buildActionGroup(context, controller),
+      ],
+    );
+    final pill = Container(
+      height: _floatingBarHeight,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(999)),
+      child: child,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(999),
+          color: theme.colorScheme.surface.withValues(alpha: 0.2),
+          border: Border.all(
+            color: theme.colorScheme.outline.withValues(alpha: 0.1),
+            width: 0.5,
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 90, sigmaY: 90),
+            child: pill,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFloatingFilterButton(
     BuildContext context,
     CacheController controller,
-    double pillHeight,
+    List<String> sites, {
+    required bool isActive,
+    required int selectedCount,
+  }) {
+    final color = isActive
+        ? CupertinoDynamicColor.resolve(CupertinoColors.activeBlue, context)
+        : Theme.of(context).colorScheme.onSurfaceVariant;
+
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+      onPressed: sites.isEmpty
+          ? null
+          : () => _showSiteSelector(context, controller, sites),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Icon(CupertinoIcons.slider_horizontal_3, size: 20, color: color),
+          if (selectedCount > 0)
+            Positioned(
+              right: -6,
+              top: -6,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: CupertinoColors.activeBlue,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '$selectedCount',
+                  style: const TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    color: CupertinoColors.white,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildKeywordTrigger(
+    BuildContext context,
+    CacheController controller,
   ) {
+    final theme = Theme.of(context);
+    final keyword = controller.keyword.value.trim();
+    final active = keyword.isNotEmpty;
+    final textColor = active
+        ? theme.colorScheme.onSurface
+        : theme.colorScheme.onSurfaceVariant;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _showKeywordSheet(context, controller),
+      child: Container(
+        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(999)),
+        child: Row(
+          children: [
+            Icon(CupertinoIcons.search, size: 16, color: textColor),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                active ? keyword : '搜索缓存',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w600,
+                  color: textColor,
+                ),
+              ),
+            ),
+            if (active)
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  controller.keywordController.text = '';
+                  controller.updateKeyword('');
+                },
+                child: const Padding(
+                  padding: EdgeInsets.only(left: 6),
+                  child: Icon(CupertinoIcons.xmark_circle_fill, size: 16),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showKeywordSheet(
+    BuildContext context,
+    CacheController controller,
+  ) async {
+    controller.closeActions();
+    final textController = TextEditingController(
+      text: controller.keyword.value,
+    );
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final colors = Theme.of(sheetContext).colorScheme;
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+          ),
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+            child: Material(
+              color: colors.surface,
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 14),
+                        decoration: BoxDecoration(
+                          color: colors.outlineVariant,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: CupertinoSearchTextField(
+                              controller: textController,
+                              autofocus: true,
+                              placeholder: '搜索标题、描述或资源信息',
+                              backgroundColor: colors.surfaceContainerHighest
+                                  .withValues(
+                                    alpha: _isDark(sheetContext) ? 0.36 : 0.72,
+                                  ),
+                              onSubmitted: (value) =>
+                                  Navigator.of(sheetContext).pop(value),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          CupertinoButton(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            onPressed: () => Navigator.of(
+                              sheetContext,
+                            ).pop(textController.text),
+                            child: const Text('完成'),
+                          ),
+                        ],
+                      ),
+                      if (textController.text.trim().isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        CupertinoButton(
+                          padding: EdgeInsets.zero,
+                          onPressed: () => Navigator.of(sheetContext).pop(''),
+                          child: const Text('清空搜索'),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    textController.dispose();
+
+    if (result == null) return;
+    controller.keywordController.text = result;
+    controller.updateKeyword(result);
+  }
+
+  Widget _buildActionGroup(BuildContext context, CacheController controller) {
     return Builder(
       builder: (buttonContext) {
         final isOpen = controller.showActions.value;
+        final color = isOpen
+            ? CupertinoDynamicColor.resolve(CupertinoColors.activeBlue, context)
+            : Theme.of(context).colorScheme.onSurfaceVariant;
         return CupertinoButton(
           padding: EdgeInsets.zero,
+          minimumSize: Size.zero,
           onPressed: () {
             if (isOpen) {
               Navigator.of(buttonContext).maybePop();
@@ -261,21 +433,10 @@ class CachePage extends GetView<CacheController> {
             }
             _showActionMenu(buttonContext, controller);
           },
-          child: _buildFrostedPill(
-            context,
-            height: pillHeight,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            isActive: isOpen,
-            child: Icon(
-              isOpen ? CupertinoIcons.xmark : CupertinoIcons.ellipsis,
-              size: 16,
-              color: CupertinoDynamicColor.resolve(
-                isOpen
-                    ? CupertinoColors.activeBlue
-                    : CupertinoColors.secondaryLabel,
-                context,
-              ),
-            ),
+          child: Icon(
+            isOpen ? CupertinoIcons.xmark : CupertinoIcons.ellipsis,
+            size: 20,
+            color: color,
           ),
         );
       },
@@ -356,11 +517,11 @@ class CachePage extends GetView<CacheController> {
     final background = CupertinoDynamicColor.resolve(
       CupertinoColors.systemBackground,
       context,
-    ).withOpacity(0.95);
+    ).withValues(alpha: 0.95);
     final dividerColor = CupertinoDynamicColor.resolve(
       CupertinoColors.separator,
       context,
-    ).withOpacity(0.35);
+    ).withValues(alpha: 0.35);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
@@ -465,10 +626,6 @@ class CachePage extends GetView<CacheController> {
     final date = _formatPubDate(item.pubdate);
     final site = _siteLabel(item) ?? '未知站点';
     final domain = item.domain?.trim();
-    final siteLabel = domain != null && domain.isNotEmpty && domain != site
-        ? '$site · $domain'
-        : site;
-    final accentColor = _siteColor(site);
     const posterWidth = 84.0;
     const posterHeight = 118.0;
 
@@ -489,135 +646,138 @@ class CachePage extends GetView<CacheController> {
     final link = (item.pageUrl?.trim().isNotEmpty ?? false)
         ? item.pageUrl
         : item.enclosure;
+    final titleColor = Theme.of(context).colorScheme.onSurface;
+    final subtitleColor = Theme.of(context).colorScheme.onSurfaceVariant;
 
-    return GestureDetector(
-      onTap: link != null ? () => WebUtil.open(url: link) : null,
-      child: Container(
-        padding: padding,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 2,
-              height: posterHeight,
-              decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.9),
-                borderRadius: BorderRadius.circular(4),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: link != null ? () => WebUtil.open(url: link) : null,
+        child: Padding(
+          padding: padding,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildPoster(
+                context,
+                item.posterPath ?? item.backdropPath,
+                width: posterWidth,
+                height: posterHeight,
               ),
-            ),
-            const SizedBox(width: 8),
-            _buildPoster(
-              item.posterPath ?? item.backdropPath,
-              width: posterWidth,
-              height: posterHeight,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 15,
+                        height: 1.25,
+                        fontWeight: FontWeight.w700,
+                        color: titleColor,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      _buildTagChip(context, site, _TagType.site),
-                      if (domain != null &&
-                          domain.isNotEmpty &&
-                          domain != site) ...[
-                        const SizedBox(width: 6),
-                        Flexible(
-                          child: Text(
-                            domain,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: CupertinoColors.systemGrey,
-                            ),
-                          ),
-                        ),
-                      ] else if (domain == null || domain.isEmpty) ...[
-                        const SizedBox(width: 6),
-                        Flexible(
-                          child: Text(
-                            siteLabel,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: CupertinoColors.systemGrey,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  if (tags.isNotEmpty) ...[
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 7),
                     Wrap(
                       spacing: 6,
                       runSpacing: 6,
-                      children: tags
-                          .map(
-                            (tag) =>
-                                _buildTagChip(context, tag.label, tag.type),
-                          )
-                          .toList(),
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        _buildTagChip(context, site, _TagType.site),
+                        if (domain != null &&
+                            domain.isNotEmpty &&
+                            domain != site)
+                          _buildPlainMetaText(context, domain),
+                        for (final tag in tags)
+                          _buildTagChip(context, tag.label, tag.type),
+                      ],
                     ),
-                  ],
-                  if (description.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: CupertinoColors.systemGrey2,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Icon(
-                        CupertinoIcons.time,
-                        size: 12,
-                        color: CupertinoColors.systemGrey,
-                      ),
-                      const SizedBox(width: 4),
+                    if (description.isNotEmpty) ...[
+                      const SizedBox(height: 7),
                       Text(
-                        date,
-                        style: const TextStyle(
+                        description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
                           fontSize: 12,
-                          color: CupertinoColors.systemGrey,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Icon(
-                        CupertinoIcons.arrow_down_circle,
-                        size: 12,
-                        color: CupertinoColors.systemGrey,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        size,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: CupertinoColors.systemGrey,
+                          height: 1.34,
+                          color: subtitleColor,
                         ),
                       ),
                     ],
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
+                        _buildInfoPill(context, CupertinoIcons.time, date),
+                        _buildInfoPill(
+                          context,
+                          CupertinoIcons.arrow_down_circle,
+                          size,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              if (link != null) ...[
+                const SizedBox(width: 8),
+                Icon(
+                  CupertinoIcons.chevron_forward,
+                  size: 16,
+                  color: subtitleColor.withValues(alpha: 0.62),
+                ),
+              ],
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPlainMetaText(BuildContext context, String text) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 128),
+      child: Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontSize: 11,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoPill(BuildContext context, IconData icon, String text) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: colors.surface.withValues(alpha: _isDark(context) ? 0.28 : 0.52),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: colors.onSurfaceVariant),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: colors.onSurfaceVariant,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -625,49 +785,224 @@ class CachePage extends GetView<CacheController> {
   Widget _buildSectionItem(
     BuildContext context,
     CacheItem item, {
-    required bool isFirst,
     required bool isLast,
   }) {
-    final background = Theme.of(context).cardColor;
-    final dividerColor = CupertinoDynamicColor.resolve(
-      CupertinoColors.separator,
-      context,
-    ).withOpacity(0.35);
+    final colors = Theme.of(context).colorScheme;
+    final domain = item.domain?.trim() ?? '';
+    final hash = item.hash?.trim() ?? '';
+    final hasItemActions = domain.isNotEmpty && hash.isNotEmpty;
 
     return Container(
+      margin: EdgeInsets.only(bottom: isLast ? 0 : 10),
       decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.vertical(
-          top: isFirst ? const Radius.circular(12) : Radius.zero,
-          bottom: isLast ? const Radius.circular(12) : Radius.zero,
+        color: colors.surfaceContainerHighest.withValues(
+          alpha: _isDark(context) ? 0.22 : 0.42,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: colors.outlineVariant.withValues(alpha: 0.22),
         ),
       ),
-      child: Column(
+      child: Stack(
         children: [
-          _buildCacheItem(context, item),
-          if (!isLast)
-            Container(
-              height: 0.5,
-              color: dividerColor,
-              margin: const EdgeInsets.only(left: 12),
+          _buildCacheItem(context, item, padding: const EdgeInsets.all(12)),
+          if (hasItemActions)
+            Positioned(
+              top: 2,
+              right: 0,
+              child: PopupMenuButton<String>(
+                tooltip: '缓存条目操作',
+                padding: EdgeInsets.zero,
+                icon: Icon(
+                  CupertinoIcons.ellipsis_vertical,
+                  size: 16,
+                  color: colors.onSurfaceVariant,
+                ),
+                onSelected: (value) {
+                  switch (value) {
+                    case 'delete':
+                      ToastUtil.warning(
+                        '确定删除该条种子缓存吗?',
+                        title: '删除缓存',
+                        onConfirm: () => _runCacheAction(
+                          controller.deleteTorrentCacheItem(domain, hash),
+                        ),
+                      );
+                    case 'reidentify':
+                      _runCacheAction(
+                        controller.reidentifyTorrentCacheItem(domain, hash),
+                      );
+                  }
+                },
+                itemBuilder: (context) => const [
+                  PopupMenuItem(value: 'delete', child: Text('删除缓存')),
+                  PopupMenuItem(value: 'reidentify', child: Text('重新识别')),
+                ],
+              ),
             ),
         ],
       ),
     );
   }
 
-  Widget _buildPoster(String? url, {double width = 72, double height = 102}) {
+  Future<void> _runCacheAction(
+    Future<({bool ok, String message})> action,
+  ) async {
+    ToastUtil.loading(message: '正在执行…');
+    final result = await action;
+    ToastUtil.dismiss();
+    if (result.ok) {
+      ToastUtil.success(result.message);
+    } else {
+      ToastUtil.error(result.message);
+    }
+  }
+
+  Future<void> _showTmdbCacheSheet(
+    BuildContext context,
+    CacheController controller,
+  ) async {
+    ToastUtil.loading(message: '正在加载…');
+    final items = await controller.loadTmdbCache();
+    ToastUtil.dismiss();
+    if (!context.mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.4,
+        maxChildSize: 0.92,
+        expand: false,
+        builder: (sheetContext, scrollController) => Container(
+          color: Theme.of(sheetContext).colorScheme.surface,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 12, 4),
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Text('TMDB 识别缓存',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w800)),
+                    ),
+                    IconButton(
+                      icon: const Icon(CupertinoIcons.clear, size: 20),
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: items.isEmpty
+                    ? Center(
+                        child: Text('暂无识别缓存',
+                            style: TextStyle(
+                                fontSize: 13,
+                                color: Theme.of(sheetContext)
+                                    .colorScheme
+                                    .onSurfaceVariant)),
+                      )
+                    : ListView.separated(
+                        controller: scrollController,
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                        itemCount: items.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (context, index) {
+                          final entry = items[index];
+                          final key = (entry['key'] ??
+                                  entry['cache_key'] ??
+                                  '')
+                              .toString();
+                          final title = (entry['title'] ??
+                                  entry['name'] ??
+                                  '未知条目')
+                              .toString();
+                          final year = entry['year']?.toString() ?? '';
+                          return ListTile(
+                            dense: true,
+                            contentPadding:
+                                const EdgeInsets.symmetric(horizontal: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              side: BorderSide(
+                                color: Theme.of(sheetContext)
+                                    .colorScheme
+                                    .onSurface
+                                    .withOpacity(0.08),
+                              ),
+                            ),
+                            title: Text(title,
+                                maxLines: 1, overflow: TextOverflow.ellipsis),
+                            subtitle: year.isNotEmpty || key.isNotEmpty
+                                ? Text(
+                                    [if (year.isNotEmpty) year, key]
+                                        .join(' · '),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 11))
+                                : null,
+                            trailing: key.isNotEmpty
+                                ? IconButton(
+                                    icon: Icon(
+                                      CupertinoIcons.delete,
+                                      size: 18,
+                                      color: Theme.of(sheetContext)
+                                          .colorScheme
+                                          .error,
+                                    ),
+                                    onPressed: () => ToastUtil.warning(
+                                      '确定删除该条识别缓存吗?',
+                                      title: '删除识别缓存',
+                                      onConfirm: () async {
+                                        final result =
+                                            await controller.deleteTmdbCacheItem(
+                                          key,
+                                        );
+                                        if (result.ok) {
+                                          ToastUtil.success('已删除');
+                                          if (sheetContext.mounted) {
+                                            Navigator.of(sheetContext).pop();
+                                          }
+                                        } else {
+                                          ToastUtil.error(result.message);
+                                        }
+                                      },
+                                    ),
+                                  )
+                                : null,
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPoster(
+    BuildContext context,
+    String? url, {
+    double width = 72,
+    double height = 102,
+  }) {
+    final colors = Theme.of(context).colorScheme;
     final placeholder = Container(
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey5,
-        borderRadius: BorderRadius.circular(8),
+        color: colors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(7),
       ),
-      child: const Icon(
+      child: Icon(
         CupertinoIcons.photo,
         size: 22,
-        color: CupertinoColors.systemGrey2,
+        color: colors.onSurfaceVariant,
       ),
     );
 
@@ -676,7 +1011,7 @@ class CachePage extends GetView<CacheController> {
     }
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(7),
       child: Image.network(
         url,
         width: width,
@@ -689,8 +1024,8 @@ class CachePage extends GetView<CacheController> {
             width: width,
             height: height,
             decoration: BoxDecoration(
-              color: CupertinoColors.systemGrey5,
-              borderRadius: BorderRadius.circular(8),
+              color: colors.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(7),
             ),
             child: const Center(child: CupertinoActivityIndicator(radius: 8)),
           );
@@ -701,9 +1036,9 @@ class CachePage extends GetView<CacheController> {
 
   Widget _buildTagChip(BuildContext context, String label, _TagType type) {
     final baseColor = _tagColor(context, type);
-    final bgColor = baseColor.withOpacity(0.16);
-    final textColor = baseColor.withOpacity(0.9);
-    final borderColor = baseColor.withOpacity(0.35);
+    final bgColor = baseColor.withValues(alpha: _isDark(context) ? 0.14 : 0.08);
+    final textColor = baseColor;
+    final borderColor = baseColor.withValues(alpha: 0.18);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -734,17 +1069,8 @@ class CachePage extends GetView<CacheController> {
     return CupertinoDynamicColor.resolve(map[type]!, context);
   }
 
-  Color _siteColor(String label) {
-    final palette = [
-      CupertinoColors.systemBlue,
-      CupertinoColors.systemTeal,
-      CupertinoColors.systemGreen,
-      CupertinoColors.systemOrange,
-      CupertinoColors.systemPink,
-      CupertinoColors.systemPurple,
-    ];
-    final hash = label.codeUnits.fold<int>(0, (p, c) => p + c);
-    return palette[hash % palette.length];
+  bool _isDark(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark;
   }
 
   String _formatPubDate(String? raw) {

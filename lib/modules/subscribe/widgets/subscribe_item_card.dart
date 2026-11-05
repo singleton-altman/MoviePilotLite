@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:moviepilot_mobile/modules/subscribe/controllers/subscribe_controller.dart';
@@ -9,6 +11,9 @@ enum SubscribeItemCardType {
   edit,
   search,
   detail,
+  files,
+  activity,
+  logs,
   pause,
   resume,
   reset,
@@ -23,18 +28,58 @@ class SubscribeItemCard extends StatelessWidget {
     super.key,
     required this.item,
     required this.isTv,
+    this.isMusic = false,
     this.layout = SubscribeItemCardLayout.list,
+    this.showExecutionEntries = false,
     this.onTap,
     this.onMoreTap,
   });
 
   final SubscribeItem item;
   final bool isTv;
+  final bool isMusic;
   final SubscribeItemCardLayout layout;
+
+  /// v3 执行可观测入口（活动记录/运行日志）；v2 服务端隐藏
+  final bool showExecutionEntries;
   final VoidCallback? onTap;
   final Function(SubscribeItemCardType type)? onMoreTap;
 
+  /// 卡片「更多」菜单项集合；执行可观测入口仅在 v3 且非音乐订阅时出现
+  static List<SubscribeItemCardType> menuItemsFor({
+    required bool isMusic,
+    required bool isTv,
+    required bool executionVisible,
+    required bool paused,
+    required bool running,
+  }) {
+    if (isMusic) {
+      return <SubscribeItemCardType>[
+        SubscribeItemCardType.search,
+        if (paused) SubscribeItemCardType.resume,
+        if (running) SubscribeItemCardType.pause,
+        SubscribeItemCardType.delete,
+      ];
+    }
+    return <SubscribeItemCardType>[
+      SubscribeItemCardType.edit,
+      SubscribeItemCardType.search,
+      SubscribeItemCardType.detail,
+      SubscribeItemCardType.files,
+      if (executionVisible) ...[
+        SubscribeItemCardType.activity,
+        SubscribeItemCardType.logs,
+      ],
+      if (paused) SubscribeItemCardType.resume,
+      if (running) SubscribeItemCardType.pause,
+      SubscribeItemCardType.reset,
+      if (isTv) SubscribeItemCardType.shared,
+      SubscribeItemCardType.delete,
+    ];
+  }
+
   static const double _cardRadius = 22;
+  static const double _gridCardRadius = 16;
   static const double _listCardHeight = 220;
   static const double _posterWidth = 84;
   static const double _posterHeight = 124;
@@ -61,6 +106,7 @@ class SubscribeItemCard extends StatelessWidget {
               fit: StackFit.expand,
               children: [
                 _buildBackdrop(),
+                Positioned.fill(child: _buildBackdropMask()),
                 Positioned.fill(child: _buildGradientOverlay()),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
@@ -155,101 +201,74 @@ class SubscribeItemCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(_cardRadius),
+        borderRadius: BorderRadius.circular(_gridCardRadius),
         onTap: onTap,
         child: Container(
-          decoration: _cardDecoration(context),
+          decoration: _cardDecoration(context, radius: _gridCardRadius),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(_cardRadius),
-            child: Column(
+            borderRadius: BorderRadius.circular(_gridCardRadius),
+            child: Stack(
+              fit: StackFit.expand,
               children: [
-                Expanded(
-                  flex: 7,
-                  child: Stack(
-                    fit: StackFit.expand,
+                _buildGridPoster(),
+                Positioned.fill(child: _buildGridGradientOverlay()),
+                Positioned(
+                  left: 10,
+                  top: 10,
+                  right: 8,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildBackdrop(),
-                      Positioned.fill(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.black.withValues(alpha: 0.2),
-                                Colors.transparent,
-                                Colors.black.withValues(alpha: 0.58),
-                              ],
-                              stops: const [0, 0.45, 1],
-                            ),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        left: 12,
-                        top: 12,
+                      Flexible(
                         child: _buildMetaPill(
                           label: _stateLabel,
                           color: _stateColor,
                         ),
                       ),
-                      Positioned(
-                        right: 10,
-                        top: 10,
-                        child: _buildMoreButton(context),
-                      ),
+                      const SizedBox(width: 6),
+                      _buildMoreButton(context, compact: true),
                     ],
                   ),
                 ),
-                Expanded(
-                  flex: 5,
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Color(0xFF0F1723), Color(0xFF131E2B)],
+                Positioned(
+                  left: 10,
+                  right: 10,
+                  bottom: 10,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _titleWithSeason,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          height: 1.2,
+                        ),
                       ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                      if (_gridSubtitle.isNotEmpty) ...[
+                        const SizedBox(height: 4),
                         Text(
-                          _titleWithSeason,
-                          maxLines: 2,
+                          _gridSubtitle,
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                          style: TextStyle(
+                            fontSize: 11,
                             height: 1.2,
+                            color: Colors.white.withValues(alpha: 0.72),
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        if (_subtitle.isNotEmpty)
-                          Text(
-                            _subtitle,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 11,
-                              height: 1.35,
-                              color: Colors.white.withValues(alpha: 0.74),
-                            ),
-                          ),
-                        const Spacer(),
-                        _buildFooterMetrics(
-                          compact: true,
-                          timeAtTrailing: false,
-                        ),
-                        if (_hasProgressBar) ...[
-                          const SizedBox(height: 10),
-                          _buildProgressSection(compact: true),
-                        ],
                       ],
-                    ),
+                      const SizedBox(height: 8),
+                      _buildGridFooterMetrics(),
+                      if (_hasProgressBar) ...[
+                        const SizedBox(height: 8),
+                        _buildProgressSection(compact: true),
+                      ],
+                    ],
                   ),
                 ),
               ],
@@ -260,14 +279,91 @@ class SubscribeItemCard extends StatelessWidget {
     );
   }
 
-  BoxDecoration _cardDecoration(BuildContext context) {
+  Widget _buildGridPoster() {
+    var url = item.poster;
+    if (url == null || url.isEmpty) url = item.backdrop;
+    if (url != null && url.isNotEmpty) {
+      url = ImageUtil.convertCacheImageUrl(url);
+      return CachedImage(imageUrl: url, fit: BoxFit.cover);
+    }
+    return Container(
+      decoration: BoxDecoration(
+        gradient: isMusic
+            ? const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF8B5CF6), Color(0xFF4C1D95)],
+              )
+            : const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF30435D), Color(0xFF192436)],
+              ),
+      ),
+      child: isMusic
+          ? const Icon(
+              Icons.library_music_rounded,
+              size: 42,
+              color: Colors.white,
+            )
+          : null,
+    );
+  }
+
+  Widget _buildGridGradientOverlay() {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.black.withValues(alpha: 0.28),
+            Colors.black.withValues(alpha: 0.08),
+            Colors.black.withValues(alpha: 0.82),
+          ],
+          stops: const [0, 0.42, 1],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGridFooterMetrics() {
+    final secondary = Colors.white.withValues(alpha: 0.72);
+    final parts = <String>[
+      if ((item.username ?? '').isNotEmpty) item.username!,
+      if (isTv && _hasEpisodeInfo) _episodeProgress,
+      SubscribeController.formatRelativeTime(item.lastUpdate ?? item.date),
+    ];
+    return Text(
+      parts.join(' · '),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        fontSize: 10.5,
+        fontWeight: FontWeight.w600,
+        color: secondary,
+        height: 1.2,
+      ),
+    );
+  }
+
+  String get _gridSubtitle {
+    final type = item.type?.trim();
+    if (type != null && type.isNotEmpty) return type;
+    final year = item.year?.trim();
+    if (year != null && year.isNotEmpty) return year;
+    return '';
+  }
+
+  BoxDecoration _cardDecoration(BuildContext context, {double? radius}) {
+    final r = radius ?? _cardRadius;
     return BoxDecoration(
-      borderRadius: BorderRadius.circular(_cardRadius),
+      borderRadius: BorderRadius.circular(r),
       boxShadow: [
         BoxShadow(
           color: Colors.black.withValues(alpha: 0.12),
-          blurRadius: 26,
-          offset: const Offset(0, 14),
+          blurRadius: radius == _gridCardRadius ? 16 : 26,
+          offset: Offset(0, radius == _gridCardRadius ? 8 : 14),
         ),
       ],
       border: Border.all(
@@ -292,6 +388,45 @@ class SubscribeItemCard extends StatelessWidget {
           colors: [Color(0xFF30435D), Color(0xFF192436)],
         ),
       ),
+    );
+  }
+
+  Widget _buildBackdropMask() {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        ShaderMask(
+          blendMode: BlendMode.dstIn,
+          shaderCallback: (rect) {
+            return const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.transparent, Colors.black, Colors.black],
+              stops: [0.30, 0.74, 1],
+            ).createShader(rect);
+          },
+          child: ClipRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 2.4, sigmaY: 2.4),
+              child: const SizedBox.expand(),
+            ),
+          ),
+        ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.white.withValues(alpha: 0.025),
+                Colors.black.withValues(alpha: 0.12),
+                Colors.black.withValues(alpha: 0.42),
+              ],
+              stops: const [0, 0.56, 1],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -454,30 +589,36 @@ class SubscribeItemCard extends StatelessWidget {
       height: _posterHeight,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
-        color: Colors.white.withValues(alpha: 0.16),
+        gradient: isMusic
+            ? const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF8B5CF6), Color(0xFF4C1D95)],
+              )
+            : null,
+        color: isMusic ? null : Colors.white.withValues(alpha: 0.16),
       ),
+      child: isMusic
+          ? const Icon(
+              Icons.library_music_rounded,
+              size: 30,
+              color: Colors.white,
+            )
+          : null,
     );
   }
 
-  Widget _buildMoreButton(BuildContext context) {
+  Widget _buildMoreButton(BuildContext context, {bool compact = false}) {
     final isPaused = item.state?.toUpperCase() == 'S';
     final isRunning = item.state?.toUpperCase() == 'R';
-    final items = [
-      SubscribeItemCardType.edit,
-      SubscribeItemCardType.search,
-      SubscribeItemCardType.detail,
-    ];
-    if (isPaused) {
-      items.add(SubscribeItemCardType.resume);
-    }
-    if (isRunning) {
-      items.add(SubscribeItemCardType.pause);
-    }
-    items.add(SubscribeItemCardType.reset);
-    if (isTv) {
-      items.add(SubscribeItemCardType.shared);
-    }
-    items.add(SubscribeItemCardType.delete);
+    final size = compact ? 34.0 : 30.0;
+    final items = menuItemsFor(
+      isMusic: isMusic,
+      isTv: isTv,
+      executionVisible: showExecutionEntries,
+      paused: isPaused,
+      running: isRunning,
+    );
     return PopupMenuButton(
       onSelected: onMoreTap,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -504,14 +645,18 @@ class SubscribeItemCard extends StatelessWidget {
           )
           .toList(),
       child: Container(
-        width: 30,
-        height: 30,
+        width: size,
+        height: size,
         decoration: BoxDecoration(
           color: Colors.black.withValues(alpha: 0.32),
           borderRadius: BorderRadius.circular(999),
           border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
         ),
-        child: const Icon(Icons.more_horiz, size: 16, color: Colors.white),
+        child: Icon(
+          Icons.more_horiz,
+          size: compact ? 18 : 16,
+          color: Colors.white,
+        ),
       ),
     );
   }
@@ -522,6 +667,12 @@ class SubscribeItemCard extends StatelessWidget {
         return Icons.edit;
       case SubscribeItemCardType.detail:
         return Icons.info;
+      case SubscribeItemCardType.files:
+        return Icons.folder_open;
+      case SubscribeItemCardType.activity:
+        return CupertinoIcons.clock;
+      case SubscribeItemCardType.logs:
+        return CupertinoIcons.doc_text;
       case SubscribeItemCardType.pause:
         return Icons.pause;
       case SubscribeItemCardType.resume:
@@ -543,6 +694,12 @@ class SubscribeItemCard extends StatelessWidget {
         return '编辑';
       case SubscribeItemCardType.detail:
         return '详情';
+      case SubscribeItemCardType.files:
+        return '文件统计';
+      case SubscribeItemCardType.activity:
+        return '活动记录';
+      case SubscribeItemCardType.logs:
+        return '运行日志';
       case SubscribeItemCardType.pause:
         return '暂停';
       case SubscribeItemCardType.resume:
@@ -564,6 +721,12 @@ class SubscribeItemCard extends StatelessWidget {
         return Colors.blue;
       case SubscribeItemCardType.detail:
         return Colors.green;
+      case SubscribeItemCardType.files:
+        return const Color(0xFF64D2FF);
+      case SubscribeItemCardType.activity:
+        return const Color(0xFF30B0C7);
+      case SubscribeItemCardType.logs:
+        return const Color(0xFFBF5AF2);
       case SubscribeItemCardType.pause:
         return Colors.orange;
       case SubscribeItemCardType.resume:

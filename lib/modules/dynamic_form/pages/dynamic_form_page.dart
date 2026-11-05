@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/adapters/plugin_form_adapter.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/adapters/plugin_form_adapter_registry.dart';
@@ -21,6 +22,7 @@ import 'package:moviepilot_mobile/modules/dynamic_form/widgets/table_widget.dart
 import 'package:moviepilot_mobile/modules/dynamic_form/widgets/text_area_widget.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/widgets/text_field_widget.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/widgets/vuetify_renderer.dart';
+import 'package:moviepilot_mobile/utils/open_url.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
 
 /// 展示项：单个区块 或 统计卡片网格（2x2）
@@ -139,11 +141,36 @@ class DynamicFormPage extends GetView<DynamicFormController> {
             }
             return const SizedBox.shrink();
           }),
+          Obx(() {
+            controller.isLoading.value;
+            if (controller.formMode.value) return const SizedBox.shrink();
+            if (controller.isAppLitePushPlugin) return const SizedBox.shrink();
+            final showEntry =
+                controller.pluginAdapter?.supportsFormEntry ?? true;
+            if (!showEntry) return const SizedBox.shrink();
+            return IconButton(
+              icon: Icon(
+                Icons.settings_outlined,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              tooltip: '插件配置',
+              onPressed: () {
+                Get.toNamed(
+                  '/plugin/dynamic-form/form',
+                  arguments: {
+                    'id': controller.pluginId,
+                    'title': controller.pageTitle,
+                  },
+                );
+              },
+            );
+          }),
         ],
       ),
       body: Obx(() {
         final loading = controller.isLoading.value;
         final error = controller.errorText.value;
+        final theme = Theme.of(context);
         final blocks = controller.effectiveBlocks;
         final pNodes = controller.effectivePageNodes;
         final hasContent = blocks.isNotEmpty || pNodes.isNotEmpty;
@@ -189,6 +216,9 @@ class DynamicFormPage extends GetView<DynamicFormController> {
             _buildBlock,
           );
         }
+        if (!hasContent && controller.isUnsupportedVuePlugin) {
+          return _VueOnlyPlaceholder(webUrl: controller.serverWebUrl);
+        }
         if (!hasContent) {
           return Center(
             child: Text(
@@ -213,47 +243,46 @@ class DynamicFormPage extends GetView<DynamicFormController> {
 
         // 默认：FormBlock 渲染
         final items = _toDisplayItems(blocks);
-        return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(
-            _horizontalPadding,
-            12,
-            _horizontalPadding,
-            80,
-          ),
-          itemCount: items.length,
-          itemBuilder: (context, index) {
-            final item = items[index];
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: index < items.length - 1 ? _cardSpacing : 0,
+        final unsupported = controller.unsupportedFormComponents;
+        return Column(
+          children: [
+            if (unsupported.isNotEmpty)
+              Material(
+                color: theme.colorScheme.surfaceContainerHighest,
+                child: ListTile(
+                  dense: true,
+                  leading: Icon(
+                    Icons.info_outline_rounded,
+                    size: 20,
+                    color: theme.colorScheme.tertiary,
+                  ),
+                  title: Text(
+                    '部分组件暂不支持在移动端配置（${unsupported.join('、')}），请在 Web 端调整',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ),
               ),
-              child: _buildItem(context, item),
-            );
-          },
-        );
-      }),
-      floatingActionButton: Obx(() {
-        // 依赖 isLoading，以便 adapter 异步注入后能重新计算是否显示入口
-        controller.isLoading.value;
-        if (controller.formMode.value) return const SizedBox.shrink();
-        if (controller.isAppLitePushPlugin) return const SizedBox.shrink();
-        final showEntry = controller.pluginAdapter?.supportsFormEntry ?? true;
-        if (!showEntry) return const SizedBox.shrink();
-        return Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary,
-            borderRadius: BorderRadius.circular(100),
-          ),
-          child: IconButton.filled(
-            icon: const Icon(Icons.settings, color: CupertinoColors.white),
-            onPressed: () {
-              final args = {
-                'id': controller.pluginId,
-                'title': controller.pageTitle,
-              };
-              Get.toNamed('/plugin/dynamic-form/form', arguments: args);
-            },
-          ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.fromLTRB(
+                  _horizontalPadding,
+                  12,
+                  _horizontalPadding,
+                  80,
+                ),
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      bottom: index < items.length - 1 ? _cardSpacing : 0,
+                    ),
+                    child: _buildItem(context, item),
+                  );
+                },
+              ),
+            ),
+          ],
         );
       }),
     );
@@ -263,6 +292,18 @@ class DynamicFormPage extends GetView<DynamicFormController> {
     final adapter = controller.pluginAdapter!;
     final items = adapter.actionList ?? [];
     if (items.isEmpty) return const SizedBox.shrink();
+    if (items.length == 1) {
+      final item = items.first;
+      final iconData = item.iconName != null
+          ? VuetifyMappings.iconFromMdi(item.iconName)
+          : Icons.more_horiz;
+      final color = _resolveActionColor(context, item.iconColor);
+      return IconButton(
+        tooltip: item.label,
+        icon: Icon(iconData ?? Icons.more_horiz, color: color),
+        onPressed: () => adapter.onAppBarAction(item.type),
+      );
+    }
     return PopupMenuButton<AppBarActionItem>(
       tooltip: '更多操作',
       padding: EdgeInsets.zero,
@@ -466,6 +507,76 @@ class DynamicFormPage extends GetView<DynamicFormController> {
       alert: (b) => AlertWidget(block: b),
       siteInfoCard: (b) => SiteInfoCardWidget(block: b),
       infoCard: (b) => InfoCardWidget(block: b),
+    );
+  }
+}
+
+/// vue 模式插件未注册原生适配器时的引导占位。
+/// 适配策略:特殊插件 ID 走原生适配器,vuetify 走通用渲染,
+/// 其余 vue 插件留待逐插件适配,在此之前引导到 Web 端配置。
+class _VueOnlyPlaceholder extends StatelessWidget {
+  const _VueOnlyPlaceholder({this.webUrl});
+
+  final String? webUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final url = webUrl?.trim() ?? '';
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.dashboard_customize_outlined,
+              size: 48,
+              color: theme.colorScheme.outline,
+            ),
+            const SizedBox(height: 16),
+            Text('该插件使用自定义界面', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Text(
+              '此插件的界面由 Web 前端组件渲染，App 暂未适配。请前往 Web 端完成配置或查看数据。',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            if (url.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              SelectableText(
+                url,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      await Clipboard.setData(ClipboardData(text: url));
+                      ToastUtil.success('已复制服务器地址');
+                    },
+                    icon: const Icon(Icons.copy_rounded, size: 18),
+                    label: const Text('复制地址'),
+                  ),
+                  FilledButton.tonalIcon(
+                    onPressed: () => WebUtil.open(url: url),
+                    icon: const Icon(Icons.open_in_browser_rounded, size: 18),
+                    label: const Text('打开 Web 端'),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

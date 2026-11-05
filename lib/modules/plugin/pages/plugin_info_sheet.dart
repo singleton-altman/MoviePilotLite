@@ -11,18 +11,131 @@ import 'package:moviepilot_mobile/theme/section.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
 import 'package:moviepilot_mobile/widgets/cached_image.dart';
-import 'package:moviepilot_mobile/widgets/section_header.dart';
 
 import '../controllers/plugin_controller.dart';
 
+Future<void> showPluginInfoSheet(BuildContext context, PluginItem item) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    isDismissible: true,
+    showDragHandle: false,
+    backgroundColor: Colors.transparent,
+    builder: (context) {
+      return DraggableScrollableSheet(
+        initialChildSize: 0.92,
+        minChildSize: 0.36,
+        maxChildSize: 1,
+        expand: false,
+        builder: (context, scrollController) {
+          return ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            child: PluginInfoSheet(
+              item: item,
+              scrollController: scrollController,
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
 class PluginInfoSheet extends StatefulWidget {
-  const PluginInfoSheet({super.key, required this.item});
+  const PluginInfoSheet({super.key, required this.item, this.scrollController});
+
   final PluginItem item;
+  final ScrollController? scrollController;
+
   @override
   State<PluginInfoSheet> createState() => _PluginInfoSheetState();
 }
 
 enum PluginInfoSheetState { normal, installing, installed }
+
+class _PluginSheetHeader extends StatelessWidget {
+  const _PluginSheetHeader({required this.title, required this.onClose});
+
+  final String title;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: cs.surface,
+        border: Border(
+          bottom: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.45)),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 12, 10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 38,
+              height: 4,
+              decoration: BoxDecoration(
+                color: cs.onSurfaceVariant.withValues(alpha: 0.28),
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: cs.onSurface,
+                            ) ??
+                            TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              color: cs.onSurface,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Material(
+                  color: cs.surfaceContainerHighest.withValues(alpha: 0.72),
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: onClose,
+                    child: SizedBox(
+                      width: 36,
+                      height: 36,
+                      child: Icon(
+                        Icons.close_rounded,
+                        size: 19,
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _PluginInfoSheetState extends State<PluginInfoSheet> {
   final controller = Get.find<PluginController>();
@@ -49,127 +162,133 @@ class _PluginInfoSheetState extends State<PluginInfoSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final iconUrl =
         widget.item.pluginIcon != null && widget.item.pluginIcon!.isNotEmpty
         ? ImageUtil.convertPluginIconUrl(widget.item.pluginIcon!)
         : '';
     return Material(
+      color: colorScheme.surface,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
         child: Column(
           children: [
-            SectionHeader(
+            _PluginSheetHeader(
               title: widget.item.pluginName,
-              trailing: IconButton(
-                icon: Icon(
-                  Icons.close,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                onPressed: () {
-                  Get.back();
-                },
-              ),
+              onClose: Get.back,
             ),
-            CachedImage(
-              imageUrl: iconUrl,
-              width: 80,
-              height: 80,
-              fit: BoxFit.cover,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              widget.item.pluginDesc ?? '',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 16),
-            Section(
-              child: Column(
+            Expanded(
+              child: ListView(
+                controller: widget.scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
                 children: [
-                  Row(
-                    children: [
-                      Icon(Icons.person),
-                      const SizedBox(width: 8),
-                      Text('作者: ${widget.item.pluginAuthor}'),
-                    ],
+                  Center(
+                    child: CachedImage(
+                      imageUrl: iconUrl,
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Icon(Icons.code),
-                      const SizedBox(width: 8),
-                      Text('版本: ${widget.item.pluginVersion}'),
-                    ],
+                  Text(
+                    widget.item.pluginDesc ?? '',
+                    style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Icon(Icons.download),
-                      const SizedBox(width: 8),
-                      Text('下载量: ${widget.item.installCount}'),
-                    ],
+                  Section(
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.person),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text('作者: ${widget.item.pluginAuthor}'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            const Icon(Icons.code),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text('版本: ${widget.item.pluginVersion}'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            const Icon(Icons.download),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text('下载量: ${widget.item.installCount}'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Obx(
-                  () => Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        if (!Get.find<AppService>().canManage) {
-                          ToastUtil.info('当前帐号无管理权限');
-                          return;
-                        }
-                        if (isInstalling.value ==
-                                PluginInfoSheetState.installing ||
-                            isInstalling.value ==
-                                PluginInfoSheetState.installed) {
-                          return;
-                        }
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: Obx(
+                () => SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      if (!Get.find<AppService>().canManage) {
+                        ToastUtil.info('当前帐号无管理权限');
+                        return;
+                      }
+                      if (isInstalling.value ==
+                              PluginInfoSheetState.installing ||
+                          isInstalling.value ==
+                              PluginInfoSheetState.installed) {
+                        return;
+                      }
 
-                        isInstalling.value = PluginInfoSheetState.installing;
-                        final result = await controller.installPlugin(
-                          widget.item,
-                        );
-                        if (mounted && result.success) {
-                          ToastUtil.success('安装成功');
-                          isInstalling.value = PluginInfoSheetState.installed;
-                          controller.load(force: true);
-                          pluginListController?.load(force: true);
-                        } else {
-                          isInstalling.value = PluginInfoSheetState.normal;
-                          ToastUtil.error(result.message ?? '安装失败');
-                        }
-                      },
-                      icon: Icon(Icons.install_desktop, size: 18),
-                      label:
+                      isInstalling.value = PluginInfoSheetState.installing;
+                      final result = await controller.installPlugin(
+                        widget.item,
+                      );
+                      if (mounted && result.success) {
+                        ToastUtil.success('安装成功');
+                        isInstalling.value = PluginInfoSheetState.installed;
+                        controller.load(force: true);
+                        pluginListController?.load(force: true);
+                      } else {
+                        isInstalling.value = PluginInfoSheetState.normal;
+                        ToastUtil.error(result.message ?? '安装失败');
+                      }
+                    },
+                    icon: const Icon(Icons.install_desktop, size: 18),
+                    label: isInstalling.value == PluginInfoSheetState.installing
+                        ? const CupertinoActivityIndicator()
+                        : Text(_buildInstallButtonLabel(isInstalling.value)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
                           isInstalling.value == PluginInfoSheetState.installing
-                          ? const CupertinoActivityIndicator()
-                          : Text(_buildInstallButtonLabel(isInstalling.value)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            isInstalling.value ==
-                                PluginInfoSheetState.installing
-                            ? Theme.of(
-                                context,
-                              ).colorScheme.primary.withValues(alpha: 0.5)
-                            : Theme.of(context).colorScheme.primary,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                          ? colorScheme.primary.withValues(alpha: 0.5)
+                          : colorScheme.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                   ),
                 ),
-              ],
+              ),
             ),
           ],
         ),
@@ -190,9 +309,14 @@ class _PluginInfoSheetState extends State<PluginInfoSheet> {
 }
 
 class SpecifiedPluginInstallSheet extends StatefulWidget {
-  const SpecifiedPluginInstallSheet({super.key, this.initialRepoUrl = ''});
+  const SpecifiedPluginInstallSheet({
+    super.key,
+    this.initialRepoUrl = '',
+    this.scrollController,
+  });
 
   final String initialRepoUrl;
+  final ScrollController? scrollController;
 
   @override
   State<SpecifiedPluginInstallSheet> createState() =>
@@ -201,6 +325,9 @@ class SpecifiedPluginInstallSheet extends StatefulWidget {
 
 class _SpecifiedPluginInstallSheetState
     extends State<SpecifiedPluginInstallSheet> {
+  static const _defaultPluginRepoUrl =
+      'https://github.com/singleton-altman/MoviePilot-Plugins';
+
   final _repoController = TextEditingController();
   final _repoFocusNode = FocusNode();
   final _controller = Get.find<PluginController>();
@@ -226,38 +353,36 @@ class _SpecifiedPluginInstallSheetState
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    return AnimatedPadding(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOut,
-      padding: EdgeInsets.only(bottom: bottomInset),
+    final bottomSafeArea = MediaQuery.paddingOf(context).bottom;
+    final sheetColor = Theme.of(context).colorScheme.surface;
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () => FocusScope.of(context).unfocus(),
       child: Material(
-        color: Colors.transparent,
-        child: Container(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.sizeOf(context).height * 0.9,
-          ),
-          decoration: BoxDecoration(
-            color: CupertinoDynamicColor.resolve(
-              CupertinoColors.systemBackground,
-              context,
-            ),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
+        color: sheetColor,
+        child: SafeArea(
+          top: false,
+          bottom: false,
           child: Column(
             children: [
-              SectionHeader(
+              _PluginSheetHeader(
                 title: '指定仓库安装',
-                trailing: IconButton(
-                  icon: Icon(
-                    Icons.close,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  onPressed: () => Get.back(),
-                ),
+                onClose: () {
+                  FocusScope.of(context).unfocus();
+                  Get.back();
+                },
               ),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                  controller: widget.scrollController,
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    0,
+                    16,
+                    20 + bottomSafeArea + bottomInset,
+                  ),
                   children: [
                     _buildInputSection(context),
                     const SizedBox(height: 16),
@@ -297,7 +422,20 @@ class _SpecifiedPluginInstallSheetState
             textInputAction: TextInputAction.go,
             onSubmitted: (_) => _loadRepoPlugins(),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: _isLoading ? null : _fillDefaultPluginRepo,
+              icon: const Icon(Icons.auto_fix_high_outlined, size: 16),
+              label: const Text('APPLitePush'),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -356,7 +494,8 @@ class _SpecifiedPluginInstallSheetState
     if (_resolvedRepoUrl == null) {
       return Section(
         child: Text(
-          '支持公开 GitHub 仓库，仅读取仓库根目录的 package.json 和 package.v2.json。',
+          '支持公开 GitHub 插件市场仓库，仅读取根目录 package.json / package.v2.json。'
+          '请勿填写 MoviePilotLite 等 App 源码仓库。',
           style: TextStyle(
             color: Theme.of(
               context,
@@ -545,12 +684,21 @@ class _SpecifiedPluginInstallSheetState
   }
 
   Future<void> _openPluginDetail(PluginItem item) async {
-    await Get.bottomSheet(PluginInfoSheet(item: item));
+    await showPluginInfoSheet(context, item);
     await _controller.load(force: true);
     if (!mounted) return;
     setState(() {
       _items = _applyInstalledState(_items);
     });
+  }
+
+  void _fillDefaultPluginRepo() {
+    _repoController
+      ..text = _defaultPluginRepoUrl
+      ..selection = TextSelection.collapsed(
+        offset: _defaultPluginRepoUrl.length,
+      );
+    _repoFocusNode.requestFocus();
   }
 
   Future<void> _loadRepoPlugins() async {
@@ -584,7 +732,7 @@ class _SpecifiedPluginInstallSheetState
       setState(() {
         _resolvedRepoUrl = null;
         _items = const [];
-        _errorText = e.toString().replaceFirst('Exception: ', '');
+        _errorText = _friendlyRepoError(e);
       });
     } finally {
       if (mounted) {
@@ -655,7 +803,11 @@ class _SpecifiedPluginInstallSheetState
         : _mapPackageItems(resolvedRepo, mergedPackageData);
 
     if (items.isEmpty) {
-      throw Exception('仓库根目录未找到可用的 package.json 或 package.v2.json 插件清单');
+      throw Exception(
+        '仓库根目录未找到可用的 package.json / package.v2.json。'
+        '请使用插件市场仓库（例如 MoviePilot-Plugins），'
+        '而不是 App 源码仓库（如 MoviePilotLite）。',
+      );
     }
 
     items.sort(
@@ -688,15 +840,32 @@ class _SpecifiedPluginInstallSheetState
       return null;
     }
 
-    final decoded = utf8.decode(base64Decode(content.replaceAll('\n', '')));
-    final json = jsonDecode(decoded);
-    if (json is Map<String, dynamic>) {
-      return json;
+    try {
+      final normalized = content.replaceAll(RegExp(r'\s'), '');
+      final decoded = utf8.decode(base64Decode(normalized));
+      final json = jsonDecode(decoded);
+      if (json is Map<String, dynamic>) {
+        return json;
+      }
+      if (json is Map) {
+        return Map<String, dynamic>.from(json);
+      }
+      return null;
+    } on FormatException {
+      throw Exception('插件清单解析失败，请确认 package.json / package.v2.json 内容有效');
     }
-    if (json is Map) {
-      return Map<String, dynamic>.from(json);
+  }
+
+  String _friendlyRepoError(Object error) {
+    if (error is FormatException) {
+      return '插件清单解析失败，请确认仓库根目录的 package.json / package.v2.json 格式正确';
     }
-    return null;
+    final text = error.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+    if (text.contains('FormatException') ||
+        text.contains('Unexpected character')) {
+      return '插件清单解析失败，请确认仓库根目录的 package.json / package.v2.json 格式正确';
+    }
+    return text;
   }
 
   List<PluginItem> _mapPackageItems(

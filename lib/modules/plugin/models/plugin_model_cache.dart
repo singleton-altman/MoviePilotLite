@@ -66,6 +66,8 @@ class PluginModelCache {
   int addTime;
   @HiveField(19)
   String pluginPublicKey;
+  @HiveField(20)
+  int listIndex;
 
   PluginModelCache(
     this.id,
@@ -87,6 +89,7 @@ class PluginModelCache {
     this.repoUrl,
     this.installCount,
     this.addTime,
-    this.pluginPublicKey,
-  );
+    this.pluginPublicKey, [
+    this.listIndex = 0,
+  ]);
 }

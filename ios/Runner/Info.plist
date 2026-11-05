@@ -6,6 +6,33 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleIcons</key>
+	<dict>
+		<key>CFBundlePrimaryIcon</key>
+		<dict>
+			<key>CFBundleIconFiles</key>
+			<array><string>AppIcon60x60</string></array>
+			<key>CFBundleIconName</key>
+			<string>AppIcon</string>
+		</dict>
+		<key>CFBundleAlternateIcons</key>
+		<dict>
+			<key>IconMidnight</key>
+			<dict><key>CFBundleIconFiles</key><array><string>IconMidnight</string></array><key>UIPrerenderedIcon</key><false/></dict>
+			<key>IconSunset</key>
+			<dict><key>CFBundleIconFiles</key><array><string>IconSunset</string></array><key>UIPrerenderedIcon</key><false/></dict>
+			<key>IconMint</key>
+			<dict><key>CFBundleIconFiles</key><array><string>IconMint</string></array><key>UIPrerenderedIcon</key><false/></dict>
+			<key>IconNeon</key>
+			<dict><key>CFBundleIconFiles</key><array><string>IconNeon</string></array><key>UIPrerenderedIcon</key><false/></dict>
+			<key>IconAurora</key>
+			<dict><key>CFBundleIconFiles</key><array><string>IconAurora</string></array><key>UIPrerenderedIcon</key><false/></dict>
+			<key>IconSunsetPop</key>
+			<dict><key>CFBundleIconFiles</key><array><string>IconSunsetPop</string></array><key>UIPrerenderedIcon</key><false/></dict>
+			<key>IconMono</key>
+			<dict><key>CFBundleIconFiles</key><array><string>IconMono</string></array><key>UIPrerenderedIcon</key><false/></dict>
+		</dict>
+	</dict>
 	<key>CFBundleDisplayName</key>
 	<string>MoviePilot</string>
 	<key>CFBundleExecutable</key>
@@ -52,6 +79,27 @@
 	<string>需要访问相册以选择背景图片</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneClassName</key>
+					<string>UIWindowScene</string>
+					<key>UISceneConfigurationName</key>
+					<string>flutter</string>
+					<key>UISceneDelegateClassName</key>
+					<string>FlutterSceneDelegate</string>
+					<key>UISceneStoryboardFile</key>
+					<string>Main</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>

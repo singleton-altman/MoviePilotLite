@@ -13,6 +13,103 @@ private enum SharedSessionConfig {
 private let widgetLog = Logger(subsystem: "com.altman.moviepilot", category: "widgets")
 private let systemMessageWidgetURL = URL(string: "moviepilot://system-message")
 
+private enum MoviePilotWidgetTheme {
+  static let backgroundTop = Color(red: 0.02, green: 0.04, blue: 0.09)
+  static let backgroundBottom = Color(red: 0.00, green: 0.02, blue: 0.06)
+  static let surface = Color.white.opacity(0.08)
+  static let elevatedSurface = Color.white.opacity(0.12)
+  static let border = Color.white.opacity(0.13)
+  static let primaryText = Color(red: 0.97, green: 0.98, blue: 1.00)
+  static let secondaryText = Color(red: 0.70, green: 0.77, blue: 0.86)
+  static let mutedText = Color(red: 0.49, green: 0.56, blue: 0.67)
+  static let green = Color(red: 0.13, green: 0.77, blue: 0.37)
+  static let cyan = Color(red: 0.19, green: 0.73, blue: 0.93)
+  static let amber = Color(red: 0.98, green: 0.68, blue: 0.20)
+  static let red = Color(red: 0.96, green: 0.31, blue: 0.35)
+  static let violet = Color(red: 0.63, green: 0.47, blue: 0.98)
+
+  static var backgroundGradient: LinearGradient {
+    LinearGradient(
+      colors: [backgroundTop, backgroundBottom],
+      startPoint: .topLeading,
+      endPoint: .bottomTrailing
+    )
+  }
+}
+
+private struct WidgetSectionHeader: View {
+  let title: String
+  let subtitle: String?
+  let systemImage: String
+  let tint: Color
+  let compact: Bool
+
+  init(
+    title: String,
+    subtitle: String? = nil,
+    systemImage: String,
+    tint: Color = MoviePilotWidgetTheme.green,
+    compact: Bool = false
+  ) {
+    self.title = title
+    self.subtitle = subtitle
+    self.systemImage = systemImage
+    self.tint = tint
+    self.compact = compact
+  }
+
+  var body: some View {
+    HStack(alignment: .center, spacing: compact ? 6 : 8) {
+      Image(systemName: systemImage)
+        .font(.system(size: compact ? 10 : 12, weight: .bold))
+        .foregroundStyle(tint)
+        .frame(width: compact ? 18 : 22, height: compact ? 18 : 22)
+        .background(tint.opacity(0.16), in: RoundedRectangle(cornerRadius: compact ? 6 : 7, style: .continuous))
+        .accessibilityHidden(true)
+      VStack(alignment: .leading, spacing: 1) {
+        Text(title)
+          .font(.system(size: compact ? 12 : 13, weight: .bold))
+          .foregroundStyle(MoviePilotWidgetTheme.primaryText)
+          .lineLimit(1)
+        if let subtitle, !subtitle.isEmpty {
+          Text(subtitle)
+            .font(.system(size: compact ? 8 : 9, weight: .medium))
+            .foregroundStyle(MoviePilotWidgetTheme.mutedText)
+            .lineLimit(1)
+        }
+      }
+      Spacer(minLength: 0)
+    }
+    .accessibilityElement(children: .combine)
+  }
+}
+
+private struct WidgetStatusView: View {
+  let title: String
+  let message: String
+  let systemImage: String
+  let tint: Color
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      WidgetSectionHeader(
+        title: title,
+        subtitle: "MoviePilot",
+        systemImage: systemImage,
+        tint: tint
+      )
+      Spacer(minLength: 0)
+      Text(message)
+        .font(.system(size: 14, weight: .semibold))
+        .foregroundStyle(MoviePilotWidgetTheme.secondaryText)
+        .lineLimit(3)
+      Spacer(minLength: 0)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+    .accessibilityElement(children: .combine)
+  }
+}
+
 private struct SharedSession {
   let server: String
   let accessToken: String
@@ -374,8 +471,19 @@ private struct SubscribeCalendarWidgetEntryView: View {
 
   var body: some View {
     content
-      .padding(16)
+      .padding(contentPadding)
       .moviePilotWidgetBackground()
+  }
+
+  private var contentPadding: CGFloat {
+    switch family {
+    case .systemSmall:
+      return 13
+    case .systemMedium:
+      return 14
+    default:
+      return 15
+    }
   }
 
   @ViewBuilder
@@ -404,16 +512,12 @@ private struct SubscribeCalendarWidgetEntryView: View {
   }
 
   private func messageView(title: String, message: String) -> some View {
-    VStack(alignment: .leading, spacing: 10) {
-      Text(title)
-        .font(.system(size: 18, weight: .bold))
-        .foregroundStyle(.primary)
-      Spacer()
-      Text(message)
-        .font(.system(size: 14, weight: .medium))
-        .foregroundStyle(.secondary)
-      Spacer()
-    }
+    WidgetStatusView(
+      title: title,
+      message: message,
+      systemImage: title == "同步失败" ? "exclamationmark.triangle.fill" : "calendar.badge.clock",
+      tint: title == "同步失败" ? MoviePilotWidgetTheme.red : MoviePilotWidgetTheme.green
+    )
   }
 }
 
@@ -422,34 +526,58 @@ private struct SmallCalendarView: View {
 
   var body: some View {
     let todayItems = items.filter { $0.date == utcToday() }
+    let nextItem = items.first
 
-    return VStack(alignment: .leading, spacing: 10) {
-        VStack(alignment: .leading, spacing: 4) {
-          Text("今天订阅")
-            .font(.system(size: 12, weight: .medium))
-            .foregroundStyle(.secondary)
-          Text("\(todayItems.count) 条更新")
-            .font(.system(size: 20, weight: .bold))
-            .foregroundStyle(.primary)
-            .lineLimit(1)
-          Text(todaySummary(from: todayItems))
-            .font(.system(size: 11, weight: .medium))
-            .foregroundStyle(.secondary)
-            .lineLimit(3)
-        }
+    return VStack(alignment: .leading, spacing: 9) {
+      WidgetSectionHeader(
+        title: "订阅日历",
+        subtitle: nextItem.map { scheduleLabel(for: $0.date) },
+        systemImage: "calendar.badge.clock",
+        tint: MoviePilotWidgetTheme.green,
+        compact: true
+      )
+      Spacer(minLength: 0)
+      Text("\(todayItems.count)")
+        .font(.system(size: 36, weight: .black, design: .rounded))
+        .foregroundStyle(MoviePilotWidgetTheme.primaryText)
+        .lineLimit(1)
+        .minimumScaleFactor(0.75)
+      Text(todayItems.isEmpty ? "今天暂无更新" : "今日待播更新")
+        .font(.system(size: 11, weight: .semibold))
+        .foregroundStyle(todayItems.isEmpty ? MoviePilotWidgetTheme.mutedText : MoviePilotWidgetTheme.green)
+        .lineLimit(1)
+      Text(todaySummary(from: todayItems, fallback: nextItem))
+        .font(.system(size: 11, weight: .medium))
+        .foregroundStyle(MoviePilotWidgetTheme.secondaryText)
+        .lineLimit(2)
+        .minimumScaleFactor(0.82)
     }
-    .padding(.vertical, 2)
+    .accessibilityElement(children: .combine)
   }
 
-  private func todaySummary(from todayItems: [EpisodeCard]) -> String {
+  private func todaySummary(from todayItems: [EpisodeCard], fallback: EpisodeCard?) -> String {
     guard !todayItems.isEmpty else {
-      return "今天暂无订阅更新"
+      guard let fallback else { return "今天之后暂无订阅更新" }
+      return "下一集：\(fallback.showName)"
     }
     let names = todayItems.prefix(3).map(\.showName)
     if todayItems.count > 3 {
       return names.joined(separator: "、") + " 等"
     }
     return names.joined(separator: "、")
+  }
+
+  private func scheduleLabel(for rawDate: String) -> String {
+    if rawDate == utcToday() {
+      return "今天"
+    }
+    let formatter = DateFormatter()
+    formatter.dateFormat = "yyyy-MM-dd"
+    let displayFormatter = DateFormatter()
+    displayFormatter.locale = Locale(identifier: "zh_CN")
+    displayFormatter.dateFormat = "M月d日"
+    guard let date = formatter.date(from: rawDate) else { return rawDate }
+    return displayFormatter.string(from: date)
   }
 
   private func utcToday() -> String {
@@ -464,12 +592,22 @@ private struct MediumCalendarView: View {
   let items: [EpisodeCard]
 
   var body: some View {
-    VStack(spacing: 6) {
-      Spacer(minLength: 16)
-      ForEach(Array(items.prefix(2))) { item in
-        EpisodeRow(item: item, compact: false, showPoster: true)
+    VStack(alignment: .leading, spacing: 9) {
+      WidgetSectionHeader(
+        title: "订阅日历",
+        subtitle: "\(items.count) 条待播",
+        systemImage: "calendar.badge.clock",
+        tint: MoviePilotWidgetTheme.green
+      )
+      if let first = items.first {
+        EpisodeHeroCard(item: first, compact: true)
       }
-      Spacer(minLength: 16)
+      HStack(spacing: 8) {
+        ForEach(Array(items.dropFirst().prefix(2))) { item in
+          EpisodeCompactChip(item: item)
+        }
+      }
+      Spacer(minLength: 0)
     }
   }
 }
@@ -478,12 +616,94 @@ private struct LargeCalendarView: View {
   let items: [EpisodeCard]
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 6) {
-      ForEach(Array(items.prefix(4))) { item in
-        EpisodeRow(item: item, compact: false, showPoster: true)
+    VStack(alignment: .leading, spacing: 9) {
+      WidgetSectionHeader(
+        title: "订阅日历",
+        subtitle: "\(items.count) 条待播更新",
+        systemImage: "calendar.badge.clock",
+        tint: MoviePilotWidgetTheme.green
+      )
+      if let first = items.first {
+        EpisodeHeroCard(item: first, compact: false)
+      }
+      VStack(spacing: 6) {
+        ForEach(Array(items.dropFirst().prefix(3))) { item in
+          EpisodeRow(item: item, compact: true, showPoster: true)
+        }
       }
       Spacer(minLength: 0)
     }
+  }
+}
+
+private struct EpisodeHeroCard: View {
+  let item: EpisodeCard
+  let compact: Bool
+
+  var body: some View {
+    HStack(alignment: .center, spacing: compact ? 10 : 12) {
+      PosterThumbnail(data: item.posterData, compact: compact)
+      VStack(alignment: .leading, spacing: compact ? 4 : 6) {
+        Text(scheduleLabel)
+          .font(.system(size: compact ? 10 : 11, weight: .bold))
+          .foregroundStyle(MoviePilotWidgetTheme.green)
+          .lineLimit(1)
+        Text(item.showName)
+          .font(.system(size: compact ? 15 : 17, weight: .bold))
+          .foregroundStyle(MoviePilotWidgetTheme.primaryText)
+          .lineLimit(compact ? 1 : 2)
+          .minimumScaleFactor(0.82)
+        Text("S\(item.seasonNumber)E\(max(item.episodeNumber, 0)) · \(item.episodeTitle)")
+          .font(.system(size: compact ? 11 : 12, weight: .medium))
+          .foregroundStyle(MoviePilotWidgetTheme.secondaryText)
+          .lineLimit(compact ? 1 : 2)
+      }
+      Spacer(minLength: 0)
+    }
+    .padding(.horizontal, compact ? 10 : 12)
+    .padding(.vertical, compact ? 9 : 11)
+    .background(
+      RoundedRectangle(cornerRadius: 16, style: .continuous)
+        .fill(MoviePilotWidgetTheme.elevatedSurface)
+    )
+    .overlay(
+      RoundedRectangle(cornerRadius: 16, style: .continuous)
+        .stroke(MoviePilotWidgetTheme.green.opacity(0.26), lineWidth: 0.8)
+    )
+    .accessibilityElement(children: .combine)
+  }
+
+  private var scheduleLabel: String {
+    formattedCalendarDate(item.date)
+  }
+}
+
+private struct EpisodeCompactChip: View {
+  let item: EpisodeCard
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 3) {
+      Text(formattedCalendarDate(item.date))
+        .font(.system(size: 9, weight: .bold))
+        .foregroundStyle(MoviePilotWidgetTheme.green)
+        .lineLimit(1)
+      Text(item.showName)
+        .font(.system(size: 11, weight: .semibold))
+        .foregroundStyle(MoviePilotWidgetTheme.primaryText)
+        .lineLimit(1)
+      Text("E\(max(item.episodeNumber, 0))")
+        .font(.system(size: 9, weight: .medium))
+        .foregroundStyle(MoviePilotWidgetTheme.mutedText)
+        .lineLimit(1)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .padding(.horizontal, 8)
+    .padding(.vertical, 7)
+    .background(
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .fill(MoviePilotWidgetTheme.surface)
+    )
+    .accessibilityElement(children: .combine)
   }
 }
 
@@ -493,52 +713,34 @@ private struct EpisodeRow: View {
   let showPoster: Bool
 
   var body: some View {
-    HStack(alignment: .top) {
+    HStack(alignment: .center, spacing: 9) {
       if showPoster {
         PosterThumbnail(data: item.posterData, compact: compact)
       }
-      VStack(alignment: .leading, spacing: 2) {
+      VStack(alignment: .leading, spacing: 3) {
         Text(scheduleLabel)
           .font(.system(size: compact ? 11 : 12, weight: .medium))
-          .foregroundStyle(.secondary)
+          .foregroundStyle(MoviePilotWidgetTheme.green)
           .lineLimit(1)
         Text(item.showName)
           .font(.system(size: compact ? 13 : 14, weight: .semibold))
-          .foregroundStyle(.primary)
+          .foregroundStyle(MoviePilotWidgetTheme.primaryText)
           .lineLimit(1)
         Text("S\(item.seasonNumber)E\(max(item.episodeNumber, 0)) · \(item.episodeTitle)")
           .font(.system(size: compact ? 11 : 12, weight: .medium))
-          .foregroundStyle(.secondary)
+          .foregroundStyle(MoviePilotWidgetTheme.secondaryText)
           .lineLimit(compact ? 1 : 2)
       }
       Spacer(minLength: 0)
     }
-    .padding(.horizontal, 12)
+    .padding(.horizontal, compact ? 9 : 12)
     .padding(.vertical, compact ? 7 : 8)
-    .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    .background(MoviePilotWidgetTheme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    .accessibilityElement(children: .combine)
   }
 
   private var scheduleLabel: String {
-    if item.date == utcToday() {
-      return "今天"
-    }
-    let formatter = DateFormatter()
-    formatter.dateFormat = "yyyy-MM-dd"
-    formatter.locale = Locale(identifier: "zh_CN")
-    let displayFormatter = DateFormatter()
-    displayFormatter.locale = Locale(identifier: "zh_CN")
-    displayFormatter.dateFormat = "M月d日 EEE"
-    guard let date = formatter.date(from: item.date) else {
-      return item.date
-    }
-    return displayFormatter.string(from: date)
-  }
-
-  private func utcToday() -> String {
-    let formatter = ISO8601DateFormatter()
-    formatter.formatOptions = [.withFullDate]
-    formatter.timeZone = TimeZone(secondsFromGMT: 0)
-    return formatter.string(from: Date())
+    formattedCalendarDate(item.date)
   }
 }
 
@@ -548,8 +750,12 @@ private struct PosterThumbnail: View {
 
   var body: some View {
     PosterBackground(data: data)
-      .frame(width: compact ? 42 : 50, height: compact ? 56 : 66)
-      .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+      .frame(width: compact ? 46 : 58, height: compact ? 62 : 78)
+      .clipShape(RoundedRectangle(cornerRadius: compact ? 12 : 14, style: .continuous))
+      .overlay(
+        RoundedRectangle(cornerRadius: compact ? 12 : 14, style: .continuous)
+          .stroke(Color.white.opacity(0.14), lineWidth: 0.8)
+      )
   }
 }
 
@@ -558,7 +764,7 @@ private struct PosterBackground: View {
 
   var body: some View {
     ZStack {
-      Color(.tertiarySystemFill)
+      MoviePilotWidgetTheme.surface
       if let data, let uiImage = UIImage(data: data) {
         Image(uiImage: uiImage)
           .resizable()
@@ -572,12 +778,31 @@ private struct PosterBackground: View {
 
   private var placeholder: some View {
     ZStack {
-      Color(.quaternarySystemFill)
+      MoviePilotWidgetTheme.elevatedSurface
       Image(systemName: "tv")
         .font(.system(size: 18, weight: .semibold))
-        .foregroundStyle(.secondary)
+        .foregroundStyle(MoviePilotWidgetTheme.green)
     }
   }
+}
+
+private func formattedCalendarDate(_ rawDate: String) -> String {
+  let todayFormatter = ISO8601DateFormatter()
+  todayFormatter.formatOptions = [.withFullDate]
+  todayFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+  if rawDate == todayFormatter.string(from: Date()) {
+    return "今天"
+  }
+  let formatter = DateFormatter()
+  formatter.dateFormat = "yyyy-MM-dd"
+  formatter.locale = Locale(identifier: "zh_CN")
+  let displayFormatter = DateFormatter()
+  displayFormatter.locale = Locale(identifier: "zh_CN")
+  displayFormatter.dateFormat = "M月d日 EEE"
+  guard let date = formatter.date(from: rawDate) else {
+    return rawDate
+  }
+  return displayFormatter.string(from: date)
 }
 
 private struct RecommendItemDTO: Decodable {
@@ -1222,7 +1447,7 @@ struct SiteOverviewWidget: Widget {
     }
     .configurationDisplayName("站点概览")
     .description("展示站点总览与关键站点状态")
-    .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+    .supportedFamilies([.systemExtraLarge])
   }
 }
 
@@ -1233,18 +1458,11 @@ private struct SiteOverviewWidgetEntryView: View {
   var body: some View {
     content
       .padding(contentPadding)
-      .moviePilotWidgetBackground()
+      .siteInfoWidgetBackground()
   }
 
   private var contentPadding: CGFloat {
-    switch family {
-    case .systemSmall:
-      return 10
-    case .systemMedium:
-      return 11
-    default:
-      return 8
-    }
+    24
   }
 
   @ViewBuilder
@@ -1264,7 +1482,7 @@ private struct SiteOverviewWidgetEntryView: View {
     switch family {
     case .systemSmall:
       SiteOverviewSmallView(payload: payload)
-    case .systemLarge:
+    case .systemLarge, .systemExtraLarge:
       SiteOverviewLargeView(payload: payload)
     default:
       SiteOverviewMediumView(payload: payload)
@@ -1272,16 +1490,13 @@ private struct SiteOverviewWidgetEntryView: View {
   }
 
   private func siteMessageView(title: String, message: String) -> some View {
-    VStack(alignment: .leading, spacing: 10) {
-      Text(title)
-        .font(.system(size: 18, weight: .bold))
-        .foregroundStyle(.primary)
-      Spacer()
-      Text(message)
-        .font(.system(size: 14, weight: .medium))
-        .foregroundStyle(.secondary)
-      Spacer()
-    }
+    SiteReminderStyleStatusView(
+      count: "0",
+      title: title == "同步失败" ? "同步失败" : "站点数据",
+      message: message,
+      systemImage: title == "同步失败" ? "exclamationmark.triangle.fill" : "chart.bar.fill",
+      tint: title == "同步失败" ? SiteReminderStyleTheme.danger : SiteReminderStyleTheme.blue
+    )
   }
 }
 
@@ -1289,23 +1504,40 @@ private struct SiteOverviewSmallView: View {
   let payload: SiteWidgetPayloadDTO
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 5) {
+    VStack(alignment: .leading, spacing: 8) {
       SiteOverviewHeaderView(payload: payload, compact: true)
-      SiteSummaryGrid(
-        items: [
-          SiteSummaryItem(label: "站点", value: "\(payload.summary.totalSites)", tint: .blue),
-          SiteSummaryItem(label: "在线", value: "\(payload.summary.enabledSites)", tint: .green),
-          SiteSummaryItem(label: "告警", value: "\(payload.summary.warningSites)", tint: .red),
-          SiteSummaryItem(
-            label: "消息",
-            value: "\(payload.summary.unreadMessages)",
-            tint: .orange,
-            destination: payload.summary.unreadMessages > 0 ? systemMessageWidgetURL : nil
-          ),
-        ]
+      HStack(alignment: .center, spacing: 10) {
+        SiteHealthRing(
+          progress: siteHealthProgress(payload),
+          tint: siteHealthTint(payload),
+          size: 54,
+          lineWidth: 6
+        )
+        VStack(alignment: .leading, spacing: 3) {
+          Text("\(payload.summary.enabledSites)/\(max(payload.summary.totalSites, 1))")
+            .font(.system(size: 24, weight: .black, design: .rounded))
+            .foregroundStyle(MoviePilotWidgetTheme.primaryText)
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+          Text(siteHealthLabel(payload))
+            .font(.system(size: 10, weight: .bold))
+            .foregroundStyle(siteHealthTint(payload))
+            .lineLimit(1)
+          Text("告警 \(payload.summary.warningSites) · 未读 \(payload.summary.unreadMessages)")
+            .font(.system(size: 9, weight: .medium))
+            .foregroundStyle(MoviePilotWidgetTheme.secondaryText)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+        }
+      }
+      SiteTrafficBalanceBar(
+        upload: payload.summary.totalUpload,
+        download: payload.summary.totalDownload,
+        compact: true
       )
       Spacer(minLength: 0)
     }
+    .accessibilityElement(children: .contain)
   }
 }
 
@@ -1313,43 +1545,34 @@ private struct SiteOverviewMediumView: View {
   let payload: SiteWidgetPayloadDTO
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 5) {
+    VStack(alignment: .leading, spacing: 8) {
       SiteOverviewHeaderView(payload: payload)
-      SiteSummaryGrid(
-        items: [
-          SiteSummaryItem(label: "站点", value: "\(payload.summary.totalSites)", tint: .blue),
-          SiteSummaryItem(label: "在线", value: "\(payload.summary.enabledSites)", tint: .green),
-          SiteSummaryItem(label: "告警", value: "\(payload.summary.warningSites)", tint: .red),
-          SiteSummaryItem(
-            label: "消息",
-            value: "\(payload.summary.unreadMessages)",
-            tint: .orange,
-            destination: payload.summary.unreadMessages > 0 ? systemMessageWidgetURL : nil
-          ),
-        ]
-      )
-      SiteInsetGroup {
-        SiteOverviewDetailRow(
-          title: "总流量",
-          content: {
-            SiteTrafficText(
-              upload: payload.summary.totalUpload,
-              download: payload.summary.totalDownload,
-              compact: true
-            )
-          }
+      SiteOperationsHero(payload: payload, compact: true)
+      HStack(spacing: 7) {
+        SiteMetricTile(
+          label: "告警",
+          value: "\(payload.summary.warningSites)",
+          systemImage: "exclamationmark.triangle.fill",
+          tint: MoviePilotWidgetTheme.red,
+          compact: true
         )
-        SiteRowDivider(inset: 0)
-        SiteOverviewDetailRow(
-          title: "做种规模",
-          trailingText: "\(payload.summary.totalSeeding) 项 · \(formatBytes(payload.summary.totalSeedingSize))"
+        SiteMetricTile(
+          label: "消息",
+          value: "\(payload.summary.unreadMessages)",
+          systemImage: "bell.badge.fill",
+          tint: MoviePilotWidgetTheme.amber,
+          destination: payload.summary.unreadMessages > 0 ? systemMessageWidgetURL : nil,
+          compact: true
         )
-        SiteRowDivider(inset: 0)
-        SiteOverviewDetailRow(
-          title: "魔力值",
-          trailingText: formatBonus(payload.summary.totalBonus)
+        SiteMetricTile(
+          label: "做种",
+          value: "\(payload.summary.totalSeeding)",
+          systemImage: "arrow.up.circle.fill",
+          tint: MoviePilotWidgetTheme.violet,
+          compact: true
         )
       }
+      Spacer(minLength: 0)
     }
   }
 }
@@ -1357,41 +1580,478 @@ private struct SiteOverviewMediumView: View {
 private struct SiteOverviewLargeView: View {
   let payload: SiteWidgetPayloadDTO
 
-  private var prioritizedSites: [SiteWidgetSiteDTO] {
-    payload.sites.sorted { lhs, rhs in
-      if lhs.priority != rhs.priority {
-        return lhs.priority < rhs.priority
-      }
-      return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
-    }
-  }
-
   var body: some View {
-    VStack(alignment: .leading, spacing: 4) {
-      SiteOverviewHeaderView(payload: payload)
-      SiteSummaryRow(
-        items: [
-          SiteSummaryItem(label: "站点", value: "\(payload.summary.totalSites)", tint: .blue),
-          SiteSummaryItem(label: "在线", value: "\(payload.summary.enabledSites)", tint: .green),
-          SiteSummaryItem(
-            label: "消息",
-            value: "\(payload.summary.unreadMessages)",
-            tint: .orange,
-            destination: payload.summary.unreadMessages > 0 ? systemMessageWidgetURL : nil
-          ),
-          SiteSummaryItem(label: "做种", value: "\(payload.summary.totalSeeding)", tint: .purple),
-        ],
-        compact: true
+    VStack(alignment: .leading, spacing: 0) {
+      SiteReminderStyleHeader(
+        count: "\(payload.summary.totalSites)",
+        title: "站点数据",
+        systemImage: "chart.bar.fill",
+        tint: SiteReminderStyleTheme.blue
       )
-      SiteInsetGroup(horizontalPadding: 8, verticalPadding: 6, rowSpacing: 3) {
-        ForEach(Array(prioritizedSites.prefix(5).enumerated()), id: \.element.id) { index, site in
-          SiteOverviewRow(site: site, compact: true)
-          if index < min(prioritizedSites.count, 5) - 1 {
-            SiteRowDivider(inset: 36, verticalPadding: 1)
+      SiteReminderStyleDivider()
+      VStack(spacing: 14) {
+        HStack(alignment: .top, spacing: 18) {
+          SiteReminderStyleHeroMetric(
+            label: "在线站点",
+            value: "\(payload.summary.enabledSites)/\(max(payload.summary.totalSites, 1))",
+            detail: "已启用站点",
+            tint: SiteReminderStyleTheme.blue
+          )
+          SiteReminderStyleHeroMetric(
+            label: "已同步数据",
+            value: "\(payload.summary.sitesWithUserData)",
+            detail: "有用户数据的站点",
+            tint: SiteReminderStyleTheme.black
+          )
+        }
+        SiteReminderStyleTrafficPanel(
+          upload: formatBytes(payload.summary.totalUpload),
+          download: formatBytes(payload.summary.totalDownload)
+        )
+        HStack(spacing: 18) {
+          SiteReminderStyleDataMetric(
+            label: "做种数量",
+            value: "\(payload.summary.totalSeeding) 项",
+            tint: SiteReminderStyleTheme.black
+          )
+          SiteReminderStyleDataMetric(
+            label: "做种体积",
+            value: formatBytes(payload.summary.totalSeedingSize),
+            tint: SiteReminderStyleTheme.black
+          )
+          SiteReminderStyleDataMetric(
+            label: "魔力值",
+            value: formatBonus(payload.summary.totalBonus),
+            tint: SiteReminderStyleTheme.black
+          )
+        }
+      }
+      .padding(.top, 18)
+      Spacer(minLength: 0)
+      SiteReminderStyleDivider()
+      HStack(spacing: 18) {
+        SiteReminderStyleFooterItem(label: "站点总数", value: "\(payload.summary.totalSites)")
+        SiteReminderStyleFooterItem(label: "告警", value: "\(payload.summary.warningSites)")
+        if payload.summary.unreadMessages > 0, let url = systemMessageWidgetURL {
+          Link(destination: url) {
+            SiteReminderStyleFooterItem(label: "未读", value: "\(payload.summary.unreadMessages)")
           }
+          .buttonStyle(.plain)
+        } else {
+          SiteReminderStyleFooterItem(label: "未读", value: "\(payload.summary.unreadMessages)")
         }
       }
     }
+    .accessibilityElement(children: .contain)
+  }
+}
+
+private enum SiteReminderStyleTheme {
+  static let blue = Color(red: 0.00, green: 0.47, blue: 1.00)
+  static let danger = Color(red: 1.00, green: 0.23, blue: 0.19)
+  static let black = Color.black
+  static let divider = Color(red: 0.88, green: 0.88, blue: 0.90)
+  static let placeholder = Color(red: 0.42, green: 0.42, blue: 0.44)
+  static let secondary = Color(red: 0.30, green: 0.30, blue: 0.32)
+}
+
+private struct SiteReminderStyleHeader: View {
+  let count: String
+  let title: String
+  let systemImage: String
+  let tint: Color
+
+  var body: some View {
+    HStack(alignment: .top, spacing: 16) {
+      VStack(alignment: .leading, spacing: 1) {
+        Text(count)
+          .font(.system(size: 38, weight: .black, design: .rounded))
+          .foregroundStyle(SiteReminderStyleTheme.black)
+          .frame(height: 44, alignment: .center)
+          .lineLimit(1)
+          .minimumScaleFactor(0.7)
+        Text(title)
+          .font(.system(size: 19, weight: .bold))
+          .foregroundStyle(tint)
+          .lineLimit(1)
+      }
+      Spacer(minLength: 0)
+      ZStack {
+        Circle()
+          .fill(tint)
+        Image(systemName: systemImage)
+          .font(.system(size: 22, weight: .bold))
+          .foregroundStyle(.white)
+      }
+      .frame(width: 44, height: 44)
+      .padding(.top, 5)
+      .accessibilityHidden(true)
+    }
+    .padding(.top, 4)
+    .padding(.bottom, 16)
+    .accessibilityElement(children: .combine)
+  }
+}
+
+private struct SiteReminderStyleStatusView: View {
+  let count: String
+  let title: String
+  let message: String
+  let systemImage: String
+  let tint: Color
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 0) {
+      SiteReminderStyleHeader(
+        count: count,
+        title: title,
+        systemImage: systemImage,
+        tint: tint
+      )
+      SiteReminderStyleDivider()
+      Spacer(minLength: 0)
+      Text(message)
+        .font(.system(size: 21, weight: .semibold))
+        .foregroundStyle(SiteReminderStyleTheme.placeholder)
+        .frame(maxWidth: .infinity, alignment: .center)
+        .multilineTextAlignment(.center)
+      Spacer(minLength: 0)
+    }
+    .accessibilityElement(children: .combine)
+  }
+}
+
+private struct SiteReminderStyleIssueRow: View {
+  let site: SiteWidgetSiteDTO
+
+  var body: some View {
+    HStack(alignment: .center, spacing: 12) {
+      ZStack {
+        Circle()
+          .fill(SiteReminderStyleTheme.danger.opacity(0.14))
+        Image(systemName: "exclamationmark")
+          .font(.system(size: 14, weight: .black))
+          .foregroundStyle(SiteReminderStyleTheme.danger)
+      }
+      .frame(width: 28, height: 28)
+      VStack(alignment: .leading, spacing: 3) {
+        Text(site.name)
+          .font(.system(size: 15, weight: .semibold))
+          .foregroundStyle(SiteReminderStyleTheme.black)
+          .lineLimit(1)
+        Text(site.errorMessage.isEmpty ? site.domain : site.errorMessage)
+          .font(.system(size: 12, weight: .medium))
+          .foregroundStyle(SiteReminderStyleTheme.secondary)
+          .lineLimit(1)
+      }
+      Spacer(minLength: 0)
+    }
+    .padding(.vertical, 9)
+    .accessibilityElement(children: .combine)
+  }
+}
+
+private struct SiteReminderStyleDataMetric: View {
+  let label: String
+  let value: String
+  let tint: Color
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      Text(value)
+        .font(.system(size: 24, weight: .heavy, design: .rounded))
+        .foregroundStyle(tint)
+        .lineLimit(1)
+        .minimumScaleFactor(0.58)
+      Text(label)
+        .font(.system(size: 14, weight: .bold))
+        .foregroundStyle(SiteReminderStyleTheme.secondary)
+        .lineLimit(1)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .accessibilityElement(children: .combine)
+  }
+}
+
+private struct SiteReminderStyleHeroMetric: View {
+  let label: String
+  let value: String
+  let detail: String
+  let tint: Color
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 5) {
+      Text(value)
+        .font(.system(size: 34, weight: .black, design: .rounded))
+        .foregroundStyle(tint)
+        .lineLimit(1)
+        .minimumScaleFactor(0.62)
+      Text(label)
+        .font(.system(size: 16, weight: .bold))
+        .foregroundStyle(SiteReminderStyleTheme.black)
+        .lineLimit(1)
+      Text(detail)
+        .font(.system(size: 11, weight: .semibold))
+        .foregroundStyle(SiteReminderStyleTheme.secondary)
+        .lineLimit(1)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .accessibilityElement(children: .combine)
+  }
+}
+
+private struct SiteReminderStyleTrafficPanel: View {
+  let upload: String
+  let download: String
+
+  var body: some View {
+    VStack(spacing: 8) {
+      SiteReminderStyleTrafficRow(label: "上传总量", value: upload, tint: SiteReminderStyleTheme.blue)
+      SiteReminderStyleDivider()
+      SiteReminderStyleTrafficRow(label: "下载总量", value: download, tint: SiteReminderStyleTheme.black)
+    }
+    .padding(.vertical, 8)
+  }
+}
+
+private struct SiteReminderStyleTrafficRow: View {
+  let label: String
+  let value: String
+  let tint: Color
+
+  var body: some View {
+    HStack(alignment: .firstTextBaseline, spacing: 12) {
+      Text(label)
+        .font(.system(size: 15, weight: .bold))
+        .foregroundStyle(SiteReminderStyleTheme.secondary)
+      Spacer(minLength: 10)
+      Text(value)
+        .font(.system(size: 27, weight: .black, design: .rounded))
+        .foregroundStyle(tint)
+        .lineLimit(1)
+        .minimumScaleFactor(0.55)
+    }
+    .accessibilityElement(children: .combine)
+  }
+}
+
+private struct SiteReminderStyleFooterItem: View {
+  let label: String
+  let value: String
+
+  var body: some View {
+    HStack(spacing: 4) {
+      Text(value)
+        .font(.system(size: 13, weight: .heavy))
+        .foregroundStyle(SiteReminderStyleTheme.black)
+      Text(label)
+        .font(.system(size: 13, weight: .semibold))
+        .foregroundStyle(SiteReminderStyleTheme.secondary)
+    }
+    .lineLimit(1)
+  }
+}
+
+private struct SiteReminderStyleDivider: View {
+  var body: some View {
+    Rectangle()
+      .fill(SiteReminderStyleTheme.divider)
+      .frame(height: 1)
+  }
+}
+
+private struct SiteOperationsHero: View {
+  let payload: SiteWidgetPayloadDTO
+  let compact: Bool
+
+  var body: some View {
+    HStack(alignment: .center, spacing: compact ? 10 : 12) {
+      SiteHealthRing(
+        progress: siteHealthProgress(payload),
+        tint: siteHealthTint(payload),
+        size: compact ? 52 : 62,
+        lineWidth: compact ? 6 : 7
+      )
+      VStack(alignment: .leading, spacing: compact ? 5 : 6) {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+          Text("\(payload.summary.enabledSites)")
+            .font(.system(size: compact ? 24 : 28, weight: .black, design: .rounded))
+            .foregroundStyle(MoviePilotWidgetTheme.primaryText)
+            .lineLimit(1)
+          Text("/ \(max(payload.summary.totalSites, 1)) 在线")
+            .font(.system(size: compact ? 10 : 11, weight: .bold))
+            .foregroundStyle(MoviePilotWidgetTheme.secondaryText)
+            .lineLimit(1)
+        }
+        Text(siteHealthLabel(payload))
+          .font(.system(size: compact ? 10 : 11, weight: .bold))
+          .foregroundStyle(siteHealthTint(payload))
+          .lineLimit(1)
+        SiteTrafficBalanceBar(
+          upload: payload.summary.totalUpload,
+          download: payload.summary.totalDownload,
+          compact: compact
+        )
+      }
+      Spacer(minLength: 0)
+    }
+    .padding(.horizontal, compact ? 10 : 12)
+    .padding(.vertical, compact ? 9 : 11)
+    .background(
+      RoundedRectangle(cornerRadius: 18, style: .continuous)
+        .fill(MoviePilotWidgetTheme.elevatedSurface)
+    )
+    .overlay(
+      RoundedRectangle(cornerRadius: 18, style: .continuous)
+        .stroke(siteHealthTint(payload).opacity(0.24), lineWidth: 0.9)
+    )
+    .accessibilityElement(children: .combine)
+  }
+}
+
+private struct SiteHealthRing: View {
+  let progress: Double
+  let tint: Color
+  let size: CGFloat
+  let lineWidth: CGFloat
+
+  var body: some View {
+    ZStack {
+      Circle()
+        .stroke(MoviePilotWidgetTheme.surface, lineWidth: lineWidth)
+      Circle()
+        .trim(from: 0, to: min(max(progress, 0), 1))
+        .stroke(tint, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+        .rotationEffect(.degrees(-90))
+      Text("\(Int((min(max(progress, 0), 1) * 100).rounded()))%")
+        .font(.system(size: size > 58 ? 13 : 11, weight: .black, design: .rounded))
+        .foregroundStyle(MoviePilotWidgetTheme.primaryText)
+        .minimumScaleFactor(0.7)
+    }
+    .frame(width: size, height: size)
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel("站点健康度 \(Int((min(max(progress, 0), 1) * 100).rounded()))%")
+  }
+}
+
+private struct SiteTrafficBalanceBar: View {
+  let upload: Int
+  let download: Int
+  let compact: Bool
+
+  private var total: Double {
+    Double(max(upload + download, 1))
+  }
+
+  private var uploadRatio: Double {
+    min(max(Double(upload) / total, 0), 1)
+  }
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: compact ? 4 : 5) {
+      HStack(spacing: 6) {
+        Label {
+          Text(formatBytes(upload))
+        } icon: {
+          Image(systemName: "arrow.up.right")
+            .accessibilityHidden(true)
+        }
+        .foregroundStyle(MoviePilotWidgetTheme.green)
+        Label {
+          Text(formatBytes(download))
+        } icon: {
+          Image(systemName: "arrow.down.right")
+            .accessibilityHidden(true)
+        }
+        .foregroundStyle(MoviePilotWidgetTheme.cyan)
+      }
+      .font(.system(size: compact ? 8 : 9, weight: .semibold))
+      .lineLimit(1)
+      GeometryReader { proxy in
+        ZStack(alignment: .leading) {
+          Capsule()
+            .fill(MoviePilotWidgetTheme.surface)
+          Capsule()
+            .fill(MoviePilotWidgetTheme.cyan.opacity(0.62))
+          Capsule()
+            .fill(MoviePilotWidgetTheme.green)
+            .frame(width: max(proxy.size.width * CGFloat(uploadRatio), 4))
+        }
+      }
+      .frame(height: compact ? 5 : 6)
+    }
+    .accessibilityElement(children: .combine)
+  }
+}
+
+private struct SiteMetricTile: View {
+  let label: String
+  let value: String
+  let systemImage: String
+  let tint: Color
+  let destination: URL?
+  let compact: Bool
+
+  init(
+    label: String,
+    value: String,
+    systemImage: String,
+    tint: Color,
+    destination: URL? = nil,
+    compact: Bool = false
+  ) {
+    self.label = label
+    self.value = value
+    self.systemImage = systemImage
+    self.tint = tint
+    self.destination = destination
+    self.compact = compact
+  }
+
+  var body: some View {
+    if let destination {
+      Link(destination: destination) {
+        content
+      }
+      .buttonStyle(.plain)
+    } else {
+      content
+    }
+  }
+
+  private var content: some View {
+    HStack(spacing: compact ? 5 : 7) {
+      Image(systemName: systemImage)
+        .font(.system(size: compact ? 10 : 12, weight: .bold))
+        .foregroundStyle(tint)
+        .frame(width: compact ? 18 : 22, height: compact ? 18 : 22)
+        .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: compact ? 6 : 7, style: .continuous))
+        .accessibilityHidden(true)
+      VStack(alignment: .leading, spacing: 1) {
+        Text(value)
+          .font(.system(size: compact ? 12 : 14, weight: .black, design: .rounded))
+          .foregroundStyle(MoviePilotWidgetTheme.primaryText)
+          .lineLimit(1)
+          .minimumScaleFactor(0.72)
+        Text(label)
+          .font(.system(size: compact ? 8 : 9, weight: .medium))
+          .foregroundStyle(MoviePilotWidgetTheme.mutedText)
+          .lineLimit(1)
+      }
+      Spacer(minLength: 0)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .padding(.horizontal, compact ? 6 : 8)
+    .padding(.vertical, compact ? 6 : 8)
+    .background(
+      RoundedRectangle(cornerRadius: compact ? 12 : 14, style: .continuous)
+        .fill(MoviePilotWidgetTheme.surface)
+    )
+    .overlay(
+      RoundedRectangle(cornerRadius: compact ? 12 : 14, style: .continuous)
+        .stroke(tint.opacity(0.18), lineWidth: 0.8)
+    )
+    .accessibilityElement(children: .combine)
   }
 }
 
@@ -1405,22 +2065,21 @@ private struct SiteOverviewHeaderView: View {
   }
 
   var body: some View {
-    HStack(alignment: .firstTextBaseline, spacing: 6) {
-      Text("站点概览")
-        .font(.system(size: compact ? 12 : 13, weight: .bold))
-        .foregroundStyle(.primary)
-        .lineLimit(1)
-      Text("共 \(payload.summary.totalSites) 个")
-        .font(.system(size: 9, weight: .medium))
-        .foregroundStyle(.secondary)
-        .lineLimit(1)
-      Spacer()
+    HStack(alignment: .center, spacing: 6) {
+      WidgetSectionHeader(
+        title: "站点概览",
+        subtitle: "共 \(payload.summary.totalSites) 个",
+        systemImage: "server.rack",
+        tint: MoviePilotWidgetTheme.cyan,
+        compact: compact
+      )
       if payload.summary.unreadMessages > 0 {
         Link(destination: systemMessageWidgetURL!) {
           SiteSummaryBadge(
             label: "消息",
             value: "\(payload.summary.unreadMessages)",
-            tint: .orange
+            tint: MoviePilotWidgetTheme.amber,
+            compact: true
           )
         }
         .buttonStyle(.plain)
@@ -1513,14 +2172,14 @@ private struct SiteOverviewDetailRow<Content: View>: View {
     HStack(alignment: .center, spacing: 12) {
       Text(title)
         .font(.system(size: 10, weight: .medium))
-        .foregroundStyle(.secondary)
+        .foregroundStyle(MoviePilotWidgetTheme.mutedText)
       Spacer(minLength: 8)
       if let content {
         content
       } else if let trailingText {
         Text(trailingText)
           .font(.system(size: 10, weight: .semibold))
-          .foregroundStyle(.primary)
+          .foregroundStyle(MoviePilotWidgetTheme.primaryText)
           .lineLimit(1)
       }
     }
@@ -1548,18 +2207,24 @@ private struct SiteSummaryBadge: View {
     let content = HStack(spacing: 4) {
       Text(label)
         .font(.system(size: compact ? 8 : 9, weight: .medium))
-        .foregroundStyle(.secondary)
+        .foregroundStyle(MoviePilotWidgetTheme.mutedText)
       Text(value)
-        .font(.system(size: compact ? 8 : 9, weight: .semibold))
+        .font(.system(size: compact ? 9 : 11, weight: .bold))
         .foregroundStyle(tint)
+        .minimumScaleFactor(0.72)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
     .padding(.horizontal, compact ? 6 : 8)
-    .padding(.vertical, compact ? 4 : 5)
+    .padding(.vertical, compact ? 5 : 7)
     .background(
-      RoundedRectangle(cornerRadius: 11, style: .continuous)
-        .fill(Color(.secondarySystemGroupedBackground))
+      RoundedRectangle(cornerRadius: compact ? 10 : 12, style: .continuous)
+        .fill(MoviePilotWidgetTheme.surface)
     )
+    .overlay(
+      RoundedRectangle(cornerRadius: compact ? 10 : 12, style: .continuous)
+        .stroke(tint.opacity(0.18), lineWidth: 0.8)
+    )
+    .accessibilityElement(children: .combine)
 
     if let destination {
       Link(destination: destination) {
@@ -1582,11 +2247,11 @@ private struct SiteHeroCard: View {
         VStack(alignment: .leading, spacing: 2) {
           Text(site.name)
             .font(.system(size: 15, weight: .bold))
-            .foregroundStyle(.primary)
+            .foregroundStyle(MoviePilotWidgetTheme.primaryText)
             .lineLimit(1)
           Text(site.domain)
             .font(.system(size: 10, weight: .medium))
-            .foregroundStyle(.tertiary)
+            .foregroundStyle(MoviePilotWidgetTheme.mutedText)
             .lineLimit(1)
         }
         Spacer(minLength: 6)
@@ -1596,7 +2261,7 @@ private struct SiteHeroCard: View {
       if site.hasIssue, !site.errorMessage.isEmpty {
         Text(site.errorMessage)
           .font(.system(size: 11, weight: .medium))
-          .foregroundStyle(.red)
+          .foregroundStyle(MoviePilotWidgetTheme.red)
           .lineLimit(1)
       }
     }
@@ -1605,14 +2270,26 @@ private struct SiteHeroCard: View {
     .frame(maxWidth: .infinity, alignment: .leading)
     .background(
       RoundedRectangle(cornerRadius: 18, style: .continuous)
-        .fill(Color(.secondarySystemGroupedBackground))
+        .fill(MoviePilotWidgetTheme.elevatedSurface)
     )
+    .overlay(
+      RoundedRectangle(cornerRadius: 18, style: .continuous)
+        .stroke(site.badgeColor.opacity(0.24), lineWidth: 0.8)
+    )
+    .accessibilityElement(children: .combine)
   }
 }
 
 private struct SiteOverviewRow: View {
   let site: SiteWidgetSiteDTO
   let compact: Bool
+  let ranked: Bool
+
+  init(site: SiteWidgetSiteDTO, compact: Bool, ranked: Bool = false) {
+    self.site = site
+    self.compact = compact
+    self.ranked = ranked
+  }
 
   var body: some View {
     HStack(alignment: .center, spacing: 9) {
@@ -1621,14 +2298,22 @@ private struct SiteOverviewRow: View {
         HStack(spacing: 6) {
           Text(site.name)
             .font(.system(size: compact ? 12 : 14, weight: .semibold))
-            .foregroundStyle(.primary)
+            .foregroundStyle(MoviePilotWidgetTheme.primaryText)
             .lineLimit(1)
+          if ranked {
+            Text("优先")
+              .font(.system(size: 8, weight: .bold))
+              .foregroundStyle(MoviePilotWidgetTheme.cyan)
+              .padding(.horizontal, 5)
+              .padding(.vertical, 2)
+              .background(MoviePilotWidgetTheme.cyan.opacity(0.14), in: Capsule())
+          }
           SiteBadge(site: site, destination: site.messageUnread > 0 ? systemMessageWidgetURL : nil)
         }
         if site.hasIssue, !site.errorMessage.isEmpty {
           Text(site.errorMessage)
             .font(.system(size: compact ? 10 : 12, weight: .medium))
-            .foregroundStyle(.red)
+            .foregroundStyle(MoviePilotWidgetTheme.red)
             .lineLimit(1)
         } else {
           SiteTrafficText(upload: site.upload, download: site.download, compact: compact)
@@ -1638,6 +2323,7 @@ private struct SiteOverviewRow: View {
     }
     .padding(.horizontal, compact ? 7 : 8)
     .padding(.vertical, compact ? 6 : 7)
+    .accessibilityElement(children: .combine)
   }
 }
 
@@ -1657,7 +2343,7 @@ private struct SiteBadge: View {
         .foregroundStyle(site.badgeColor)
         .padding(.horizontal, 7)
         .padding(.vertical, 4)
-        .background(site.badgeColor.opacity(0.12), in: Capsule())
+        .background(site.badgeColor.opacity(0.16), in: Capsule())
 
       if let destination {
         Link(destination: destination) {
@@ -1697,7 +2383,7 @@ private struct SiteInsetGroup<Content: View>: View {
     .padding(.vertical, verticalPadding)
     .background(
       RoundedRectangle(cornerRadius: 18, style: .continuous)
-        .fill(Color(.secondarySystemGroupedBackground))
+        .fill(MoviePilotWidgetTheme.surface)
     )
   }
 }
@@ -1713,7 +2399,7 @@ private struct SiteRowDivider: View {
 
   var body: some View {
     Divider()
-      .overlay(Color(.separator).opacity(0.35))
+      .overlay(MoviePilotWidgetTheme.border)
       .padding(.leading, inset)
       .padding(.vertical, verticalPadding)
   }
@@ -1726,7 +2412,7 @@ private struct SiteIconView: View {
   var body: some View {
     ZStack {
       RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
-        .fill(Color(.tertiarySystemFill))
+        .fill(MoviePilotWidgetTheme.elevatedSurface)
       if let data = site.iconData, let uiImage = UIImage(data: data) {
         Image(uiImage: uiImage)
           .resizable()
@@ -1752,20 +2438,20 @@ private struct SiteTrafficText: View {
       Label {
         Text(formatBytes(upload))
           .font(.system(size: compact ? 9 : 11, weight: .semibold))
-          .foregroundStyle(Color(red: 0.12, green: 0.60, blue: 0.33))
+          .foregroundStyle(MoviePilotWidgetTheme.green)
       } icon: {
         Image(systemName: "arrow.up.right")
           .font(.system(size: compact ? 9 : 10, weight: .bold))
-          .foregroundStyle(Color(red: 0.12, green: 0.60, blue: 0.33))
+          .foregroundStyle(MoviePilotWidgetTheme.green)
       }
       Label {
         Text(formatBytes(download))
           .font(.system(size: compact ? 9 : 11, weight: .semibold))
-          .foregroundStyle(Color(red: 0.12, green: 0.45, blue: 0.92))
+          .foregroundStyle(MoviePilotWidgetTheme.cyan)
       } icon: {
         Image(systemName: "arrow.down.right")
           .font(.system(size: compact ? 9 : 10, weight: .bold))
-          .foregroundStyle(Color(red: 0.12, green: 0.45, blue: 0.92))
+          .foregroundStyle(MoviePilotWidgetTheme.cyan)
       }
     }
     .lineLimit(1)
@@ -1790,6 +2476,33 @@ private func formatBonus(_ value: Double) -> String {
     return String(format: "%.0f", value)
   }
   return String(format: "%.1f", value)
+}
+
+private func siteHealthProgress(_ payload: SiteWidgetPayloadDTO) -> Double {
+  let total = max(payload.summary.totalSites, 1)
+  let onlineRatio = Double(payload.summary.enabledSites) / Double(total)
+  let warningPenalty = Double(payload.summary.warningSites) / Double(total) * 0.45
+  return min(max(onlineRatio - warningPenalty, 0), 1)
+}
+
+private func siteHealthTint(_ payload: SiteWidgetPayloadDTO) -> Color {
+  if payload.summary.warningSites > 0 {
+    return MoviePilotWidgetTheme.red
+  }
+  if siteHealthProgress(payload) < 0.75 {
+    return MoviePilotWidgetTheme.amber
+  }
+  return MoviePilotWidgetTheme.green
+}
+
+private func siteHealthLabel(_ payload: SiteWidgetPayloadDTO) -> String {
+  if payload.summary.warningSites > 0 {
+    return "\(payload.summary.warningSites) 个站点需要处理"
+  }
+  if payload.summary.enabledSites < payload.summary.totalSites {
+    return "部分站点离线"
+  }
+  return "全部站点运行正常"
 }
 
 struct RecommendTrendingWidget: Widget {
@@ -1847,8 +2560,19 @@ private struct RecommendTrendingWidgetEntryView: View {
 
   var body: some View {
     content
-      .padding(16)
+      .padding(contentPadding)
       .moviePilotWidgetBackground()
+  }
+
+  private var contentPadding: CGFloat {
+    switch family {
+    case .systemSmall:
+      return 13
+    case .systemMedium:
+      return 14
+    default:
+      return 15
+    }
   }
 
   @ViewBuilder
@@ -1876,16 +2600,12 @@ private struct RecommendTrendingWidgetEntryView: View {
   }
 
   private func messageView(title: String, message: String) -> some View {
-    VStack(alignment: .leading, spacing: 10) {
-      Text(title)
-        .font(.system(size: 18, weight: .bold))
-        .foregroundStyle(.primary)
-      Spacer()
-      Text(message)
-        .font(.system(size: 14, weight: .medium))
-        .foregroundStyle(.secondary)
-      Spacer()
-    }
+    WidgetStatusView(
+      title: title,
+      message: message,
+      systemImage: title == "同步失败" ? "exclamationmark.triangle.fill" : "popcorn.fill",
+      tint: title == "同步失败" ? MoviePilotWidgetTheme.red : MoviePilotWidgetTheme.amber
+    )
   }
 }
 
@@ -1905,41 +2625,51 @@ private struct RecommendSmallView: View {
       }
     } else {
       VStack(alignment: .leading, spacing: 8) {
-        Text("影视推荐")
-          .font(.system(size: 15, weight: .bold))
-          .foregroundStyle(.primary)
+        WidgetSectionHeader(
+          title: "影视推荐",
+          systemImage: "popcorn.fill",
+          tint: MoviePilotWidgetTheme.amber,
+          compact: true
+        )
         Spacer()
         Text("暂无推荐")
           .font(.system(size: 13, weight: .medium))
-          .foregroundStyle(.secondary)
+          .foregroundStyle(MoviePilotWidgetTheme.secondaryText)
       }
     }
   }
 
   private func smallContent(_ item: RecommendCard) -> some View {
     VStack(alignment: .leading, spacing: 8) {
-      Text("豆瓣热门")
-        .font(.system(size: 12, weight: .medium))
-        .foregroundStyle(.secondary)
-      HStack(alignment: .top, spacing: 10) {
+      WidgetSectionHeader(
+        title: "豆瓣热门",
+        subtitle: scoreLabel(for: item),
+        systemImage: "popcorn.fill",
+        tint: MoviePilotWidgetTheme.amber,
+        compact: true
+      )
+      Spacer(minLength: 0)
+      HStack(alignment: .bottom, spacing: 9) {
         RecommendPosterThumbnail(data: item.posterData, compact: true)
         VStack(alignment: .leading, spacing: 4) {
           Text(item.title)
-            .font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(.primary)
-            .lineLimit(2)
-          Text(item.subtitle)
-            .font(.system(size: 11, weight: .medium))
-            .foregroundStyle(.secondary)
-            .lineLimit(1)
-          Text(item.scoreText == "暂无评分" ? item.scoreText : "评分 \(item.scoreText)")
-            .font(.system(size: 11, weight: .medium))
-            .foregroundStyle(.secondary)
+            .font(.system(size: 14, weight: .bold))
+            .foregroundStyle(MoviePilotWidgetTheme.primaryText)
+            .lineLimit(3)
+            .minimumScaleFactor(0.8)
+          Text(item.subtitle.isEmpty ? "热门影视" : item.subtitle)
+            .font(.system(size: 10, weight: .medium))
+            .foregroundStyle(MoviePilotWidgetTheme.secondaryText)
             .lineLimit(1)
         }
         Spacer(minLength: 0)
       }
     }
+    .accessibilityElement(children: .combine)
+  }
+
+  private func scoreLabel(for item: RecommendCard) -> String {
+    item.scoreText == "暂无评分" ? item.scoreText : "评分 \(item.scoreText)"
   }
 }
 
@@ -1947,18 +2677,16 @@ private struct RecommendMediumView: View {
   let items: [RecommendCard]
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text("豆瓣热门")
-        .font(.system(size: 13, weight: .semibold))
-        .foregroundStyle(.secondary)
-      ForEach(Array(items.prefix(2))) { item in
-        if let url = item.widgetURL {
-          Link(destination: url) {
-            RecommendRow(item: item)
-          }
-          .buttonStyle(.plain)
-        } else {
-          RecommendRow(item: item)
+    VStack(alignment: .leading, spacing: 9) {
+      WidgetSectionHeader(
+        title: "豆瓣热门",
+        subtitle: "\(items.count) 个推荐",
+        systemImage: "popcorn.fill",
+        tint: MoviePilotWidgetTheme.amber
+      )
+      HStack(spacing: 8) {
+        ForEach(Array(items.prefix(2))) { item in
+          RecommendFeatureCard(item: item, compact: true)
         }
       }
       Spacer(minLength: 0)
@@ -1970,18 +2698,33 @@ private struct RecommendLargeView: View {
   let items: [RecommendCard]
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text("豆瓣热门")
-        .font(.system(size: 13, weight: .semibold))
-        .foregroundStyle(.secondary)
-      ForEach(Array(items.prefix(4))) { item in
-        if let url = item.widgetURL {
+    VStack(alignment: .leading, spacing: 9) {
+      WidgetSectionHeader(
+        title: "豆瓣热门",
+        subtitle: "\(items.count) 个推荐",
+        systemImage: "popcorn.fill",
+        tint: MoviePilotWidgetTheme.amber
+      )
+      if let first = items.first {
+        if let url = first.widgetURL {
           Link(destination: url) {
-            RecommendRow(item: item)
+            RecommendFeatureCard(item: first, compact: false)
           }
           .buttonStyle(.plain)
         } else {
-          RecommendRow(item: item)
+          RecommendFeatureCard(item: first, compact: false)
+        }
+      }
+      VStack(spacing: 6) {
+        ForEach(Array(items.dropFirst().prefix(3))) { item in
+          if let url = item.widgetURL {
+            Link(destination: url) {
+              RecommendRow(item: item)
+            }
+            .buttonStyle(.plain)
+          } else {
+            RecommendRow(item: item)
+          }
         }
       }
       Spacer(minLength: 0)
@@ -1989,31 +2732,90 @@ private struct RecommendLargeView: View {
   }
 }
 
+private struct RecommendFeatureCard: View {
+  let item: RecommendCard
+  let compact: Bool
+
+  var body: some View {
+    let content = HStack(alignment: .center, spacing: compact ? 8 : 11) {
+      RecommendPosterThumbnail(data: item.posterData, compact: compact)
+      VStack(alignment: .leading, spacing: compact ? 4 : 5) {
+        Text(item.title)
+          .font(.system(size: compact ? 13 : 16, weight: .bold))
+          .foregroundStyle(MoviePilotWidgetTheme.primaryText)
+          .lineLimit(compact ? 2 : 1)
+          .minimumScaleFactor(0.78)
+        Text(item.subtitle.isEmpty ? "热门影视" : item.subtitle)
+          .font(.system(size: compact ? 10 : 11, weight: .medium))
+          .foregroundStyle(MoviePilotWidgetTheme.secondaryText)
+          .lineLimit(1)
+        HStack(spacing: 5) {
+          Image(systemName: "star.fill")
+            .font(.system(size: compact ? 8 : 9, weight: .bold))
+            .foregroundStyle(MoviePilotWidgetTheme.amber)
+            .accessibilityHidden(true)
+          Text(scoreLabel)
+            .font(.system(size: compact ? 10 : 11, weight: .semibold))
+            .foregroundStyle(MoviePilotWidgetTheme.amber)
+            .lineLimit(1)
+        }
+      }
+      Spacer(minLength: 0)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .padding(.horizontal, compact ? 8 : 10)
+    .padding(.vertical, compact ? 8 : 10)
+    .background(
+      RoundedRectangle(cornerRadius: 16, style: .continuous)
+        .fill(MoviePilotWidgetTheme.elevatedSurface)
+    )
+    .overlay(
+      RoundedRectangle(cornerRadius: 16, style: .continuous)
+        .stroke(MoviePilotWidgetTheme.amber.opacity(0.24), lineWidth: 0.8)
+    )
+    .accessibilityElement(children: .combine)
+
+    if compact, let url = item.widgetURL {
+      Link(destination: url) {
+        content
+      }
+      .buttonStyle(.plain)
+    } else {
+      content
+    }
+  }
+
+  private var scoreLabel: String {
+    item.scoreText == "暂无评分" ? item.scoreText : "评分 \(item.scoreText)"
+  }
+}
+
 private struct RecommendRow: View {
   let item: RecommendCard
 
   var body: some View {
-    HStack(alignment: .top, spacing: 10) {
-      RecommendPosterThumbnail(data: item.posterData, compact: false)
-      VStack(alignment: .leading, spacing: 4) {
+    HStack(alignment: .center, spacing: 9) {
+      RecommendPosterThumbnail(data: item.posterData, compact: true)
+      VStack(alignment: .leading, spacing: 3) {
         Text(item.title)
-          .font(.system(size: 14, weight: .semibold))
-          .foregroundStyle(.primary)
+          .font(.system(size: 13, weight: .semibold))
+          .foregroundStyle(MoviePilotWidgetTheme.primaryText)
           .lineLimit(1)
-        Text(item.subtitle)
-          .font(.system(size: 11, weight: .medium))
-          .foregroundStyle(.secondary)
+        Text(item.subtitle.isEmpty ? "热门影视" : item.subtitle)
+          .font(.system(size: 10, weight: .medium))
+          .foregroundStyle(MoviePilotWidgetTheme.secondaryText)
           .lineLimit(1)
         Text(item.scoreText == "暂无评分" ? item.scoreText : "评分 \(item.scoreText)")
-          .font(.system(size: 11, weight: .medium))
-          .foregroundStyle(.secondary)
+          .font(.system(size: 10, weight: .semibold))
+          .foregroundStyle(MoviePilotWidgetTheme.amber)
           .lineLimit(1)
       }
       Spacer(minLength: 0)
     }
-    .padding(.horizontal, 12)
+    .padding(.horizontal, 9)
     .padding(.vertical, 7)
-    .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    .background(MoviePilotWidgetTheme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    .accessibilityElement(children: .combine)
   }
 }
 
@@ -2023,8 +2825,12 @@ private struct RecommendPosterThumbnail: View {
 
   var body: some View {
     RecommendPosterBackground(data: data)
-      .frame(width: compact ? 46 : 44, height: compact ? 62 : 58)
-      .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+      .frame(width: compact ? 44 : 56, height: compact ? 60 : 76)
+      .clipShape(RoundedRectangle(cornerRadius: compact ? 11 : 14, style: .continuous))
+      .overlay(
+        RoundedRectangle(cornerRadius: compact ? 11 : 14, style: .continuous)
+          .stroke(Color.white.opacity(0.14), lineWidth: 0.8)
+      )
   }
 }
 
@@ -2033,7 +2839,7 @@ private struct RecommendPosterBackground: View {
 
   var body: some View {
     ZStack {
-      Color(.tertiarySystemFill)
+      MoviePilotWidgetTheme.surface
       if let data, let uiImage = UIImage(data: data) {
         Image(uiImage: uiImage)
           .resizable()
@@ -2047,10 +2853,10 @@ private struct RecommendPosterBackground: View {
 
   private var placeholder: some View {
     ZStack {
-      Color(.quaternarySystemFill)
+      MoviePilotWidgetTheme.elevatedSurface
       Image(systemName: "film")
         .font(.system(size: 18, weight: .semibold))
-        .foregroundStyle(.secondary)
+        .foregroundStyle(MoviePilotWidgetTheme.amber)
     }
   }
 }
@@ -2060,10 +2866,21 @@ private extension View {
   func moviePilotWidgetBackground() -> some View {
     if #available(iOSApplicationExtension 17.0, *) {
       containerBackground(for: .widget) {
-        Color(.systemBackground)
+        MoviePilotWidgetTheme.backgroundGradient
       }
     } else {
-      background(Color(.systemBackground))
+      background(MoviePilotWidgetTheme.backgroundGradient)
+    }
+  }
+
+  @ViewBuilder
+  func siteInfoWidgetBackground() -> some View {
+    if #available(iOSApplicationExtension 17.0, *) {
+      containerBackground(for: .widget) {
+        Color.white
+      }
+    } else {
+      background(Color.white)
     }
   }
 }

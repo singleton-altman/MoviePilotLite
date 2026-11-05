@@ -1,0 +1,81 @@
+name: Check
+
+on:
+  push:
+    branches:
+      - master
+      - dev
+  pull_request:
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.38.2"
+          channel: "stable"
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      # 仅 error 阻断;warnings/infos(如存量 freezed 注解告警)不阻断,
+      # 与本地验收口径一致。
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Test
+        run: flutter test --no-pub --reporter compact
+
+  ios-debug:
+    # 原生工程或依赖清单变更时,提前暴露 iOS 侧问题
+    # (如 Pod 部署目标、插件原生代码不兼容),避免只有周级发布才验证。
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            native:
+              - 'ios/**'
+              - 'android/**'
+              - 'pubspec.yaml'
+              - 'pubspec.lock'
+
+      - name: Setup Flutter
+        if: steps.changes.outputs.native == 'true'
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.38.2"
+          channel: "stable"
+          cache: true
+
+      - name: Get dependencies
+        if: steps.changes.outputs.native == 'true'
+        run: flutter pub get
+
+      - name: Install CocoaPods
+        if: steps.changes.outputs.native == 'true'
+        env:
+          TYPHOEUS_HTTP_VERSION: CURL_HTTP_VERSION_1_1
+        run: |
+          cd ios
+          pod install
+
+      - name: Build iOS debug (no codesign)
+        if: steps.changes.outputs.native == 'true'
+        run: flutter build ios --debug --no-codesign

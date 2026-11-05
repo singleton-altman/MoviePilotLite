@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:moviepilot_mobile/modules/recommend/models/recommend_api_item.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
+import 'package:moviepilot_mobile/utils/media_identity_util.dart';
 import 'package:moviepilot_mobile/modules/search/models/person_detail.dart';
 
 class PersonDetailController extends GetxController {
@@ -17,6 +18,8 @@ class PersonDetailController extends GetxController {
   final RxnString name = RxnString();
   final RxnString avatarUrl = RxnString();
   final RxnString biography = RxnString();
+  final RxnString sourceLabel = RxnString();
+  final RxnInt gender = RxnInt();
   final RxList<String> alsoKnownAs = <String>[].obs;
 
   final RxList<RecommendApiItem> works = <RecommendApiItem>[].obs;
@@ -63,6 +66,8 @@ class PersonDetailController extends GetxController {
       final detail = PersonDetail.fromJson(detailJson);
       name.value = detail.name;
       biography.value = detail.biography;
+      gender.value = detail.gender;
+      sourceLabel.value = detail.source;
 
       final avatar = detail.avatar;
       final profilePath = detail.profilePath;
@@ -111,7 +116,9 @@ class PersonDetailController extends GetxController {
       final rawWorks = worksResp.data;
       final parsedWorks = _extractList(rawWorks)
           .whereType<Map<String, dynamic>>()
-          .map(RecommendApiItem.fromJson)
+          .map(
+            (item) => RecommendApiItem.fromJson(normalizeMediaJson(item)),
+          )
           .toList();
       if (append) {
         works.addAll(parsedWorks);

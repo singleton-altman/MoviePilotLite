@@ -12,11 +12,15 @@ class SubscribeShareItemCard extends StatelessWidget {
     required this.item,
     this.onTap,
     this.onMoreTap,
+    this.isFollowed = false,
+    this.onFollowTap,
   });
 
   final SubscribeShareItem item;
   final VoidCallback? onTap;
   final VoidCallback? onMoreTap;
+  final bool isFollowed;
+  final VoidCallback? onFollowTap;
 
   static const double _cardRadius = 12;
   static const double _posterWidth = 80;
@@ -146,6 +150,40 @@ class SubscribeShareItemCard extends StatelessWidget {
               color: Colors.white.withValues(alpha: 0.9),
             ),
           ),
+          if (onFollowTap != null) ...[
+            const SizedBox(width: 6),
+            GestureDetector(
+              onTap: onFollowTap,
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isFollowed
+                          ? CupertinoIcons.person_badge_plus_fill
+                          : CupertinoIcons.person_badge_plus,
+                      size: 15,
+                      color: isFollowed
+                          ? const Color(0xFF30D158)
+                          : Colors.white.withValues(alpha: 0.75),
+                    ),
+                    const SizedBox(width: 2),
+                    Text(
+                      isFollowed ? '已关注' : '关注',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isFollowed
+                            ? const Color(0xFF30D158)
+                            : Colors.white.withValues(alpha: 0.75),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
           const SizedBox(width: 12),
         ],
         if (item.count != null && item.count! > 0) ...[
@@ -197,24 +235,6 @@ class SubscribeShareItemCard extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(6),
         color: Colors.white.withValues(alpha: 0.2),
-      ),
-    );
-  }
-
-  Widget _buildMoreButton(BuildContext context) {
-    return GestureDetector(
-      onTap: () => onMoreTap?.call(),
-      child: Container(
-        padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.4),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          CupertinoIcons.ellipsis_vertical,
-          size: 16,
-          color: Colors.white.withValues(alpha: 0.9),
-        ),
       ),
     );
   }

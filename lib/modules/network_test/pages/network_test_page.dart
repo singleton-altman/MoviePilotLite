@@ -7,7 +7,9 @@ import 'package:moviepilot_mobile/theme/section.dart';
 import '../controllers/network_test_controller.dart';
 
 class NetworkTestPage extends GetView<NetworkTestController> {
-  const NetworkTestPage({super.key});
+  const NetworkTestPage({super.key, this.scrollController});
+
+  final ScrollController? scrollController;
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +51,7 @@ class NetworkTestPage extends GetView<NetworkTestController> {
     }
 
     return ListView.separated(
+      controller: scrollController,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       itemBuilder: (context, index) {
         if (index == 0) {
@@ -302,7 +305,6 @@ class NetworkTestPage extends GetView<NetworkTestController> {
       case NetworkTestStatus.error:
         return '异常';
       case NetworkTestStatus.idle:
-      default:
         return '未检测';
     }
   }

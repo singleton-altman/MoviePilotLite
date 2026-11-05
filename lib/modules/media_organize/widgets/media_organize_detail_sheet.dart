@@ -676,8 +676,8 @@ class MediaOrganizeDetailSheet extends StatelessWidget {
       case 'copy':
         return '复制';
       case 'hard link':
-      case 'hard_link':
       case 'hardlink':
+      case 'link':
         return '硬连接';
       case 'soft link':
       case 'soft_link':
@@ -690,10 +690,18 @@ class MediaOrganizeDetailSheet extends StatelessWidget {
 
   String _episodeLabel() {
     final parts = <String>[];
-    final seasons = (item.seasons ?? '').trim();
-    final episodes = (item.episodes ?? '').trim();
-    if (seasons.isNotEmpty) parts.add('S$seasons');
-    if (episodes.isNotEmpty) parts.add('E$episodes');
+    final seasons = _formatSeasonEpisode(item.seasons, 'S');
+    final episodes = _formatSeasonEpisode(item.episodes, 'E');
+    if (seasons != null) parts.add(seasons);
+    if (episodes != null) parts.add(episodes);
     return parts.join(' ');
+  }
+
+  String? _formatSeasonEpisode(String? raw, String prefix) {
+    final value = (raw ?? '').trim();
+    if (value.isEmpty) return null;
+    final upper = value.toUpperCase();
+    if (upper.startsWith('S') || upper.startsWith('E')) return upper;
+    return '$prefix$value';
   }
 }

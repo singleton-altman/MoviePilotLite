@@ -233,6 +233,7 @@ class VuetifyMappings {
     'mdi-water': Icons.water_drop,
     'mdi-leaf': Icons.eco,
     'mdi-paw': Icons.pets,
+    'mdi-file-upload-outline': Icons.upload_file_outlined,
     'mdi-desktop-mac': Icons.desktop_mac_outlined,
     'mdi-ip': Icons.network_wifi_outlined,
     'mdi-cpu': Icons.cabin_outlined,

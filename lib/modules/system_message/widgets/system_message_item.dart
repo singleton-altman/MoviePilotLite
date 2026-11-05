@@ -8,11 +8,16 @@ import 'package:moviepilot_mobile/widgets/cached_image.dart';
 import '../models/system_message.dart';
 
 class SystemMessageItem extends StatelessWidget {
-  const SystemMessageItem({super.key, required this.message});
+  const SystemMessageItem({
+    super.key,
+    required this.message,
+    this.onCommandSelected,
+  });
 
   final SystemMessage message;
+  final ValueChanged<String>? onCommandSelected;
 
-  static const double _cardRadius = 16;
+  static const double _cardRadius = 18;
 
   @override
   Widget build(BuildContext context) {
@@ -39,38 +44,30 @@ class SystemMessageItem extends StatelessWidget {
     final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
     final radius = BorderRadius.circular(_cardRadius);
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: radius,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.16 : 0.055),
-            blurRadius: 20,
-            offset: const Offset(0, 7),
-          ),
-        ],
-        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.70)),
-      ),
-      child: ClipRRect(
-        borderRadius: radius,
-        child: Stack(
-          children: [
-            child,
-            Positioned(
-              left: 0,
-              top: 16,
-              bottom: 16,
-              child: Container(
-                width: 3,
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.82),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
+    return Semantics(
+      container: true,
+      label: '${_messageType(message)}消息',
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: radius,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.18 : 0.055),
+              blurRadius: 22,
+              offset: const Offset(0, 8),
+            ),
+            BoxShadow(
+              color: accent.withValues(alpha: isDark ? 0.04 : 0.025),
+              blurRadius: 12,
+              offset: const Offset(0, 3),
             ),
           ],
+          border: Border.all(
+            color: cs.outlineVariant.withValues(alpha: isDark ? 0.32 : 0.46),
+          ),
         ),
+        child: ClipRRect(borderRadius: radius, child: child),
       ),
     );
   }
@@ -92,30 +89,48 @@ class SystemMessageItem extends StatelessWidget {
     Color? chipTextColor,
     Color? chipBorderColor,
   }) {
-    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final resolvedIcon = icon ?? CupertinoIcons.bell_fill;
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        if (icon != null) ...[
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: color.withValues(alpha: 0.20)),
-            ),
-            child: Icon(icon, size: 17, color: color),
+        Container(
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.13),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: color.withValues(alpha: 0.22)),
           ),
-          const SizedBox(width: 8),
-        ],
+          child: Icon(resolvedIcon, size: 16, color: color),
+        ),
+        const SizedBox(width: 8),
         _buildTypeChip(
           type,
           background: chipBackground ?? color.withValues(alpha: 0.12),
           textColor: chipTextColor ?? color,
           borderColor: chipBorderColor ?? color.withValues(alpha: 0.20),
         ),
-        const Spacer(),
-        Text(time, style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            time,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
+            style:
+                theme.textTheme.labelSmall?.copyWith(
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w500,
+                ) ??
+                TextStyle(
+                  fontSize: 11,
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w500,
+                ),
+          ),
+        ),
       ],
     );
   }
@@ -185,46 +200,51 @@ class SystemMessageItem extends StatelessWidget {
     final parsed = _parseText(message.text);
     final meta = parsed.meta;
     final body = parsed.body;
+    final commands = parsed.commands;
+    final title = message.title.trim();
     return _wrapCard(
       context,
       Section(
         borderRadius: BorderRadius.circular(_cardRadius),
-        padding: const EdgeInsets.all(12),
+        color: Colors.transparent,
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildCardHeader(
               context: context,
+              icon: CupertinoIcons.bell_fill,
               color: CupertinoColors.systemBlue,
               type: _messageType(message),
               time: time,
             ),
-            const SizedBox(height: 10),
-            _buildSelectableText(
-              message.title.trim(),
-              style:
-                  theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: cs.onSurface,
-                  ) ??
-                  TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: cs.onSurface,
-                  ),
-            ),
+            if (title.isNotEmpty) const SizedBox(height: 10),
+            if (title.isNotEmpty)
+              _buildSelectableText(
+                title,
+                style:
+                    theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: cs.onSurface,
+                    ) ??
+                    TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: cs.onSurface,
+                    ),
+              ),
             if (meta.isNotEmpty) const SizedBox(height: 10),
-            if (meta.isNotEmpty) _buildMetaRow(meta),
+            if (meta.isNotEmpty) _buildMetaRow(context, meta),
             if (body.isNotEmpty) const SizedBox(height: 10),
             if (body.isNotEmpty)
-              _buildSelectableText(
+              _buildBodyPanel(
+                context,
                 body,
-                style: TextStyle(
-                  fontSize: 14,
-                  height: 1.45,
-                  color: cs.onSurfaceVariant,
-                ),
+                icon: CupertinoIcons.doc_text,
+                accent: accent,
               ),
+            if (commands.isNotEmpty) const SizedBox(height: 12),
+            if (commands.isNotEmpty) _buildCommandActions(context, commands),
           ],
         ),
       ),
@@ -233,16 +253,17 @@ class SystemMessageItem extends StatelessWidget {
   }
 
   Widget _buildPosterCard(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     const accent = CupertinoColors.systemOrange;
     final time = DateFormat('MM-dd HH:mm').format(message.regTime);
     final parsed = _parseText(message.text);
     final meta = parsed.meta;
     final body = parsed.body;
+    final commands = parsed.commands;
     return _wrapCard(
       context,
       Section(
         borderRadius: BorderRadius.circular(_cardRadius),
+        color: Colors.transparent,
         padding: EdgeInsets.zero,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -308,17 +329,18 @@ class SystemMessageItem extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (meta.isNotEmpty) _buildMetaRow(meta),
+                  if (meta.isNotEmpty) _buildMetaRow(context, meta),
                   if (body.isNotEmpty) const SizedBox(height: 10),
                   if (body.isNotEmpty)
-                    _buildSelectableText(
+                    _buildBodyPanel(
+                      context,
                       body,
-                      style: TextStyle(
-                        fontSize: 14,
-                        height: 1.45,
-                        color: cs.onSurfaceVariant,
-                      ),
+                      icon: CupertinoIcons.text_bubble,
+                      accent: accent,
                     ),
+                  if (commands.isNotEmpty) const SizedBox(height: 12),
+                  if (commands.isNotEmpty)
+                    _buildCommandActions(context, commands),
                 ],
               ),
             ),
@@ -356,7 +378,8 @@ class SystemMessageItem extends StatelessWidget {
       context,
       Section(
         borderRadius: BorderRadius.circular(_cardRadius),
-        padding: const EdgeInsets.all(12),
+        color: Colors.transparent,
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -394,13 +417,11 @@ class SystemMessageItem extends StatelessWidget {
               ),
             if (noteDescription.isNotEmpty) const SizedBox(height: 8),
             if (noteDescription.isNotEmpty)
-              _buildSelectableText(
+              _buildBodyPanel(
+                context,
                 noteDescription,
-                style: TextStyle(
-                  fontSize: 13,
-                  height: 1.45,
-                  color: cs.onSurfaceVariant,
-                ),
+                icon: CupertinoIcons.text_quote,
+                accent: accent,
               ),
             const SizedBox(height: 8),
             _buildUniqueChips([
@@ -499,7 +520,91 @@ class SystemMessageItem extends StatelessWidget {
     );
   }
 
-  Widget _buildMetaRow(List<String> meta) => _buildUniqueChips(meta);
+  Widget _buildMetaRow(BuildContext context, List<String> meta) {
+    final seen = <String>{};
+    final items = <String>[];
+    for (final t in meta) {
+      final s = t.trim();
+      if (s.isEmpty) continue;
+      if (seen.add(s)) items.add(s);
+      if (items.length >= 8) break;
+    }
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: items.asMap().entries.map((entry) {
+        final text = entry.value;
+        return _buildMetaTile(
+          context,
+          text,
+          color: _pickMetaColor(text) ?? _pickChipColor(text, entry.key),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildMetaTile(BuildContext context, String text, {Color? color}) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final baseColor = color ?? cs.primary;
+    final parts = _splitMetaText(text);
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 34, maxWidth: 168),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerHighest.withValues(
+            alpha: theme.brightness == Brightness.dark ? 0.28 : 0.58,
+          ),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.34)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: baseColor.withValues(alpha: 0.88),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 7),
+              Flexible(
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: '${parts.key} ',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                      TextSpan(
+                        text: parts.value,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: cs.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: false,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildUniqueChips(List<String> raw) {
     final seen = <String>{};
@@ -551,6 +656,115 @@ class SystemMessageItem extends StatelessWidget {
     );
   }
 
+  Widget _buildBodyPanel(
+    BuildContext context,
+    String text, {
+    required IconData icon,
+    required Color accent,
+  }) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest.withValues(
+          alpha: theme.brightness == Brightness.dark ? 0.24 : 0.46,
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.38)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.13),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Icon(icon, size: 15, color: accent),
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: _buildSelectableText(
+              text,
+              style:
+                  theme.textTheme.bodyMedium?.copyWith(
+                    height: 1.48,
+                    color: cs.onSurfaceVariant,
+                  ) ??
+                  TextStyle(
+                    fontSize: 14,
+                    height: 1.48,
+                    color: cs.onSurfaceVariant,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCommandActions(BuildContext context, List<String> commands) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: cs.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cs.primary.withValues(alpha: 0.18)),
+      ),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text(
+            '可执行操作',
+            style: theme.textTheme.labelMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: cs.onSurface,
+            ),
+          ),
+          ...commands.map(
+            (command) => CupertinoButton(
+              minimumSize: Size.zero,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              borderRadius: BorderRadius.circular(999),
+              color: cs.primary,
+              onPressed: onCommandSelected == null
+                  ? null
+                  : () => onCommandSelected!(command),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    CupertinoIcons.arrow_turn_down_right,
+                    size: 14,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    command,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSelectableText(
     String text, {
     required TextStyle style,
@@ -589,16 +803,34 @@ class SystemMessageItem extends StatelessWidget {
   _ParsedText _parseText(String text) {
     final metaMap = <String, String>{};
     final remain = <String>[];
+    final commands = <String>{};
     final lines = text.split('\n');
+    var inFence = false;
     for (final raw in lines) {
       final line = raw.trimRight();
+      final trimmed = line.trim();
+      if (trimmed.startsWith('```')) {
+        inFence = !inFence;
+        continue;
+      }
+      if (trimmed.startsWith('如果按钮不可用')) {
+        continue;
+      }
+      final command = _extractCommand(trimmed);
+      if (command != null) {
+        commands.add(command);
+        continue;
+      }
+      if (inFence) {
+        continue;
+      }
       final parts = line.split('：');
       if (parts.length >= 2) {
         final key = parts.first.trim();
         final value = parts.sublist(1).join('：').trim();
         if (value.isNotEmpty &&
             ['站点', '质量', '大小', '评分', '类型', '类别', '标签'].contains(key)) {
-          metaMap.putIfAbsent(key, () => value);
+          _addMetaEntries(metaMap, line);
           continue;
         }
       }
@@ -606,7 +838,57 @@ class SystemMessageItem extends StatelessWidget {
     }
     final meta = metaMap.entries.map((e) => '${e.key}：${e.value}').toList();
     final body = remain.join('\n').trim();
-    return _ParsedText(meta: meta, body: body);
+    return _ParsedText(meta: meta, body: body, commands: commands.toList());
+  }
+
+  void _addMetaEntries(Map<String, String> metaMap, String line) {
+    final normalized = line.replaceAll('，', ',');
+    final matches = RegExp(
+      r'(站点|质量|大小|评分|类型|类别|标签)[:：]\s*([^,，]+)',
+    ).allMatches(normalized);
+    if (matches.isEmpty) {
+      final parts = line.split('：');
+      if (parts.length >= 2) {
+        final key = parts.first.trim();
+        final value = parts.sublist(1).join('：').trim();
+        if (key.isNotEmpty && value.isNotEmpty) {
+          metaMap.putIfAbsent(key, () => value);
+        }
+      }
+      return;
+    }
+    for (final match in matches) {
+      final key = match.group(1)?.trim() ?? '';
+      final value = match.group(2)?.trim() ?? '';
+      if (key.isNotEmpty && value.isNotEmpty) {
+        metaMap.putIfAbsent(key, () => value);
+      }
+    }
+  }
+
+  _MetaParts _splitMetaText(String text) {
+    final index = text.indexOf('：');
+    if (index <= 0) {
+      final fallbackIndex = text.indexOf(':');
+      if (fallbackIndex <= 0) return _MetaParts(key: '', value: text);
+      return _MetaParts(
+        key: text.substring(0, fallbackIndex).trim(),
+        value: text.substring(fallbackIndex + 1).trim(),
+      );
+    }
+    return _MetaParts(
+      key: text.substring(0, index).trim(),
+      value: text.substring(index + 1).trim(),
+    );
+  }
+
+  String? _extractCommand(String text) {
+    final match = RegExp(
+      r'^/(redo)\s+\d+$',
+      caseSensitive: false,
+    ).firstMatch(text);
+    if (match == null) return null;
+    return text;
   }
 
   String _formatBytes(int bytes) {
@@ -661,7 +943,19 @@ class SystemMessageItem extends StatelessWidget {
 }
 
 class _ParsedText {
-  const _ParsedText({required this.meta, required this.body});
+  const _ParsedText({
+    required this.meta,
+    required this.body,
+    required this.commands,
+  });
   final List<String> meta;
   final String body;
+  final List<String> commands;
+}
+
+class _MetaParts {
+  const _MetaParts({required this.key, required this.value});
+
+  final String key;
+  final String value;
 }

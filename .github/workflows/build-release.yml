@@ -17,9 +17,11 @@ jobs:
       release_name: ${{ steps.meta.outputs.release_name }}
       tag_name: ${{ steps.meta.outputs.tag_name }}
       apk_name: ${{ steps.meta.outputs.apk_name }}
+      arm64_apk_name: ${{ steps.meta.outputs.arm64_apk_name }}
       ipa_name: ${{ steps.meta.outputs.ipa_name }}
       ipa_sha_name: ${{ steps.meta.outputs.ipa_sha_name }}
       apk_url: ${{ steps.meta.outputs.apk_url }}
+      arm64_apk_url: ${{ steps.meta.outputs.arm64_apk_url }}
       ipa_url: ${{ steps.meta.outputs.ipa_url }}
     steps:
       - name: Checkout
@@ -39,9 +41,11 @@ jobs:
           echo "release_name=${RELEASE_NAME}" >> "$GITHUB_OUTPUT"
           echo "tag_name=${TAG_NAME}" >> "$GITHUB_OUTPUT"
           echo "apk_name=android-${RELEASE_NAME}.apk" >> "$GITHUB_OUTPUT"
+          echo "arm64_apk_name=android-arm64-v8a-${RELEASE_NAME}.apk" >> "$GITHUB_OUTPUT"
           echo "ipa_name=ios-${RELEASE_NAME}.ipa" >> "$GITHUB_OUTPUT"
           echo "ipa_sha_name=ios-${RELEASE_NAME}.ipa.sha256" >> "$GITHUB_OUTPUT"
           echo "apk_url=https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG_NAME}/android-${RELEASE_NAME}.apk" >> "$GITHUB_OUTPUT"
+          echo "arm64_apk_url=https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG_NAME}/android-arm64-v8a-${RELEASE_NAME}.apk" >> "$GITHUB_OUTPUT"
           echo "ipa_url=https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG_NAME}/ios-${RELEASE_NAME}.ipa" >> "$GITHUB_OUTPUT"
 
   build-android:
@@ -109,21 +113,49 @@ jobs:
           echo "KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
           echo "KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
 
-      - name: Build APK
-        run: flutter build apk --release --dart-define=FLUTTER_APP_ENV=release
+      - name: Build universal APK
+        run: >-
+          flutter build apk
+          --release
+          --dart-define=FLUTTER_APP_ENV=release
 
-      - name: Rename APK
+      - name: Package universal APK
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p dist
           cp build/app/outputs/flutter-apk/app-release.apk "dist/${{ needs.prepare.outputs.apk_name }}"
+          ls -lh "dist/${{ needs.prepare.outputs.apk_name }}"
+
+      - name: Build arm64-v8a APK
+        run: >-
+          flutter build apk
+          --release
+          --target-platform android-arm64
+          --split-per-abi
+          --dart-define=FLUTTER_APP_ENV=release
+
+      - name: Validate and package arm64-v8a APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK_PATH="build/app/outputs/flutter-apk/app-arm64-v8a-release.apk"
+          ABI_LIST=$(unzip -Z1 "$APK_PATH" | sed -n 's#^lib/\([^/]*\)/.*#\1#p' | sort -u)
+          if [ "$ABI_LIST" != "arm64-v8a" ]; then
+            echo "::error::APK ABI 校验失败，期望仅包含 arm64-v8a，实际为: ${ABI_LIST:-无原生库}"
+            exit 1
+          fi
+
+          cp "$APK_PATH" "dist/${{ needs.prepare.outputs.arm64_apk_name }}"
+          ls -lh "dist/${{ needs.prepare.outputs.arm64_apk_name }}"
 
       - name: Upload Android artifact
         uses: actions/upload-artifact@v4
         with:
           name: android-release
-          path: dist/${{ needs.prepare.outputs.apk_name }}
+          path: |
+            dist/${{ needs.prepare.outputs.apk_name }}
+            dist/${{ needs.prepare.outputs.arm64_apk_name }}
           if-no-files-found: error
 
   build-ios:
@@ -224,7 +256,8 @@ jobs:
 
             - Version: ${{ needs.prepare.outputs.version }}
             - Build Date: ${{ needs.prepare.outputs.build_date }}
-            - Android: Signed APK
+            - Android: Signed universal APK
+            - Android: Signed arm64-v8a APK
             - iOS: Unsigned IPA
 
             iOS 安装说明：
@@ -232,6 +265,7 @@ jobs:
             - 请使用自己的 Apple Developer 账号通过 AltStore、Sideloadly 或 Xcode 进行签名安装
           files: |
             dist/${{ needs.prepare.outputs.apk_name }}
+            dist/${{ needs.prepare.outputs.arm64_apk_name }}
             dist/${{ needs.prepare.outputs.ipa_name }}
             dist/${{ needs.prepare.outputs.ipa_sha_name }}
           generate_release_notes: true
@@ -250,11 +284,12 @@ jobs:
             <b>版本:</b> ${{ needs.prepare.outputs.version }}
             <b>日期:</b> ${{ needs.prepare.outputs.build_date }}
 
-            <b>附件:</b> 已附带 APK 与 IPA 安装包。
+            <b>附件:</b> 已附带通用 APK、arm64-v8a APK 与 IPA 安装包。
             <b>说明:</b> IPA 为未签名包，需自行签名安装。
 
             <a href="https://github.com/${{ github.repository }}/releases/tag/${{ needs.prepare.outputs.tag_name }}">📦 查看 Release</a>
             <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}">🔗 Workflow 运行</a>
           file_urls: |
             ${{ needs.prepare.outputs.apk_url }}
+            ${{ needs.prepare.outputs.arm64_apk_url }}
             ${{ needs.prepare.outputs.ipa_url }}

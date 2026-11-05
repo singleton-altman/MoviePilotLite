@@ -4,7 +4,7 @@ import 'package:talker/talker.dart';
 class AppLog extends GetxService {
   final _talker = Talker(
     settings: TalkerSettings(
-      useConsoleLogs: false,
+      useConsoleLogs: true,
       useHistory: true,
       maxHistoryItems: 100,
     ),

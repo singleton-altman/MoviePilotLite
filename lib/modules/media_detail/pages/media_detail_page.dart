@@ -1,3 +1,6 @@
+import 'package:moviepilot_mobile/modules/player/widgets/detail_play_section.dart';
+import 'dart:ui';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -9,33 +12,31 @@ import 'package:moviepilot_mobile/modules/media_detail/pages/media_season_detail
 import 'package:moviepilot_mobile/modules/media_detail/widgets/media_detail_season_card.dart';
 import 'package:moviepilot_mobile/modules/search/pages/search_mid_sheet.dart';
 import 'package:moviepilot_mobile/modules/recommend/models/recommend_api_item.dart';
-import 'package:moviepilot_mobile/modules/recommend/widgets/recommend_item_card.dart';
 import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_models.dart';
+import 'package:moviepilot_mobile/modules/subscribe/widgets/subscribe_tv_season_sheet.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/theme/app_theme.dart';
-import 'package:moviepilot_mobile/theme/section.dart';
 import 'package:moviepilot_mobile/utils/http_path_builder_util.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
 import 'package:moviepilot_mobile/utils/media_source_util.dart';
 import 'package:moviepilot_mobile/utils/open_url.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
+import 'package:moviepilot_mobile/widgets/app_loading.dart';
 import 'package:moviepilot_mobile/widgets/cached_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skeletonizer/skeletonizer.dart';
-import 'package:soft_edge_blur/soft_edge_blur.dart';
+import 'package:moviepilot_mobile/modules/tmdb/pages/tmdb_collection_page.dart';
 
 class MediaDetailPage extends GetWidget<MediaDetailController> {
   const MediaDetailPage({super.key});
 
-  Color get _immersiveBodyColor => Color.alphaBlend(
-    Theme.of(Get.context!).colorScheme.primary.withOpacity(0.4),
-    AppTheme.darkBackgroundColor,
-  );
+  static const double _pageHorizontalPadding = 16;
+  static const double _contentMaxWidth = 680;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _immersiveBodyColor,
+      backgroundColor: AppTheme.darkBackgroundColor,
       body: Obx(() {
         final detail = controller.mediaDetail.value;
         final prefill = controller.prefillDetail;
@@ -72,6 +73,43 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
           ],
         );
       }),
+    );
+  }
+
+  Widget _buildGlassPanel({
+    required Widget child,
+    EdgeInsets margin = EdgeInsets.zero,
+    EdgeInsets padding = const EdgeInsets.all(16),
+  }) {
+    return Padding(
+      padding: margin,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: Container(
+            padding: padding,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+            ),
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContentFrame(Widget child) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: _pageHorizontalPadding),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _contentMaxWidth),
+          child: child,
+        ),
+      ),
     );
   }
 
@@ -133,13 +171,15 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
     final backdropUrl = _resolveImageUrl(detail?.backdrop_path) ?? posterUrl;
     final screenWidth = MediaQuery.of(context).size.width;
     final isWide = screenWidth > 600;
-    final expandedHeight = isWide ? 320.0 : 440.0;
+    final expandedHeight = isWide ? 400.0 : 520.0;
 
     return SliverAppBar(
       pinned: true,
       stretch: true,
       expandedHeight: expandedHeight,
-      backgroundColor: _immersiveBodyColor,
+      backgroundColor: AppTheme.darkBackgroundColor,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
       leading: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Container(
@@ -162,78 +202,124 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
         background: Stack(
           fit: StackFit.expand,
           children: [
-            if (backdropUrl != null)
-              SoftEdgeBlur(
-                edges: [
-                  EdgeBlur(
-                    type: EdgeType.bottomEdge,
-                    size: 200,
-                    sigma: 30,
-                    controlPoints: [
-                      ControlPoint(
-                        position: 0.5,
-                        type: ControlPointType.visible,
-                      ),
-                      ControlPoint(
-                        position: 0.8,
-                        type: ControlPointType.visible,
-                      ),
-                      ControlPoint(
-                        position: 1,
-                        type: ControlPointType.transparent,
-                      ),
-                    ],
-                  ),
-                ],
-                child: CachedImage(imageUrl: backdropUrl, fit: BoxFit.cover),
-              )
-            else
-              Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF2D2F3A), Color(0xFF0F1115)],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                ),
-              ),
+            if (backdropUrl != null) _buildHeaderBackdrop(backdropUrl),
+            if (isLoading) _buildHeaderLoadingBackdrop(context, isWide: isWide),
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.white.withOpacity(0.1),
-                    Colors.black.withOpacity(0.2),
-                    _immersiveBodyColor,
+                    Colors.black.withValues(alpha: 0.04),
+                    Colors.black.withValues(alpha: 0.18),
+                    AppTheme.darkBackgroundColor,
                   ],
-                  stops: const [0.0, 0.6, 1.0],
+                  stops: const [0.0, 0.58, 1.0],
                 ),
               ),
             ),
             Align(
               alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
-                child: isWide
-                    ? _buildWideHeaderContent(
-                        context,
-                        posterUrl: posterUrl,
-                        detail: detail,
-                        isLoading: isLoading,
-                      )
-                    : Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const SizedBox(height: 12),
-                          _buildHeaderInfo(context, detail),
-                          const SizedBox(height: 14),
-                          _buildActionButtons(context, detail, isLoading),
-                        ],
-                      ),
+              child: _buildHeaderContentFrame(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 22),
+                  child: isWide
+                      ? _buildWideHeaderContent(
+                          context,
+                          posterUrl: posterUrl,
+                          detail: detail,
+                          isLoading: isLoading,
+                        )
+                      : Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // _buildPoster(posterUrl, width: 126, height: 126),
+                            const SizedBox(height: 16),
+                            _buildHeaderInfo(context, detail),
+                            const SizedBox(height: 14),
+                            _buildActionButtons(context, detail, isLoading),
+                          ],
+                        ),
+                ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderBackdrop(String backdropUrl) {
+    return Positioned.fill(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          CachedImage(imageUrl: backdropUrl, fit: BoxFit.cover),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.08),
+                  Colors.black.withValues(alpha: 0.34),
+                  AppTheme.darkBackgroundColor,
+                ],
+                stops: const [0, 0.54, 1],
+              ),
+            ),
+          ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [
+                  Colors.black.withValues(alpha: 0.18),
+                  Colors.transparent,
+                  Colors.black.withValues(alpha: 0.18),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderLoadingBackdrop(
+    BuildContext context, {
+    required bool isWide,
+  }) {
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: Align(
+          alignment: isWide
+              ? const Alignment(0, -0.18)
+              : const Alignment(0, -0.36),
+          child: AppLoading(
+            size: isWide ? 132 : 116,
+            message: '加载详情中',
+            messageStyle: const TextStyle(
+              color: Colors.white70,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+            spacing: 8,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderContentFrame({required Widget child}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: _pageHorizontalPadding),
+      child: Center(
+        heightFactor: 1,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _contentMaxWidth),
+          child: child,
         ),
       ),
     );
@@ -245,24 +331,46 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
     required MediaDetail? detail,
     required bool isLoading,
   }) {
+    final showInlineActions = posterUrl != null;
     return SizedBox(
-      height: 200,
-      width: 500,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildPoster(posterUrl, width: 100, height: 100),
-              SizedBox(width: 20),
-              _buildHeaderInfo(context, detail, alignStart: true),
-            ],
-          ),
-          SizedBox(height: 20),
-          _buildActionButtons(context, detail, isLoading),
-        ],
+      height: 224,
+      width: double.infinity,
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: showInlineActions
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _buildPoster(posterUrl, width: 128, height: 192),
+                  const SizedBox(width: 24),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildHeaderInfo(context, detail, alignStart: true),
+                        const SizedBox(height: 14),
+                        _buildActionButtons(context, detail, isLoading),
+                      ],
+                    ),
+                  ),
+                ],
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildPoster(posterUrl, width: 100, height: 100),
+                      const SizedBox(width: 22),
+                      _buildHeaderInfo(context, detail, alignStart: true),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  _buildActionButtons(context, detail, isLoading),
+                ],
+              ),
       ),
     );
   }
@@ -275,8 +383,9 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
         width: w,
         height: h,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(12),
+          color: Colors.white.withValues(alpha: 0.16),
+          borderRadius: BorderRadius.circular(32),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
         ),
         child: const Icon(
           CupertinoIcons.photo,
@@ -289,17 +398,21 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
       width: w,
       height: h,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.35),
+          width: 1.2,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.35),
-            blurRadius: 10,
-            offset: const Offset(0, 6),
+            color: Colors.black.withValues(alpha: 0.38),
+            blurRadius: 22,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(31),
         child: CachedImage(
           imageUrl: posterUrl,
           fit: BoxFit.cover,
@@ -327,21 +440,23 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w700,
+            fontSize: 28,
+            fontWeight: FontWeight.w800,
             color: Colors.white,
           ),
+          textAlign: alignStart ? TextAlign.start : TextAlign.center,
         ),
         if (subtitle != null) ...[
-          const SizedBox(height: 4),
+          const SizedBox(height: 5),
           Text(
             subtitle,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.white70, fontSize: 13),
+            style: const TextStyle(color: Colors.white70, fontSize: 15),
+            textAlign: alignStart ? TextAlign.start : TextAlign.center,
           ),
         ],
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         Wrap(
           spacing: 8,
           runSpacing: 6,
@@ -374,8 +489,9 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
       constraints: const BoxConstraints(minHeight: 24),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(16),
+          color: Colors.white.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -400,8 +516,11 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
       constraints: const BoxConstraints(minHeight: 24),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: const Color(0xFF81C784).withOpacity(0.35),
-          borderRadius: BorderRadius.circular(16),
+          color: const Color(0xFF81C784).withValues(alpha: 0.28),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: const Color(0xFF81C784).withValues(alpha: 0.32),
+          ),
         ),
         child: const Padding(
           padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -437,8 +556,11 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
       constraints: const BoxConstraints(minHeight: 24),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: const Color(0xFF7C4DFF).withOpacity(0.9),
-          borderRadius: BorderRadius.circular(16),
+          color: const Color(0xFFF5C518).withValues(alpha: 0.26),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: const Color(0xFFF5C518).withValues(alpha: 0.28),
+          ),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -448,7 +570,7 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
               const Icon(
                 CupertinoIcons.star_fill,
                 size: 12,
-                color: Colors.white,
+                color: Color(0xFFFFD66B),
               ),
               const SizedBox(width: 4),
               Text(
@@ -484,89 +606,106 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
     final similarSupported = controller.similarSupported.value;
     final recommendSupported = controller.recommendSupported.value;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        if (errorText != null && errorText.trim().isNotEmpty) ...[
-          _buildSectionTitle('请求错误'),
-          Section(child: _buildErrorBanner(errorText)),
-        ],
-        _buildOverView(context, detail),
-        if (detail.season_info != null && detail.season_info!.isNotEmpty) ...[
+    return _buildContentFrame(
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          if (errorText != null && errorText.trim().isNotEmpty) ...[
+            _buildSectionTitle('请求错误'),
+            _buildGlassPanel(child: _buildErrorBanner(errorText)),
+            const SizedBox(height: 16),
+          ],
+          _buildOverView(context, detail),
+          if ((detail.collection_id ?? 0) > 0) ...[
+            const SizedBox(height: 16),
+            _buildGlassPanel(
+              padding: EdgeInsets.zero,
+              child: ListTile(
+                leading: const Icon(Icons.collections_bookmark_outlined),
+                title: const Text('查看系列合集'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Get.to(() => TmdbCollectionPage(collectionId: detail.collection_id!)),
+              ),
+            ),
+          ],
+          if (detail.season_info != null && detail.season_info!.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _buildSectionTitle('季度信息'),
+            _buildSeasonList(context, detail.season_info!, detail),
+          ],
+          if (_hasExternalLinks(detail)) ...[
+            const SizedBox(height: 16),
+            _buildSectionTitle('相关链接'),
+            _buildExternalLinks(context, detail, isLoading),
+          ],
           const SizedBox(height: 16),
-          _buildSectionTitle('季度信息'),
-          _buildSeasonList(context, detail.season_info!, detail),
-        ],
-        if (_hasExternalLinks(detail)) ...[
-          const SizedBox(height: 16),
-          _buildSectionTitle('相关链接'),
-          _buildExternalLinks(context, detail, isLoading),
-        ],
-        const SizedBox(height: 16),
-        _buildSectionTitle('核心信息'),
-        _buildInfoList(context, detail),
+          _buildSectionTitle('核心信息'),
+          _buildInfoList(context, detail),
 
-        if (detail.actors != null && detail.actors!.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          _buildSectionTitle('主演'),
-          const SizedBox(height: 16),
-          _buildActorList(detail.actors!),
-          const SizedBox(height: 16),
-        ],
+          if (detail.actors != null && detail.actors!.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _buildSectionTitle('主演'),
+            const SizedBox(height: 16),
+            _buildActorList(detail.actors!),
+            const SizedBox(height: 16),
+          ],
 
-        if (similarSupported &&
-            _shouldShowRelatedSection(
-              similarItems,
-              similarLoading,
-              similarError,
-            )) ...[
-          _buildSectionTitle(_relatedSectionTitle(detail, isSimilar: true)),
-          const SizedBox(height: 16),
-          _buildRelatedRail(
-            context,
-            items: similarItems,
-            isLoading: similarLoading,
-            errorText: similarError,
-          ),
+          if (similarSupported &&
+              _shouldShowRelatedSection(
+                similarItems,
+                similarLoading,
+                similarError,
+              )) ...[
+            _buildSectionTitle(_relatedSectionTitle(detail, isSimilar: true)),
+            const SizedBox(height: 14),
+            _buildRelatedRail(
+              context,
+              items: similarItems,
+              isLoading: similarLoading,
+              errorText: similarError,
+            ),
+          ],
+          if (recommendSupported &&
+              _shouldShowRelatedSection(
+                recommendItems,
+                recommendLoading,
+                recommendError,
+              )) ...[
+            const SizedBox(height: 18),
+            _buildSectionTitle(_relatedSectionTitle(detail, isSimilar: false)),
+            const SizedBox(height: 14),
+            _buildRelatedRail(
+              context,
+              items: recommendItems,
+              isLoading: recommendLoading,
+              errorText: recommendError,
+            ),
+          ],
         ],
-        if (recommendSupported &&
-            _shouldShowRelatedSection(
-              recommendItems,
-              recommendLoading,
-              recommendError,
-            )) ...[
-          const SizedBox(height: 16),
-          _buildSectionTitle(_relatedSectionTitle(detail, isSimilar: false)),
-          const SizedBox(height: 16),
-          _buildRelatedRail(
-            context,
-            items: recommendItems,
-            isLoading: recommendLoading,
-            errorText: recommendError,
-          ),
-        ],
-      ],
+      ),
     );
   }
 
   Widget _buildLoadingSkeleton(BuildContext context) {
     final detail = _skeletonDetail();
-    return Skeletonizer(
-      enabled: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildOverView(context, detail),
-          const SizedBox(height: 16),
-          _buildSectionTitle('核心信息'),
-          _buildInfoList(context, detail),
-          const SizedBox(height: 16),
-          _buildSectionTitle('主演'),
-          const SizedBox(height: 16),
-          _buildActorList(detail.actors ?? const []),
-        ],
+    return _buildContentFrame(
+      Skeletonizer(
+        enabled: true,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildOverView(context, detail),
+            const SizedBox(height: 16),
+            _buildSectionTitle('核心信息'),
+            _buildInfoList(context, detail),
+            const SizedBox(height: 16),
+            _buildSectionTitle('主演'),
+            const SizedBox(height: 16),
+            _buildActorList(detail.actors ?? const []),
+          ],
+        ),
       ),
     );
   }
@@ -575,8 +714,9 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
     final overview = detail.overview?.trim().isNotEmpty == true
         ? detail.overview!.trim()
         : '暂无简介';
+    final releaseDate = detail.release_date?.trim();
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      padding: const EdgeInsets.only(top: 10, bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -592,45 +732,47 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
             ),
             const SizedBox(height: 12),
           ],
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15), // 稍微降低一点更高级
-              borderRadius: BorderRadius.circular(25),
-
-              // ⭐加一个轻微边框（更像 iOS）
-              border: Border.all(
-                color: Colors.white.withOpacity(0.2),
-                width: 0.5,
-              ),
+          Text(
+            overview,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Colors.white.withValues(alpha: 0.76),
+              fontWeight: FontWeight.w500,
+              height: 1.45,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.start,
+            maxLines: 5,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (releaseDate != null && releaseDate.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Row(
               children: [
-                Text(
-                  overview,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white70,
-                    fontWeight: FontWeight.w500,
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF60A5FA).withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(9),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.10),
+                    ),
                   ),
-                  maxLines: 5,
-                  overflow: TextOverflow.ellipsis,
+                  child: const Icon(
+                    CupertinoIcons.calendar,
+                    size: 16,
+                    color: Color(0xFF93C5FD),
+                  ),
                 ),
-                SizedBox(height: 8),
-                Divider(color: Colors.white.withOpacity(0.1)),
-                SizedBox(height: 8),
+                const SizedBox(width: 10),
                 Text(
                   '上映日期',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white70,
-                    fontWeight: FontWeight.w500,
+                    color: Colors.white.withValues(alpha: 0.74),
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                SizedBox(height: 2),
+                const Spacer(),
                 Text(
-                  detail.release_date ?? '',
+                  releaseDate,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
@@ -638,7 +780,7 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
                 ),
               ],
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -666,14 +808,31 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8, left: 16),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w700,
-          color: Colors.white,
-        ),
+      padding: const EdgeInsets.fromLTRB(0, 4, 0, 10),
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 22,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFF60A5FA), Color(0xFFF5C518)],
+              ),
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -691,48 +850,61 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
       VoidCallback? onTap,
     }) {
       final a = accent ?? const Color(0xFF7C4DFF);
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: a.withOpacity(0.18),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, size: 16, color: a),
-          ),
-          const SizedBox(width: 10),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Colors.white.withOpacity(0.75),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: GestureDetector(
-              onTap: onTap,
-              child: Text(
-                value,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+      return GestureDetector(
+        behavior: onTap == null
+            ? HitTestBehavior.deferToChild
+            : HitTestBehavior.opaque,
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 42),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: a.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Icon(icon, size: 16, color: a),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                label,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: onTap != null
-                      ? Theme.of(context).colorScheme.primary
-                      : Colors.white,
-                  decoration: onTap != null ? TextDecoration.underline : null,
-                  decorationThickness: onTap != null ? 1.5 : 0,
+                  color: Colors.white.withValues(alpha: 0.92),
                 ),
               ),
-            ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: onTap != null
+                        ? const Color(0xFF93C5FD)
+                        : Colors.white.withValues(alpha: 0.74),
+                  ),
+                ),
+              ),
+              if (onTap != null) ...[
+                const SizedBox(width: 4),
+                const Icon(
+                  CupertinoIcons.chevron_forward,
+                  size: 14,
+                  color: Colors.white54,
+                ),
+              ],
+            ],
           ),
-        ],
+        ),
       );
     }
 
@@ -748,7 +920,18 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
 
     final rows = <Widget>[];
     void addRow(Widget w) {
-      if (rows.isNotEmpty) rows.add(const SizedBox(height: 12));
+      if (rows.isNotEmpty) {
+        rows.add(
+          Padding(
+            padding: const EdgeInsets.only(left: 42),
+            child: Divider(
+              height: 1,
+              thickness: 0.5,
+              color: Colors.white.withValues(alpha: 0.12),
+            ),
+          ),
+        );
+      }
       rows.add(w);
     }
 
@@ -841,14 +1024,9 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
     if (rows.isEmpty) return const SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.06),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.08)),
-        ),
+      padding: const EdgeInsets.only(bottom: 16),
+      child: _buildGlassPanel(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: rows,
@@ -864,15 +1042,15 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
   ) {
     final viewportFraction = MediaQuery.of(context).size.width > 600
         ? 0.6
-        : 0.9;
+        : 0.92;
     final useThreePagePager = seasons.length >= 3;
     final perPage = useThreePagePager ? (seasons.length / 3).ceil() : 1;
-    final compactItemHeight = 104.0;
+    final compactItemHeight = 112.0;
     final dividerBlockHeight = 13.0; // 6 + 1 + 6
     final threePagerHeight =
         perPage * compactItemHeight + (perPage - 1) * dividerBlockHeight;
     return Padding(
-      padding: const EdgeInsets.only(top: 16.0, bottom: 16.0),
+      padding: const EdgeInsets.only(bottom: 16.0),
       child: SizedBox(
         height: useThreePagePager ? threePagerHeight : 350,
         child: useThreePagePager
@@ -890,7 +1068,7 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
                       ? seasons.sublist(start, endExclusive)
                       : const <SeasonInfo>[];
                   return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    padding: EdgeInsets.only(right: pageIndex == 2 ? 0 : 12),
                     child: Column(
                       children: [
                         for (var i = 0; i < perPage; i++) ...[
@@ -929,7 +1107,9 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
                 itemBuilder: (context, index) {
                   final season = seasons[index];
                   return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    padding: EdgeInsets.only(
+                      right: index == seasons.length - 1 ? 0 : 12,
+                    ),
                     child: _buildSeasonListContent(context, season),
                   );
                 },
@@ -966,17 +1146,31 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
             season.season_number ?? 0,
           );
           showModalBottomSheet(
+            isScrollControlled: true,
+            useSafeArea: true,
+            isDismissible: true,
+            showDragHandle: false,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
             context: context,
-            builder: (context) => MediaSeasonDetailPage(
-              reqPath: reqPath,
-              subscribeMediaKey: controller.args.path,
-              tmdbId: detail.tmdb_id?.toString() ?? '',
-              seasonNumber: season.season_number ?? 0,
-              title: detail.title ?? '',
-              year: detail.year ?? '',
-              doubanId: detail.douban_id?.toString() ?? '',
-              mediaId: detail.media_id ?? '',
-              subscribeItem: subscribeItem,
+            builder: (context) => DraggableScrollableSheet(
+              expand: false,
+              initialChildSize: 0.92,
+              minChildSize: 0.36,
+              maxChildSize: 1,
+              builder: (context, scrollController) => MediaSeasonDetailPage(
+                scrollController: scrollController,
+                reqPath: reqPath,
+                subscribeMediaKey: controller.args.path,
+                tmdbId: detail.tmdb_id?.toString() ?? '',
+                seasonNumber: season.season_number ?? 0,
+                title: detail.title ?? '',
+                year: detail.year ?? '',
+                doubanId: detail.douban_id?.toString() ?? '',
+                mediaId: detail.media_id ?? '',
+                subscribeItem: subscribeItem,
+              ),
             ),
           );
         },
@@ -1000,7 +1194,7 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
     return SizedBox(
       height: 120,
       child: ListView.separated(
-        padding: EdgeInsets.symmetric(horizontal: 16),
+        padding: EdgeInsets.zero,
         scrollDirection: Axis.horizontal,
         itemCount: actors.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
@@ -1071,120 +1265,106 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
       final canSubscribe = appService.canSubscribe;
       final canSearch = appService.canSearch;
       final movieSubscribed = controller.movieSubscribeItem.value != null;
-      final seasons = detail.season_info;
-      if (isTv && seasons?.isNotEmpty == true) {
-        if (!canSearch) return const SizedBox.shrink();
-        return Row(
-          children: [
-            Expanded(
-              child: _buildPrimaryAction(
-                label: '搜索资源',
-                icon: CupertinoIcons.search,
-                onPressed: isLoading ? null : () => _openSearch(context),
-                backgroundColor: Theme.of(context).colorScheme.secondary,
-              ),
-            ),
-          ],
-        );
-      }
-      final actions = <Widget>[];
-      if (canSubscribe) {
-        actions.add(
-          Expanded(
-            child: _buildSubscribeButton(
-              context,
-              detail,
-              isLoading,
-              movieSubscribed,
-            ),
-          ),
-        );
-      }
-      if (canSearch) {
-        if (actions.isNotEmpty) {
-          actions.add(const SizedBox(width: 12));
-        }
-        actions.add(
-          Expanded(
-            child: _buildPrimaryAction(
-              label: '搜索资源',
-              icon: CupertinoIcons.search,
-              onPressed: isLoading ? null : () => _openSearch(context),
-              backgroundColor: Theme.of(context).colorScheme.secondary,
-            ),
-          ),
-        );
-      }
-      if (actions.isEmpty) {
+      final isSubscribed = isTv
+          ? controller.seasonSubscribeMap.isNotEmpty
+          : movieSubscribed;
+      if (!canSubscribe && !canSearch) {
         return const SizedBox.shrink();
       }
-      return Row(children: actions);
+
+      return DetailPlaySection(
+        detail: detail,
+        isLoading: isLoading,
+        mediaKey: controller.args.path,
+        canSearch: canSearch,
+        canSubscribe: canSubscribe,
+        isSubscribed: isSubscribed,
+        subscribeLoading: controller.subscribeLoadingState.value,
+        onSearch: () => _openSearch(context),
+        onSubscribe: () => _onSubscribePressed(context, detail, isSubscribed),
+        onSubtitleSearch: () => _openSubtitleSearch(context),
+      );
     });
   }
 
-  Widget _buildSubscribeButton(
+  Future<void> _onSubscribePressed(
     BuildContext context,
     MediaDetail detail,
-    bool isLoading,
     bool isSubscribed,
-  ) {
-    return Obx(() {
-      if (controller.subscribeLoadingState.value) {
-        return _buildPrimaryAction(
-          label: 'loading...',
-          icon: Icons.local_dining_outlined,
-          onPressed: null,
-          backgroundColor: Colors.grey,
-          foregroundColor: Colors.white,
-        );
+  ) async {
+    // ignore: avoid_print
+    print('[DetailPage] subscribe tapped');
+    try {
+      if (_isTv(detail)) {
+        await _openTvSubscribeSheet(context, detail);
+        return;
       }
-      return _buildPrimaryAction(
-        label: isSubscribed ? '已订阅' : '订阅',
-        icon: isSubscribed
-            ? CupertinoIcons.heart_slash_fill
-            : CupertinoIcons.heart_fill,
-        onPressed: () async {
-          try {
-            final (success, isTv, subscribeId) = await controller
-                .handleSubscribe();
-            if (!success) {
-              ToastUtil.error('${isSubscribed ? '取消' : ''}订阅失败');
-              return;
-            }
+      final (success, isTv, subscribeId) = await controller.handleSubscribe();
+      if (!success) {
+        ToastUtil.error('${isSubscribed ? '取消' : ''}订阅失败');
+        return;
+      }
 
-            if (!isSubscribed && isTv && subscribeId != null) {
-              ToastUtil.success(
-                '${detail.title ?? ''} 订阅成功',
-                title: '订阅成功',
-                duration: const Duration(seconds: 3),
-                mainButtonText: '编辑',
-                onMainButtonPressed: () {
-                  Get.toNamed(
-                    '/subscribe-edit',
-                    arguments: SubscribeItem(id: subscribeId),
-                  );
-                },
-              );
-              return;
-            }
+      if (!isSubscribed && isTv && subscribeId != null) {
+        ToastUtil.success(
+          '${detail.title ?? ''} 订阅成功',
+          title: '订阅成功',
+          duration: const Duration(seconds: 3),
+          mainButtonText: '编辑',
+          onMainButtonPressed: () {
+            Get.toNamed(
+              '/subscribe-edit',
+              arguments: SubscribeItem(id: subscribeId),
+            );
+          },
+        );
+        return;
+      }
 
-            if (isSubscribed) {
-              ToastUtil.success('${isSubscribed ? '取消' : ''}订阅成功');
-            } else {
-              ToastUtil.info('${isSubscribed ? '取消' : ''}订阅成功');
-            }
-          } catch (e) {
-            ToastUtil.error('请求失败 $e');
-          }
-        },
-        backgroundColor: isLoading
-            ? Colors.grey
-            : isSubscribed
-            ? Colors.red
-            : Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
-      );
-    });
+      if (isSubscribed) {
+        ToastUtil.success('${isSubscribed ? '取消' : ''}订阅成功');
+      } else {
+        ToastUtil.info('${isSubscribed ? '取消' : ''}订阅成功');
+      }
+    } catch (e) {
+      ToastUtil.error('请求失败 $e');
+    }
+  }
+
+  Future<void> _openTvSubscribeSheet(
+    BuildContext context,
+    MediaDetail detail,
+  ) async {
+    await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      isDismissible: true,
+      backgroundColor: Colors.transparent,
+      showDragHandle: false,
+      builder: (context) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.92,
+        minChildSize: 0.36,
+        maxChildSize: 1,
+        builder: (context, scrollController) => ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          child: SubscribeTvSeasonSheet(
+            mediaKey: controller.args.path,
+            tmdbId: detail.tmdb_id?.toString(),
+            title: detail.title,
+            year: detail.year,
+            season: detail.season?.toString(),
+            itemInfo: detail.toJson(),
+            scrollController: scrollController,
+            subscribedItems: Map<int, SubscribeItem>.from(
+              controller.seasonSubscribeMap,
+            ),
+          ),
+        ),
+      ),
+    );
+    await controller.fetchDetail();
   }
 
   Widget _buildExternalLinks(
@@ -1225,16 +1405,21 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
         ),
       );
     }
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+    return _buildGlassPanel(
+      padding: const EdgeInsets.all(8),
       child: Row(
-        children: actions
-            .map(
-              (el) => Expanded(
-                child: Padding(padding: const EdgeInsets.all(8.0), child: el),
+        children: [
+          for (var i = 0; i < actions.length; i++) ...[
+            if (i > 0)
+              Container(
+                width: 0.5,
+                height: 30,
+                margin: const EdgeInsets.symmetric(horizontal: 6),
+                color: Colors.white.withValues(alpha: 0.16),
               ),
-            )
-            .toList(),
+            Expanded(child: actions[i]),
+          ],
+        ],
       ),
     );
   }
@@ -1276,18 +1461,13 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
     }
 
     return SizedBox(
-      height: 200,
+      height: 248,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemBuilder: (context, index) {
-          final item = items[index];
-          return RecommendItemCard(
-            item: item,
-            onTap: () => _openRelatedDetail(item),
-          );
-        },
-        separatorBuilder: (_, __) => const SizedBox(width: 14),
+        padding: EdgeInsets.zero,
+        itemBuilder: (context, index) =>
+            _buildRelatedCard(context, items[index]),
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemCount: items.length,
       ),
     );
@@ -1295,13 +1475,161 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
 
   Widget _buildRelatedPlaceholder() {
     return SizedBox(
-      height: 200,
+      height: 248,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.only(right: 8),
-        itemBuilder: (context, index) => const RecommendItemCard(item: null),
-        separatorBuilder: (_, __) => const SizedBox(width: 14),
+        padding: EdgeInsets.zero,
+        itemBuilder: (context, index) => _buildRelatedCardPlaceholder(),
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemCount: 6,
+      ),
+    );
+  }
+
+  Widget _buildRelatedCard(BuildContext context, RecommendApiItem item) {
+    final title = _bestTitle(item) ?? '未知标题';
+    final year = _relatedYear(item);
+    final backdropUrl = _resolveImageUrl(item.backdrop_path);
+    final posterUrl = _resolveImageUrl(item.poster_path);
+    final imageUrl = posterUrl ?? backdropUrl;
+    final score = item.vote_average;
+
+    return GestureDetector(
+      onTap: () => _openRelatedDetail(item),
+      child: SizedBox(
+        width: 135,
+        height: 240,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (imageUrl != null)
+                CachedImage(imageUrl: imageUrl, fit: BoxFit.cover)
+              else
+                _buildRelatedImageFallback(),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.04),
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.82),
+                    ],
+                    stops: const [0.0, 0.46, 1.0],
+                  ),
+                ),
+              ),
+              if (score != null && score > 0)
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: _buildRelatedBadge(
+                    score.toStringAsFixed(1),
+                    icon: CupertinoIcons.star_fill,
+                    color: const Color(0xFFFFD66B),
+                  ),
+                ),
+              Positioned(
+                left: 11,
+                right: 11,
+                bottom: 11,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        height: 1.12,
+                      ),
+                    ),
+                    if (year.isNotEmpty) ...[
+                      const SizedBox(height: 5),
+                      Text(
+                        year,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.70),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRelatedCardPlaceholder() {
+    return SizedBox(
+      width: 135,
+      height: 240,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Container(color: Colors.white.withValues(alpha: 0.10)),
+      ),
+    );
+  }
+
+  Widget _buildRelatedImageFallback() {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF334155).withValues(alpha: 0.92),
+            const Color(0xFF111827).withValues(alpha: 0.98),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRelatedBadge(
+    String text, {
+    IconData? icon,
+    Color color = Colors.white,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.36),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 11, color: color),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1362,35 +1690,18 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
     return null;
   }
 
-  String? _buildMediaPath(RecommendApiItem item) {
-    return HttpPathBuilderUtil.buildMediaPath(item);
+  String _relatedYear(RecommendApiItem item) {
+    final year = item.year?.trim() ?? '';
+    if (year.isNotEmpty) return year;
+    final titleYear = item.title_year?.trim() ?? '';
+    if (titleYear.isNotEmpty) return titleYear;
+    final release = item.release_date?.trim() ?? '';
+    if (release.length >= 4) return release.substring(0, 4);
+    return '';
   }
 
-  Widget _buildPrimaryAction({
-    required String label,
-    required IconData icon,
-    VoidCallback? onPressed,
-    Color? backgroundColor,
-    Color? foregroundColor,
-  }) {
-    return CupertinoButton.filled(
-      color: backgroundColor,
-      foregroundColor: foregroundColor,
-      onPressed: onPressed,
-      borderRadius: BorderRadius.circular(25),
-      sizeStyle: CupertinoButtonSize.medium,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
-    );
+  String? _buildMediaPath(RecommendApiItem item) {
+    return HttpPathBuilderUtil.buildMediaPath(item);
   }
 
   Widget _buildLinkAction({
@@ -1399,36 +1710,54 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
     required BuildContext context,
     VoidCallback? onPressed,
   }) {
-    return OutlinedButton(
+    return CupertinoButton(
       onPressed: onPressed,
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        side: BorderSide(color: Colors.white.withOpacity(0.2)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (iconPath != null) Image.asset(iconPath, width: 18, height: 18),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: Colors.white),
-          ),
-        ],
+      minimumSize: Size.zero,
+      padding: EdgeInsets.zero,
+      child: SizedBox(
+        height: 48,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (iconPath != null) Image.asset(iconPath, width: 18, height: 18),
+            if (iconPath != null) const SizedBox(width: 8),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
+  /// path 是否为媒体标识(tmdb:xxx 等),而非真实文件路径
+  bool _isMediaIdPath(String path) {
+    final t = path.trim().toLowerCase();
+    return t.startsWith('tmdb:') ||
+        t.startsWith('douban:') ||
+        t.startsWith('bangumi:') ||
+        t.startsWith('tvdb:');
+  }
+
   void _openSearch(BuildContext context) async {
+    // ignore: avoid_print
+    print('[DetailPage] _openSearch tapped');
+
     if (!Get.find<AppService>().canSearch) {
       ToastUtil.info('当前帐号无资源搜索权限');
       return;
     }
-    final searchKey = controller.args.path;
+    // path 为 tmdb:xxx 等媒体标识时,改用标题作为搜索关键字
+    final searchKey = _isMediaIdPath(controller.args.path)
+        ? (controller.mediaDetail.value?.title ??
+            controller.mediaDetail.value?.en_title ??
+            '')
+        : controller.args.path;
     final detail = controller.mediaDetail.value;
     final result = await Get.bottomSheet<({String area, List<int> sites})>(
       SiteSelectSheet(
@@ -1459,6 +1788,51 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
       params['season'] = selectedSeason.toString();
     }
     Get.toNamed('/search-media-result', parameters: params);
+  }
+
+  void _openSubtitleSearch(BuildContext context) async {
+    // ignore: avoid_print
+    print('[DetailPage] _openSubtitleSearch tapped');
+
+    if (!Get.find<AppService>().canSearch) {
+      ToastUtil.info('当前帐号无资源搜索权限');
+      return;
+    }
+    // path 为媒体标识时改用标题(同 _openSearch)
+    final searchKey = _isMediaIdPath(controller.args.path)
+        ? (controller.mediaDetail.value?.title ??
+            controller.mediaDetail.value?.en_title ??
+            '')
+        : controller.args.path;
+    final detail = controller.mediaDetail.value;
+    final result = await Get.bottomSheet<({String area, List<int> sites})>(
+      SiteSelectSheet(
+        hasSegment: false,
+        seasons: detail == null ? null : _availableSeasons(detail),
+        mediaSearchKey: searchKey,
+      ),
+      isScrollControlled: true,
+    );
+    if (result == null) return;
+    final sites = result.sites;
+    if (sites.isEmpty) {
+      ToastUtil.info('请至少选择一个站点');
+      return;
+    }
+    final selectedSeason = await _loadLastSelectedSeason(searchKey);
+    final params = <String, String>{
+      'mediaSearchKey': searchKey,
+      'sites': sites.join(','),
+      'year': detail?.year ?? '',
+      'mtype': detail?.type ?? '电影',
+      'title': detail?.title ?? '',
+      if ((detail?.backdrop_path ?? '').isNotEmpty)
+        'backdrop': detail!.backdrop_path!,
+    };
+    if (detail != null && _isTv(detail) && selectedSeason > 0) {
+      params['season'] = selectedSeason.toString();
+    }
+    Get.toNamed('/subtitle-search-result', parameters: params);
   }
 
   Future<int> _loadLastSelectedSeason(String mediaSearchKey) async {
@@ -1580,17 +1954,28 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
   }
 
   String? _resolveAvatarUrl(Actor actor) {
-    if (actor.avatar == null) {
-      return "https://image.tmdb.org/t/p/w600_and_h900_bestv2/${actor.profile_path}";
+    final avatar = actor.avatar;
+    if (avatar != null) {
+      if (avatar.large != null && avatar.large!.trim().isNotEmpty) {
+        return ImageUtil.convertCacheImageUrl(avatar.large!);
+      }
+      if (avatar.normal != null && avatar.normal!.trim().isNotEmpty) {
+        return ImageUtil.convertCacheImageUrl(avatar.normal!);
+      }
     }
-    final avatar = actor.avatar!;
-    if (avatar.large != null && avatar.large!.trim().isNotEmpty) {
-      return ImageUtil.convertCacheImageUrl(avatar.large!);
+    final images = actor.images;
+    final imageUrl = images?.large?.url ?? images?.normal?.url;
+    if (imageUrl != null && imageUrl.trim().isNotEmpty) {
+      return ImageUtil.convertCacheImageUrl(imageUrl.trim());
     }
-    if (avatar.normal != null && avatar.normal!.trim().isNotEmpty) {
-      return ImageUtil.convertCacheImageUrl(avatar.normal!);
+    final profile = actor.profile_path?.trim();
+    if (profile == null || profile.isEmpty) return null;
+    if (profile.startsWith('http://') || profile.startsWith('https://')) {
+      return ImageUtil.convertCacheImageUrl(profile);
     }
-    return null;
+    return ImageUtil.convertCacheImageUrl(
+      'https://image.tmdb.org/t/p/w600_and_h900_bestv2/$profile',
+    );
   }
 
   MediaDetail _skeletonDetail() {

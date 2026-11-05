@@ -1,5 +1,6 @@
 import 'package:moviepilot_mobile/modules/discover/controllers/discover_controller.dart';
 import 'package:moviepilot_mobile/modules/recommend/models/recommend_api_item.dart';
+import 'package:moviepilot_mobile/utils/media_identity_util.dart';
 
 class HttpPathBuilderUtil {
   static String buildHttpPath(DiscoverSource source, String mediaId) {
@@ -15,11 +16,16 @@ class HttpPathBuilderUtil {
         return 'douban';
       case DiscoverSource.bangumi:
         return 'bangumi';
+      case DiscoverSource.anilist:
+        return 'anilist';
     }
   }
 
   static String buildMediaPath(RecommendApiItem item) {
-    final prefix = item.mediaid_prefix;
+    final storedPrefix = item.mediaid_prefix;
+    final prefix = storedPrefix != null && storedPrefix.isNotEmpty
+        ? storedPrefix
+        : legacyPrefixOf(normalizeMediaSource(item.source));
     final mediaId = item.media_id;
     if (prefix != null &&
         prefix.isNotEmpty &&

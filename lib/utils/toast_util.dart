@@ -44,6 +44,8 @@ class ToastUtil {
     String message, {
     String? title,
     Duration duration = const Duration(seconds: 3),
+    String? mainButtonText,
+    VoidCallback? onMainButtonPressed,
   }) {
     print('error: $message');
     Get.snackbar(
@@ -60,6 +62,15 @@ class ToastUtil {
         color: CupertinoColors.white,
         size: 24,
       ),
+      mainButton: mainButtonText != null && onMainButtonPressed != null
+          ? TextButton(
+              onPressed: onMainButtonPressed,
+              child: Text(
+                mainButtonText,
+                style: const TextStyle(color: CupertinoColors.white),
+              ),
+            )
+          : null,
     );
   }
 

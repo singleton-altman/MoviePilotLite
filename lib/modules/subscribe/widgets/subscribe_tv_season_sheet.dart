@@ -1,11 +1,13 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/modules/media_detail/controllers/media_detail_service.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/media_detail_model.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/media_notexists.dart';
-import 'package:moviepilot_mobile/modules/subscribe/controllers/subscribe_controller.dart';
+import 'package:moviepilot_mobile/modules/subscribe/controllers/subscribe_service.dart';
+import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_models.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
+import 'package:moviepilot_mobile/widgets/app_loading.dart';
 import 'package:moviepilot_mobile/widgets/cached_image.dart';
 
 class SubscribeTvSeasonSheet extends StatefulWidget {
@@ -15,13 +17,19 @@ class SubscribeTvSeasonSheet extends StatefulWidget {
     required this.title,
     required this.year,
     required this.season,
+    required this.mediaKey,
     this.itemInfo,
+    this.scrollController,
+    this.subscribedItems = const {},
   });
   final String? tmdbId;
   final String? title;
   final String? year;
   final String? season;
+  final String mediaKey;
   final Map<String, dynamic>? itemInfo;
+  final ScrollController? scrollController;
+  final Map<int, SubscribeItem> subscribedItems;
 
   @override
   State<SubscribeTvSeasonSheet> createState() => _SubscribeTvSeasonSheetState();
@@ -39,41 +47,21 @@ class SeasonStateInfo {
 }
 
 class _SubscribeTvSeasonSheetState extends State<SubscribeTvSeasonSheet> {
-  final _subscribeController = Get.find<SubscribeController>();
+  final _subscribeService = Get.put(SubscribeService());
   final _mediaDetailService = Get.find<MediaDetailService>();
 
   List<SeasonStateInfo> _seasonInfoList = [];
-  final Set<int> _selectedSeasonNumbers = {};
+  final Map<int, SubscribeItem> _subscribedItems = {};
   bool _loading = true;
   String? _loadError;
-  String _selectedEpisodeGroupId = '';
-  List<EpisodeGroupOption> _episodeGroupOptions = [];
-  bool _submitting = false;
+  final Set<int> _updatingSeasons = {};
+  final Map<int, int> _subscribeModes = {};
 
   @override
   void initState() {
     super.initState();
-    _initEpisodeGroups();
+    _subscribedItems.addAll(widget.subscribedItems);
     _loadData();
-  }
-
-  void _initEpisodeGroups() {
-    _episodeGroupOptions = [const EpisodeGroupOption(id: '', name: '默认')];
-    final groups = widget.itemInfo?['episode_groups'];
-    if (groups is List) {
-      for (final g in groups) {
-        if (g is Map<String, dynamic>) {
-          final id = g['id']?.toString() ?? '';
-          final name = g['name']?.toString() ?? id;
-          if (id.isNotEmpty || _episodeGroupOptions.length == 1) {
-            _episodeGroupOptions.add(EpisodeGroupOption(id: id, name: name));
-          }
-        }
-      }
-    }
-    if (_episodeGroupOptions.isNotEmpty) {
-      _selectedEpisodeGroupId = _episodeGroupOptions.first.id;
-    }
   }
 
   Future<void> _loadData() async {
@@ -83,15 +71,30 @@ class _SubscribeTvSeasonSheetState extends State<SubscribeTvSeasonSheet> {
       _loadError = null;
     });
     try {
-      final seasonInfo = await _mediaDetailService.getSeasonInfo(
-        mediaId: widget.tmdbId ?? '',
-        season: widget.season ?? '',
+      final seasonInfo = await _mediaDetailService.getMediaSeasons(
+        mediaId: widget.mediaKey,
         title: widget.title ?? '',
         year: widget.year ?? '',
       );
       final mediaNotExists = await _mediaDetailService.getMediaNotExists(
         widget.itemInfo ?? {},
       );
+      final resolvedSubscribedItems = <int, SubscribeItem>{..._subscribedItems};
+      final statusResults = await Future.wait(
+        seasonInfo.where((e) => e.season_number != null).map((season) async {
+          final item = await _mediaDetailService.getSubscribeMediaStatus(
+            widget.mediaKey,
+            season: season.season_number,
+            title: widget.title,
+          );
+          return (season.season_number!, item);
+        }),
+      );
+      for (final (seasonNumber, item) in statusResults) {
+        if (item != null) {
+          resolvedSubscribedItems[seasonNumber] = item;
+        }
+      }
       final merged = <SeasonStateInfo>[];
       for (final el in seasonInfo) {
         final sn = el.season_number;
@@ -105,6 +108,9 @@ class _SubscribeTvSeasonSheetState extends State<SubscribeTvSeasonSheet> {
       }
       if (!mounted) return;
       setState(() {
+        _subscribedItems
+          ..clear()
+          ..addAll(resolvedSubscribedItems);
         _seasonInfoList = merged;
         _loading = false;
         _loadError = null;
@@ -119,18 +125,12 @@ class _SubscribeTvSeasonSheetState extends State<SubscribeTvSeasonSheet> {
     }
   }
 
-  void _toggleSeason(int seasonNumber) {
-    setState(() {
-      if (_selectedSeasonNumbers.contains(seasonNumber)) {
-        _selectedSeasonNumbers.remove(seasonNumber);
-      } else {
-        _selectedSeasonNumbers.add(seasonNumber);
-      }
-    });
-  }
-
-  Future<void> _onSubmit() async {
-    if (_selectedSeasonNumbers.isEmpty || _submitting) return;
+  Future<void> _toggleSubscription(SeasonInfo season, bool subscribe) async {
+    final seasonNumber = season.season_number;
+    if (seasonNumber == null || _updatingSeasons.contains(seasonNumber)) {
+      return;
+    }
+    setState(() => _updatingSeasons.add(seasonNumber));
     final item = widget.itemInfo ?? {};
     final doubanId = item['douban_id']?.toString() ?? '';
     final name = widget.title ?? item['name']?.toString() ?? '';
@@ -138,34 +138,62 @@ class _SubscribeTvSeasonSheetState extends State<SubscribeTvSeasonSheet> {
     final year = widget.year ?? item['year']?.toString() ?? '';
     final mediaId = item['media_id']?.toString() ?? '';
 
-    setState(() => _submitting = true);
-    var successCount = 0;
-    for (final seasonNum in _selectedSeasonNumbers) {
-      final ok = await _subscribeController.submitTvSubscribe(
-        doubanid: doubanId,
-        episode_group: _selectedEpisodeGroupId.isEmpty
-            ? ''
-            : _selectedEpisodeGroupId,
-        mediaid: mediaId.isEmpty ? '' : mediaId,
-        name: name,
-        season: seasonNum,
-        tmdbid: tmdbId.isEmpty ? null : tmdbId,
-        year: year.isEmpty ? null : year,
-      );
-      if (ok.success == true) {
-        successCount++;
+    try {
+      if (subscribe) {
+        final response = await _subscribeService.submitTvSubscribe(
+          doubanid: doubanId,
+          mediaid: mediaId.isEmpty ? '' : mediaId,
+          name: name,
+          season: seasonNumber,
+          tmdbid: tmdbId.isEmpty ? null : tmdbId,
+          year: year.isEmpty ? null : year,
+          bestVersion: _bestVersionFor(seasonNumber),
+          bestVersionFull: _bestVersionFullFor(seasonNumber),
+        );
+        if (response.success != true) {
+          Get.snackbar('订阅失败', response.message ?? '请稍后重试');
+          return;
+        }
+        final id = response.data?.id;
+        if (!mounted) return;
+        setState(() {
+          _subscribedItems[seasonNumber] = SubscribeItem(
+            id: id,
+            season: seasonNumber,
+          );
+        });
+        Get.snackbar('订阅成功', '已订阅第 $seasonNumber 季');
       } else {
-        Get.snackbar('订阅失败', ok.message ?? '请稍后重试');
+        final existing = _subscribedItems[seasonNumber];
+        final success = existing?.id != null
+            ? await _subscribeService.deleteSubscribes(existing!.id.toString())
+            : await _subscribeService.deleteMediaSubscribe(
+                widget.mediaKey,
+                season: seasonNumber.toString(),
+              );
+        if (!success) {
+          Get.snackbar('取消订阅失败', '第 $seasonNumber 季请稍后重试');
+          return;
+        }
+        if (!mounted) return;
+        setState(() => _subscribedItems.remove(seasonNumber));
+        Get.snackbar('取消订阅成功', '已取消第 $seasonNumber 季');
       }
+    } catch (e) {
+      Get.snackbar('操作失败', '第 $seasonNumber 季更新失败，请稍后重试');
+    } finally {
+      if (mounted) setState(() => _updatingSeasons.remove(seasonNumber));
     }
-    if (!mounted) return;
-    setState(() => _submitting = false);
-    if (successCount > 0) {
-      Navigator.of(context).pop(true);
-      Get.snackbar('订阅成功', '已提交 $successCount 季的订阅');
-    } else {
-      Get.snackbar('订阅失败', '请稍后重试');
-    }
+  }
+
+  int _bestVersionFor(int seasonNumber) {
+    final mode = _subscribeModes[seasonNumber] ?? 0;
+    return mode == 0 ? 0 : 1;
+  }
+
+  int _bestVersionFullFor(int seasonNumber) {
+    final mode = _subscribeModes[seasonNumber] ?? 0;
+    return mode == 0 || mode == 2 ? 1 : 0;
   }
 
   static String _formatAirDate(String? airDate) {
@@ -181,8 +209,10 @@ class _SubscribeTvSeasonSheetState extends State<SubscribeTvSeasonSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('订阅 - ${widget.title ?? ''}'),
+        title: const Text('订阅季度'),
+        centerTitle: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.close),
@@ -190,93 +220,100 @@ class _SubscribeTvSeasonSheetState extends State<SubscribeTvSeasonSheet> {
           ),
         ],
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildEpisodeGroupSection(theme),
-          Expanded(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : _loadError != null
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            _loadError!,
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: theme.colorScheme.error,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          FilledButton(
-                            onPressed: _loadData,
-                            child: const Text('重试'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    itemCount: _seasonInfoList.length,
-                    itemBuilder: (context, index) =>
-                        _buildSeasonItem(context, _seasonInfoList[index]),
-                  ),
-          ),
-          _buildBottomButton(theme),
-        ],
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final maxWidth = constraints.maxWidth >= 720
+              ? 680.0
+              : double.infinity;
+          return Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxWidth),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [Expanded(child: _buildBodyState(theme))],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildEpisodeGroupSection(ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '选择剧集组',
-            style: theme.textTheme.titleSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+  Widget _buildBodyState(ThemeData theme) {
+    if (_loading) {
+      return const AppLoadingCenter(message: '正在读取季度信息');
+    }
+    if (_loadError != null) {
+      return _buildStateMessage(
+        theme,
+        icon: Icons.cloud_off_rounded,
+        title: '加载失败',
+        message: _loadError!,
+        actionLabel: '重试',
+        onAction: _loadData,
+      );
+    }
+    if (_seasonInfoList.isEmpty) {
+      return _buildStateMessage(
+        theme,
+        icon: Icons.tv_off_rounded,
+        title: '暂无季度',
+        message: '当前媒体没有可订阅的季度信息',
+      );
+    }
+    return ListView.builder(
+      controller: widget.scrollController,
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      itemCount: _seasonInfoList.length,
+      itemBuilder: (context, index) =>
+          _buildSeasonItem(context, _seasonInfoList[index]),
+    );
+  }
+
+  Widget _buildStateMessage(
+    ThemeData theme, {
+    required IconData icon,
+    required String title,
+    required String message,
+    String? actionLabel,
+    VoidCallback? onAction,
+  }) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 46,
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.68),
             ),
-          ),
-          const SizedBox(height: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: theme.colorScheme.outline.withValues(alpha: 0.5),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
               ),
-              borderRadius: BorderRadius.circular(8),
             ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _selectedEpisodeGroupId,
-                isExpanded: true,
-                items: _episodeGroupOptions
-                    .map(
-                      (e) => DropdownMenuItem<String>(
-                        value: e.id,
-                        child: Text(e.name),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (v) {
-                  setState(() => _selectedEpisodeGroupId = v ?? '');
-                },
+            const SizedBox(height: 6),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
-          ),
-          const SizedBox(height: 12),
-        ],
+            if (actionLabel != null && onAction != null) ...[
+              const SizedBox(height: 18),
+              FilledButton.icon(
+                onPressed: onAction,
+                icon: const Icon(Icons.refresh_rounded),
+                label: Text(actionLabel),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -285,8 +322,8 @@ class _SubscribeTvSeasonSheetState extends State<SubscribeTvSeasonSheet> {
     final theme = Theme.of(context);
     final s = state.seasonInfo;
     final seasonNum = s.season_number ?? -1;
-    final canSelect = !state.isMissing;
-    final selected = _selectedSeasonNumbers.contains(seasonNum);
+    final selected = _subscribedItems.containsKey(seasonNum);
+    final isUpdating = _updatingSeasons.contains(seasonNum);
     final imageUrl = ImageUtil.convertMediaSeasonImageUrl(s.poster_path ?? '');
     final year = s.air_date != null && s.air_date!.length >= 4
         ? s.air_date!.substring(0, 4)
@@ -294,151 +331,255 @@ class _SubscribeTvSeasonSheetState extends State<SubscribeTvSeasonSheet> {
     final episodeCount = s.episode_count ?? 0;
     final rating = s.vote_average;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: InkWell(
-        onTap: canSelect ? () => _toggleSeason(seasonNum) : null,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: CachedImage(
-                  imageUrl: imageUrl,
-                  width: 80,
-                  height: 110,
-                  fit: BoxFit.cover,
-                  errorWidget: Container(
-                    width: 80,
-                    height: 110,
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    child: Icon(
-                      Icons.tv_outlined,
-                      color: theme.colorScheme.onSurfaceVariant,
-                      size: 32,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
+    final metaParts = <String>[
+      if (year.isNotEmpty) year,
+      if (episodeCount > 0) '$episodeCount 集',
+      if (rating != null && rating > 0) '评分 ${rating.toStringAsFixed(1)}',
+    ];
+    final airDate = _formatAirDate(s.air_date);
+    final surfaceColor = selected
+        ? theme.colorScheme.primary.withValues(alpha: 0.16)
+        : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.62);
+    final borderColor = selected
+        ? theme.colorScheme.primary.withValues(alpha: 0.42)
+        : theme.colorScheme.outlineVariant.withValues(alpha: 0.42);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 180),
+        opacity: 1,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+          decoration: BoxDecoration(
+            color: surfaceColor,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: borderColor),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: null,
+              borderRadius: BorderRadius.circular(18),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      s.name ?? '第${seasonNum}季',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+                    Padding(
+                      padding: EdgeInsets.zero,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: CachedImage(
+                          imageUrl: imageUrl,
+                          width: 80,
+                          height: 124,
+                          fit: BoxFit.cover,
+                          errorWidget: _buildPosterFallback(theme),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        if (rating != null && rating > 0) ...[
-                          Icon(
-                            Icons.star_rounded,
-                            size: 16,
-                            color: theme.colorScheme.primary,
-                          ),
-                          const SizedBox(width: 2),
-                          Text(
-                            rating.toStringAsFixed(1),
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.primary,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.zero,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Text(
+                                  s.name ?? '第 $seasonNum 季',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    metaParts.isEmpty
+                                        ? '暂无剧集信息'
+                                        : metaParts.join(' · '),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.end,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          const SizedBox(width: 6),
-                        ],
-                        Text(
-                          '$year·${episodeCount}集',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
+                            const SizedBox(height: 8),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                selected
+                                    ? _buildSubscribedPill(theme)
+                                    : state.isMissing
+                                    ? _buildMissingPill(theme)
+                                    : Flexible(
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.event_rounded,
+                                              size: 14,
+                                              color: theme
+                                                  .colorScheme
+                                                  .onSurfaceVariant
+                                                  .withValues(alpha: 0.72),
+                                            ),
+                                            const SizedBox(width: 5),
+                                            Expanded(
+                                              child: Text(
+                                                airDate.isEmpty
+                                                    ? '暂无首播日期'
+                                                    : airDate,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: theme.textTheme.bodySmall
+                                                    ?.copyWith(
+                                                      color: theme
+                                                          .colorScheme
+                                                          .onSurfaceVariant,
+                                                    ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                Spacer(),
+                                Semantics(
+                                  label: '第 $seasonNum 季订阅',
+                                  value: selected ? '已订阅' : '未订阅',
+                                  child: isUpdating
+                                      ? const SizedBox(
+                                          width: 48,
+                                          height: 32,
+                                          child: Center(
+                                            child: SizedBox(
+                                              width: 18,
+                                              height: 18,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
+                                            ),
+                                          ),
+                                        )
+                                      : Switch(
+                                          value: selected,
+                                          onChanged: (value) =>
+                                              _toggleSubscription(s, value),
+                                          activeThumbColor:
+                                              theme.colorScheme.primary,
+                                          activeTrackColor: theme
+                                              .colorScheme
+                                              .primaryContainer,
+                                          inactiveThumbColor:
+                                              theme.colorScheme.outline,
+                                          inactiveTrackColor: theme
+                                              .colorScheme
+                                              .surfaceContainerHighest,
+                                        ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              height: 50,
+                              width: double.infinity,
+                              child: CupertinoSlidingSegmentedControl<int>(
+                                groupValue: _subscribeModes[seasonNum] ?? 0,
+                                padding: const EdgeInsets.all(2),
+                                children: const {
+                                  0: Text('普通'),
+                                  1: Text('分集洗版'),
+                                  2: Text('全集洗版'),
+                                },
+                                onValueChanged: (value) {
+                                  if (selected || value == null) {
+                                    return;
+                                  }
+                                  setState(
+                                    () => _subscribeModes[seasonNum] = value,
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _formatAirDate(s.air_date),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
-                    if (state.isMissing) ...[
-                      const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.errorContainer,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          '缺失',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onErrorContainer,
-                          ),
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              Switch(
-                value: selected,
-                onChanged: canSelect
-                    ? (v) {
-                        if (v) {
-                          _selectedSeasonNumbers.add(seasonNum);
-                        } else {
-                          _selectedSeasonNumbers.remove(seasonNum);
-                        }
-                        setState(() {});
-                      }
-                    : null,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomButton(ThemeData theme) {
-    final count = _selectedSeasonNumbers.length;
-    final enabled = count > 0 && !_submitting;
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-        child: FilledButton(
-          onPressed: enabled ? _onSubmit : null,
-          style: FilledButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
             ),
           ),
-          child: _submitting
-              ? const SizedBox(
-                  height: 22,
-                  width: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Text(count > 0 ? '订阅 $count 季' : '请选择订阅季'),
         ),
       ),
     );
   }
-}
 
-class EpisodeGroupOption {
-  const EpisodeGroupOption({required this.id, required this.name});
-  final String id;
-  final String name;
+  Widget _buildPosterFallback(ThemeData theme) {
+    return Container(
+      width: 82,
+      height: 116,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: theme.brightness == Brightness.dark ? 0.50 : 0.76,
+        ),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Icon(
+        Icons.tv_rounded,
+        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.68),
+        size: 32,
+      ),
+    );
+  }
+
+  Widget _buildMissingPill(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.errorContainer.withValues(alpha: 0.62),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: theme.colorScheme.error.withValues(alpha: 0.18),
+        ),
+      ),
+      child: Text(
+        '缺失',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.onErrorContainer,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubscribedPill(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        '已订阅',
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.onPrimaryContainer,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
 }

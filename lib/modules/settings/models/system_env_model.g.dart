@@ -95,7 +95,7 @@ _$SystemEnvDataImpl _$$SystemEnvDataImplFromJson(
   u115AppId: json['U115_APP_ID'] as String?,
   u115AuthServer: json['U115_AUTH_SERVER'] as String?,
   alipanAppId: json['ALIPAN_APP_ID'] as String?,
-  moviepilotAutoUpdate: json['MOVIEPILOT_AUTO_UPDATE'] as String?,
+  moviepilotAutoUpdate: _stringFromJson(json['MOVIEPILOT_AUTO_UPDATE']),
   autoUpdateResource: _boolFromJson(json['AUTO_UPDATE_RESOURCE']),
   rmtMediaext: _stringListFromJson(json['RMT_MEDIAEXT']),
   rmtSubext: _stringListFromJson(json['RMT_SUBEXT']),

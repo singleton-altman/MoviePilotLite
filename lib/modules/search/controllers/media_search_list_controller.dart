@@ -7,7 +7,9 @@ import 'package:moviepilot_mobile/modules/recommend/models/recommend_api_item.da
 import 'package:moviepilot_mobile/modules/search_result/controllers/search_result_controller.dart';
 import 'package:moviepilot_mobile/modules/subscribe/controllers/subscribe_service.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
+import 'package:moviepilot_mobile/services/api_auth_failure.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
+import 'package:moviepilot_mobile/utils/media_identity_util.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MediaSearchListController extends GetxController {
@@ -138,7 +140,7 @@ class MediaSearchListController extends GetxController {
       );
       final status = response.statusCode ?? 0;
       if (status == 401 || status == 403) {
-        error.value = '登录已过期，请重新登录';
+        error.value = ApiAuthFailure.from(status, response.data).message;
         isLoading.value = false;
         hasCompletedInitialSearch.value = true;
         return;
@@ -152,7 +154,9 @@ class MediaSearchListController extends GetxController {
       final raw = response.data;
       final parsed = _extractList(raw)
           .whereType<Map<String, dynamic>>()
-          .map(RecommendApiItem.fromJson)
+          .map(
+            (item) => RecommendApiItem.fromJson(normalizeMediaJson(item)),
+          )
           .toList();
       if (append) {
         items.addAll(parsed);
@@ -167,7 +171,7 @@ class MediaSearchListController extends GetxController {
         error.value = '没有找到匹配的媒体';
       }
       for (final item in parsed) {
-        _subscribeService.fetchAndSaveSubscribeStatus(
+        _subscribeService.prefetchSubscribeStatus(
           item.mediaKey,
           season: item.season,
           title: item.title,

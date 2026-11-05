@@ -8,6 +8,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/adapters/plugin_form_adapter_registry.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/controllers/dynamic_form_controller.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/models/form_block_models.dart';
+import 'package:moviepilot_mobile/modules/dynamic_form/widgets/select_field_widget.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/widgets/switch_field_widget.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/widgets/text_field_widget.dart';
 import 'package:moviepilot_mobile/theme/section.dart';
@@ -60,6 +61,8 @@ class AppLitePushRenderer extends StatelessWidget {
             value: controller.getBoolValue('enabled'),
             onChanged: (value) => controller.updateField('enabled', value),
           ),
+          const SizedBox(height: 8),
+          _MessageTypesField(controller: controller),
           const SizedBox(height: 8),
           TextFieldBlockWidget(
             block: const TextFieldBlock(
@@ -205,6 +208,109 @@ class AppLitePushRenderer extends StatelessWidget {
   }
 }
 
+const _fallbackMessageTypeItems = [
+  SelectOption(title: '资源下载', value: '资源下载'),
+  SelectOption(title: '整理入库', value: '整理入库'),
+  SelectOption(title: '订阅', value: '订阅'),
+  SelectOption(title: '站点', value: '站点'),
+  SelectOption(title: '媒体服务器', value: '媒体服务器'),
+  SelectOption(title: '手动处理', value: '手动处理'),
+  SelectOption(title: '插件', value: '插件'),
+  SelectOption(title: '智能体', value: '智能体'),
+  SelectOption(title: '其它', value: '其它'),
+];
+
+SelectFieldBlock _messageTypesBlock(DynamicFormController controller) {
+  for (final block in controller.effectiveBlocks) {
+    if (block is SelectFieldBlock &&
+        block.name == 'message_types' &&
+        block.items.isNotEmpty) {
+      return block.copyWith(multiple: true);
+    }
+  }
+  return const SelectFieldBlock(
+    label: '消息类型过滤',
+    name: 'message_types',
+    multiple: true,
+    items: _fallbackMessageTypeItems,
+  );
+}
+
+List<dynamic> _normalizeMessageTypes(dynamic raw) {
+  if (raw == null) return const [];
+  if (raw is String) {
+    return raw
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+  }
+  if (raw is List) {
+    final values = <dynamic>[];
+    for (final item in raw) {
+      if (item is Map) {
+        final value = item['type'] ?? item['value'] ?? item['title'];
+        if (value != null && value.toString().trim().isNotEmpty) {
+          values.add(value);
+        }
+      } else if (item != null && item.toString().trim().isNotEmpty) {
+        values.add(item);
+      }
+    }
+    return values;
+  }
+  final text = raw.toString().trim();
+  return text.isEmpty ? const [] : [raw];
+}
+
+List<dynamic> _messageTypesValue(dynamic raw, List<SelectOption> items) {
+  if (raw == null) return items.map((e) => e.value).toList();
+  if (raw is String && raw.trim().isEmpty) {
+    return items.map((e) => e.value).toList();
+  }
+  return _normalizeMessageTypes(raw);
+}
+
+class _MessageTypesField extends StatelessWidget {
+  const _MessageTypesField({required this.controller});
+
+  final DynamicFormController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final block = _messageTypesBlock(controller);
+    final selected = _messageTypesValue(
+      controller.getValue('message_types'),
+      block.items,
+    );
+    final secondary = CupertinoDynamicColor.resolve(
+      CupertinoColors.secondaryLabel,
+      context,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SelectFieldWidget(
+          block: block,
+          value: selected,
+          onChanged: (value) => controller.updateField(
+            'message_types',
+            _normalizeMessageTypes(value),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            '默认全选，接收全部消息（含未知类型）；选部分则只收所选；清空后不自动推送。测试推送不受影响。',
+            style: TextStyle(fontSize: 13, height: 1.45, color: secondary),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _IosAppBuildSection extends StatefulWidget {
   const _IosAppBuildSection();
 
@@ -274,11 +380,7 @@ class _IosAppBuildSectionState extends State<_IosAppBuildSection> {
         children: [
           Text(
             title,
-            style: TextStyle(
-              fontSize: 12,
-              height: 1.3,
-              color: secondary,
-            ),
+            style: TextStyle(fontSize: 12, height: 1.3, color: secondary),
           ),
           const SizedBox(height: 4),
           SelectableText(
@@ -321,11 +423,7 @@ class _IosAppBuildSectionState extends State<_IosAppBuildSection> {
           const SizedBox(height: 6),
           Text(
             'Bundle ID、Version（CFBundleShortVersionString）与 Build（CFBundleVersion）。',
-            style: TextStyle(
-              fontSize: 13,
-              height: 1.45,
-              color: secondary,
-            ),
+            style: TextStyle(fontSize: 13, height: 1.45, color: secondary),
           ),
           const SizedBox(height: 10),
           if (_loading)

@@ -48,8 +48,39 @@ app.*.map.json
 # FVM Version Cache
 .fvm/
 
+# OHOS generated files
+/ohos/
+/ohos/.hvigor/
+/ohos/.idea/
+/ohos/node_modules/
+/ohos/oh_modules/
+/ohos/**/oh_modules/
+/ohos/**/build/
+/scripts/build/.last_build_id
 #ohos
 oh_modules/
 node_modules/
-.hvigor/
+.hvigor
 ohos/.hvigor/cache/
+
+# ── 本地开发/工具目录(不入库) ──
+.zcode/
+.zcodeignore
+.claude/settings.local.json
+.mimosa/
+.v2c/
+.video_agent/
+
+# ── Android 本地与构建缓存 ──
+android/local.properties
+android/.gradle/
+android/.kotlin/
+
+# ── iOS/macOS 生成文件 ──
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+ios/Flutter/ephemeral/
+ios/Runner/GeneratedPluginRegistrant.h
+ios/Runner/GeneratedPluginRegistrant.m
+macos/Flutter/GeneratedPluginRegistrant.swift
+macos/Flutter/ephemeral/

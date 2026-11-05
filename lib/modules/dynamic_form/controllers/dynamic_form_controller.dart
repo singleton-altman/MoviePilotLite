@@ -8,6 +8,7 @@ import 'package:moviepilot_mobile/modules/dynamic_form/models/dynamic_form_model
 import 'package:moviepilot_mobile/modules/dynamic_form/models/form_block_models.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/services/form_block_converter.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/utils/vuetify_component_subset.dart';
+import 'package:moviepilot_mobile/modules/settings/models/system_env_model.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/services/jpush_service.dart';
@@ -35,7 +36,20 @@ class DynamicFormController extends GetxController {
   final _appService = Get.find<AppService>();
   final _jpushService = Get.find<JPushService>();
   final _log = Get.find<AppLog>();
-  static const _appLitePushRunPath = '/api/v1/plugin/AppPushMsg/run';
+  static const _appLitePushFallbackPluginId = 'AppPushMsg';
+
+  /// 插件可能以克隆实例的 id 安装，测试路径必须跟随当前表单的插件标识。
+  String get _appLitePushRunPath {
+    final key = pluginId?.trim();
+    final resolved = key == null || key.isEmpty
+        ? _appLitePushFallbackPluginId
+        : key;
+    return '/api/v1/plugin/$resolved/run';
+  }
+
+  static final _appLitePushApiKeyPattern = RegExp(
+    r'''apikey\s*:\s*['"]([^'"]+)['"]''',
+  );
 
   /// 接口路径（GET 拉取），如 /api/v1/plugin/page/xxx
   late final String apiPath;
@@ -56,6 +70,16 @@ class DynamicFormController extends GetxController {
   final formMode = false.obs;
   String? pluginId;
 
+  /// 服务端声明的渲染模式(vue/vuetify)。
+  /// 适配策略:注册了原生适配器的特殊插件 ID 优先走适配器;
+  /// vuetify 模式走通用 Vuetify 渲染;其余 vue 插件留待逐插件适配,
+  /// 在此之前引导用户到 Web 端配置。
+  final serverRenderMode = RxnString();
+
+  /// 配置表单(conf)中移动端通用渲染暂不支持、会被丢弃的组件名。
+  /// 仅提示,不阻断:这些字段的值保存在 model 中不会被破坏。
+  final unsupportedFormComponents = RxList<String>();
+
   /// page 模式下的原始 FormNode 列表，供 VuetifyRenderer 直接渲染
   final pageNodes = <FormNode>[].obs;
 
@@ -64,6 +88,7 @@ class DynamicFormController extends GetxController {
 
   /// vue 模式下注入的插件适配器
   PluginFormAdapter? _pluginAdapter;
+  String? _appLitePushMoviePilotApiKey;
 
   /// 当前使用的 formModel（vue 模式时指向 adapter 的 formModel）
   Rx<Map<String, dynamic>> get formModel =>
@@ -78,6 +103,13 @@ class DynamicFormController extends GetxController {
 
   /// vue 模式下的插件适配器，供页面判断是否展示插件专属操作
   PluginFormAdapter? get pluginAdapter => _pluginAdapter;
+
+  /// 服务端声明 vue 模式且没有注册原生适配器:App 当前无法渲染该插件界面。
+  bool get isUnsupportedVuePlugin =>
+      serverRenderMode.value == 'vue' && _pluginAdapter == null;
+
+  /// 服务器 Web 端地址,用于 vue 插件引导用户到 Web 端配置。
+  String? get serverWebUrl => _appService.baseUrl;
 
   String? _getToken() =>
       _appService.loginResponse?.accessToken ??
@@ -143,7 +175,10 @@ class DynamicFormController extends GetxController {
     saveSuccess.value = false;
     isTestingAppLitePush.value = false;
     appLitePushLastTestText.value = null;
+    _appLitePushMoviePilotApiKey = null;
     _pluginAdapter = null;
+    serverRenderMode.value = null;
+    unsupportedFormComponents.clear();
     if (isAppLitePushPlugin) {
       formMode.value = true;
     }
@@ -158,6 +193,15 @@ class DynamicFormController extends GetxController {
         blocks.clear();
         pageNodes.clear();
         _formModel.value = {};
+        return;
+      }
+
+      if (pluginKey != null &&
+          pluginKey.isNotEmpty &&
+          PluginFormAdapterRegistry.hasAdapter(pluginKey) &&
+          !isAppLitePushPlugin) {
+        await _loadViaAdapter();
+        _syncSpecialPluginState();
         return;
       }
 
@@ -183,9 +227,13 @@ class DynamicFormController extends GetxController {
         _formModel.value = {};
         return;
       }
-      final parsed = DynamicFormResponse.fromJson(
-        Map<String, dynamic>.from(map),
-      );
+      final parsed = DynamicFormResponse.fromJson(_normalizeFormPayload(map));
+      serverRenderMode.value = parsed.render_mode?.toLowerCase().trim();
+      if (isAppLitePushPlugin) {
+        _appLitePushMoviePilotApiKey = _extractAppLitePushMoviePilotApiKey(
+          parsed,
+        );
+      }
       final renderMode = parsed.render_mode?.toLowerCase().trim();
 
       if (renderMode == 'vue' &&
@@ -241,6 +289,11 @@ class DynamicFormController extends GetxController {
     } else {
       pageNodes.clear();
     }
+    // 表单块会静默丢弃子集外的输入组件,这里收集并提示用户到 Web 端配置;
+    // 对应字段的值仍在 model 中,保存不会破坏已存配置。
+    unsupportedFormComponents.assignAll(
+      VuetifyComponentSubset.collectUnsupportedRawComponents(parsed.conf),
+    );
     final blocksList = FormBlockConverter.convert(parsed);
     blocks.assignAll(blocksList);
   }
@@ -320,11 +373,32 @@ class DynamicFormController extends GetxController {
     return null;
   }
 
+  /// 宽容归一化 conf/page:个别插件不按 List[dict] 约定返回时,
+  /// 单个 dict 包成列表,列表里的非 Map 条目丢弃,避免整个表单解析失败。
+  /// (生成的反序列化对 conf/page 是强类型转换,这里必须先行归一。)
+  Map<String, dynamic> _normalizeFormPayload(Map<String, dynamic> map) {
+    Object? normalize(Object? raw) {
+      if (raw is Map) return [Map<String, dynamic>.from(raw)];
+      if (raw is List) {
+        return raw
+            .whereType<Map>()
+            .map((entry) => Map<String, dynamic>.from(entry))
+            .toList();
+      }
+      return raw;
+    }
+
+    return Map<String, dynamic>.from(map)
+      ..['conf'] = normalize(map['conf'])
+      ..['page'] = normalize(map['page']);
+  }
+
   final formModePlugins = [
     'AutoSignIn',
     'TrashClean',
     'ProxmoxVEBackup',
     'P115StrmHelper',
+    'SubtitleManualUpload',
     'RandomPic',
     'MonitorPaths',
     'SiteStatistic',
@@ -386,6 +460,76 @@ class DynamicFormController extends GetxController {
     return null;
   }
 
+  String? _extractAppLitePushMoviePilotApiKey(DynamicFormResponse parsed) {
+    for (final node in [...parsed.conf, ...parsed.page]) {
+      final value = _extractAppLitePushMoviePilotApiKeyFromNode(node);
+      if (value != null && value.isNotEmpty) {
+        return value;
+      }
+    }
+    return null;
+  }
+
+  String? _extractAppLitePushMoviePilotApiKeyFromNode(FormNode node) {
+    final value = _extractAppLitePushMoviePilotApiKeyFromValue(node.events);
+    if (value != null && value.isNotEmpty) return value;
+
+    final propsValue = _extractAppLitePushMoviePilotApiKeyFromValue(node.props);
+    if (propsValue != null && propsValue.isNotEmpty) return propsValue;
+
+    for (final child in node.content) {
+      final childValue = _extractAppLitePushMoviePilotApiKeyFromNode(child);
+      if (childValue != null && childValue.isNotEmpty) return childValue;
+    }
+    return null;
+  }
+
+  String? _extractAppLitePushMoviePilotApiKeyFromValue(dynamic value) {
+    if (value is Map) {
+      final direct = value['apikey']?.toString().trim();
+      if (direct != null && direct.isNotEmpty) return direct;
+      for (final entryValue in value.values) {
+        final nested = _extractAppLitePushMoviePilotApiKeyFromValue(entryValue);
+        if (nested != null && nested.isNotEmpty) return nested;
+      }
+    } else if (value is Iterable) {
+      for (final item in value) {
+        final nested = _extractAppLitePushMoviePilotApiKeyFromValue(item);
+        if (nested != null && nested.isNotEmpty) return nested;
+      }
+    } else if (value is String) {
+      final match = _appLitePushApiKeyPattern.firstMatch(value);
+      final matched = match?.group(1)?.trim();
+      if (matched != null && matched.isNotEmpty) return matched;
+    }
+    return null;
+  }
+
+  Future<String?> _getAppLitePushMoviePilotApiKey(String token) async {
+    final cached = _appLitePushMoviePilotApiKey?.trim();
+    if (cached != null && cached.isNotEmpty) return cached;
+
+    try {
+      final response = await _apiClient.get<Map<String, dynamic>>(
+        '/api/v1/system/env',
+        token: token,
+        skipUnauthorizedHandling: true,
+      );
+      final status = response.statusCode ?? 0;
+      final body = response.data;
+      if (status < 200 || status >= 300 || body == null) return null;
+      final parsed = SystemEnvResponse.fromJson(body);
+      final apiKey = parsed.data?.apiToken?.trim();
+      if (parsed.success && apiKey != null && apiKey.isNotEmpty) {
+        _appLitePushMoviePilotApiKey = apiKey;
+        return apiKey;
+      }
+    } catch (e, st) {
+      _log.handle(e, stackTrace: st, message: '获取 MoviePilot 接口令牌失败');
+    }
+    return null;
+  }
+
   Future<bool> runAppLitePushTest() async {
     if (!isAppLitePushPlugin || isTestingAppLitePush.value) return false;
 
@@ -413,6 +557,15 @@ class DynamicFormController extends GetxController {
 
     isTestingAppLitePush.value = true;
     try {
+      final moviePilotApiKey = await _getAppLitePushMoviePilotApiKey(token);
+      if (moviePilotApiKey == null || moviePilotApiKey.isEmpty) {
+        appLitePushLastTestText.value = _formatAppLitePushTestResult(
+          false,
+          '未获取到 MoviePilot 接口令牌',
+        );
+        return false;
+      }
+
       final cookieHeader =
           await _apiClient.getCookieHeader() ?? _appService.cookie;
       final headers = cookieHeader != null && cookieHeader.isNotEmpty
@@ -420,18 +573,22 @@ class DynamicFormController extends GetxController {
           : null;
       final response = await _apiClient.get<dynamic>(
         _appLitePushRunPath,
-        queryParameters: <String, dynamic>{'apikey': pushKey},
+        queryParameters: <String, dynamic>{'apikey': moviePilotApiKey},
         token: token,
         headers: headers,
+        skipUnauthorizedHandling: true,
       );
       final status = response.statusCode ?? 0;
       final responseMap = _extractMap(response.data);
       final responseCode = responseMap?['code'];
+      final explicitSuccess = responseMap?['success'];
       final success =
           status < 400 &&
-          (responseCode == null ||
-              (responseCode is num && responseCode.toInt() == 0) ||
-              responseCode.toString() == '0');
+          (explicitSuccess is bool
+              ? explicitSuccess
+              : responseCode == null ||
+                    (responseCode is num && responseCode.toInt() == 0) ||
+                    responseCode.toString() == '0');
       final message =
           _extractResponseMessage(response.data) ??
           (success ? '消息发送成功' : '操作失败');

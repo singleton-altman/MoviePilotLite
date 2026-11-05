@@ -1,14 +1,17 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart' as dio;
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
+import 'package:moviepilot_mobile/modules/agent/controllers/agent_controller.dart';
 import 'package:moviepilot_mobile/modules/login/models/login_profile.dart';
 import 'package:moviepilot_mobile/modules/login/controllers/login_controller.dart';
 import 'package:moviepilot_mobile/modules/login/repositories/auth_repository.dart';
 import 'package:moviepilot_mobile/modules/profile/models/user_info.dart';
 import 'package:moviepilot_mobile/modules/site/controllers/site_controller.dart';
 import 'package:moviepilot_mobile/modules/system_message/controllers/system_message_controller.dart';
+import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/services/ios_shared_session_service.dart';
 
@@ -18,6 +21,7 @@ class ProfileController extends GetxController {
   final _authRepository = Get.find<AuthRepository>();
   final _iosSharedSessionService = Get.find<IosSharedSessionService>();
   final _talker = Get.find<AppLog>();
+  final _apiClient = Get.find<ApiClient>();
 
   /// 当前登录配置（登录档案）
   final currentProfile = Rxn<LoginProfile>();
@@ -27,6 +31,8 @@ class ProfileController extends GetxController {
 
   /// 是否正在加载
   final isLoading = false.obs;
+
+  final availableProfiles = <LoginProfile>[].obs;
 
   @override
   void onInit() {
@@ -51,7 +57,31 @@ class ProfileController extends GetxController {
         return;
       }
       profiles.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      availableProfiles.assignAll(profiles);
       currentProfile.value = profiles.first;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> loadAvailableProfiles() async {
+    final profiles = await _authRepository.getProfilesAsync();
+    profiles.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    availableProfiles.assignAll(profiles);
+  }
+
+  Future<bool> switchAccount(LoginProfile profile) async {
+    if (currentProfile.value?.id == profile.id) return true;
+    try {
+      isLoading.value = true;
+      await _authRepository.switchProfile(profile);
+      currentProfile.value = profile;
+      currentUserInfo.value = _appService.userInfo;
+      availableProfiles.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      return true;
+    } catch (e) {
+      _talker.warning('切换账号失败: $e');
+      return false;
     } finally {
       isLoading.value = false;
     }
@@ -82,11 +112,53 @@ class ProfileController extends GetxController {
     }
   }
 
+  /// 从相册选择并上传头像（POST /api/v1/user/avatar/{user_id} multipart）。
+  /// 返回 null 表示成功，否则为错误文案。
+  Future<String?> pickAndUploadAvatar() async {
+    final info = currentUserInfo.value;
+    if (info == null) return '用户信息未加载';
+    try {
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 88,
+      );
+      if (picked == null) return '';
+      final form = dio.FormData.fromMap({
+        'file': await dio.MultipartFile.fromFile(
+          picked.path,
+          filename: picked.name,
+        ),
+      });
+      final response = await _apiClient.postMultipart<dynamic>(
+        '/api/v1/user/avatar/${info.id}',
+        form,
+      );
+      final status = response.statusCode ?? 0;
+      if (status >= 400) {
+        return '上传失败 (HTTP $status)';
+      }
+      final data = response.data;
+      if (data is Map && data['success'] == false) {
+        return data['message']?.toString() ?? '上传失败';
+      }
+      await loadCurrentUserInfo();
+      return null;
+    } catch (e, st) {
+      _talker.handle(e, stackTrace: st, message: '上传头像失败');
+      return '上传失败，请稍后重试';
+    }
+  }
+
   /// 退出登录：清空本地会话并回到登录页
   Future<void> logout() async {
     // 停止消息轮询并清理 controller
     if (Get.isRegistered<SystemMessageController>()) {
       Get.find<SystemMessageController>().clearForLogout();
+    }
+    if (Get.isRegistered<AgentController>()) {
+      await Get.find<AgentController>().clearForLogout();
     }
 
     // 清空内存中的登录信息

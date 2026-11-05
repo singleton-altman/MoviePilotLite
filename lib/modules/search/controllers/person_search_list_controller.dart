@@ -3,6 +3,7 @@ import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/media_detail_model.dart'
     show Actor;
 import 'package:moviepilot_mobile/services/api_client.dart';
+import 'package:moviepilot_mobile/services/api_auth_failure.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
 
 class PersonSearchListController extends GetxController {
@@ -94,7 +95,7 @@ class PersonSearchListController extends GetxController {
 
       final status = response.statusCode ?? 0;
       if (status == 401 || status == 403) {
-        error.value = '登录已过期，请重新登录';
+        error.value = ApiAuthFailure.from(status, response.data).message;
         isLoading.value = false;
         return;
       }

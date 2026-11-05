@@ -36,7 +36,7 @@ extension MonitorTypeX on MonitorType {
   }
 }
 
-enum TransferType { copy, move, softlink, hardlink }
+enum TransferType { copy, move, softlink, link }
 
 extension TransferTypeX on TransferType {
   String get displayName {
@@ -47,7 +47,7 @@ extension TransferTypeX on TransferType {
         return '移动';
       case TransferType.softlink:
         return '软链接';
-      case TransferType.hardlink:
+      case TransferType.link:
         return '硬链接';
     }
   }

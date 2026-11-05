@@ -46,6 +46,10 @@ _$DashboardConfigValueImpl _$$DashboardConfigValueImplFromJson(
   library: json['library'] as bool,
   playing: json['playing'] as bool,
   latest: json['latest'] as bool,
+  mediaRecommend: json['mediaRecommend'] as bool? ?? true,
+  recentImports: json['recentImports'] as bool? ?? true,
+  quickActions: json['quickActions'] as bool? ?? true,
+  systemInfo: json['systemInfo'] as bool? ?? true,
 );
 
 Map<String, dynamic> _$$DashboardConfigValueImplToJson(
@@ -62,4 +66,8 @@ Map<String, dynamic> _$$DashboardConfigValueImplToJson(
   'library': instance.library,
   'playing': instance.playing,
   'latest': instance.latest,
+  'mediaRecommend': instance.mediaRecommend,
+  'recentImports': instance.recentImports,
+  'quickActions': instance.quickActions,
+  'systemInfo': instance.systemInfo,
 };

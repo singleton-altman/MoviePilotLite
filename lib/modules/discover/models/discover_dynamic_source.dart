@@ -295,6 +295,20 @@ class DiscoverDynamicFilters {
 
   final Map<String, String> values;
 
+  Map<String, dynamic> toJson() => <String, dynamic>{'values': values};
+
+  factory DiscoverDynamicFilters.fromJson(Map<String, dynamic> json) {
+    final raw = json['values'];
+    final values = <String, String>{};
+    if (raw is Map) {
+      raw.forEach((key, value) {
+        if (key == null || value == null) return;
+        values[key.toString()] = value.toString();
+      });
+    }
+    return DiscoverDynamicFilters(values: values);
+  }
+
   String signature() {
     final keys = values.keys.toList()..sort();
     final buffer = StringBuffer();

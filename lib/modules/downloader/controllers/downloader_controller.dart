@@ -6,6 +6,7 @@ import 'package:moviepilot_mobile/modules/downloader/models/download_task.dart';
 import 'package:moviepilot_mobile/modules/downloader/models/downloader_stats.dart';
 import 'package:moviepilot_mobile/modules/setting/models/setting_models.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
+import 'package:moviepilot_mobile/services/api_auth_failure.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
 
 class DownloaderController extends GetxController {
@@ -177,8 +178,10 @@ class DownloaderController extends GetxController {
           .map((e) => DownloadTask.fromJson(e))
           .toList();
       _log.info('加载下载任务成功: ${tasks.length} 个');
-    } else if (response.statusCode == 401) {
-      ToastUtil.error('未授权，请重新登录');
+    } else if (response.statusCode == 401 || response.statusCode == 403) {
+      ToastUtil.error(
+        ApiAuthFailure.from(response.statusCode, response.data).message,
+      );
     } else {
       ToastUtil.error('加载失败: ${response.statusCode}');
     }

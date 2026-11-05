@@ -1,220 +1,499 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/media_detail_model.dart'
     show Actor;
 import 'package:moviepilot_mobile/modules/search/controllers/person_search_list_controller.dart';
+import 'package:moviepilot_mobile/theme/app_theme.dart';
+import 'package:moviepilot_mobile/utils/grid_layout.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
 import 'package:moviepilot_mobile/utils/media_source_util.dart';
+import 'package:moviepilot_mobile/widgets/app_loading.dart';
 import 'package:moviepilot_mobile/widgets/cached_image.dart';
+import 'package:moviepilot_mobile/widgets/load_more_footer.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 class PersonSearchResultPage extends GetView<PersonSearchListController> {
   const PersonSearchResultPage({super.key});
 
-  static const double _gridSpacing = 10;
+  static const double _gridSpacing = 12;
   static const double _gridPadding = 16;
-  static const double _cardAspectRatio = 1 / 1.15;
+  static const double _cardAspectRatio = 0.72;
   static const int _skeletonGridCount = 8;
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      final items = controller.items;
-      final isLoading = controller.isLoading.value;
-      final error = controller.error.value;
-      final hasMore = controller.hasMore.value;
-      final showSkeletonGrid = isLoading && items.isEmpty;
+    return Scaffold(
+      backgroundColor: AppTheme.darkBackgroundColor,
+      body: Obx(() {
+        final items = controller.items.toList();
+        final isLoading = controller.isLoading.value;
+        final error = controller.error.value;
+        final hasMore = controller.hasMore.value;
+        final keyword = controller.keyword.value.trim();
+        final showSkeleton = isLoading && items.isEmpty;
+        final showOnlyLoading = isLoading && items.isEmpty && error == null;
 
-      return Scaffold(
-        appBar: AppBar(title: const Text('演员搜索')),
-        body: RefreshIndicator(
+        if (showOnlyLoading) {
+          return _LoadingScaffold(keyword: keyword);
+        }
+
+        return RefreshIndicator(
+          color: Theme.of(context).colorScheme.primary,
           onRefresh: controller.search,
           child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
             slivers: [
-              if (error != null && items.isEmpty && !showSkeletonGrid)
+              _buildHeader(
+                context,
+                keyword: keyword,
+              ),
+              if (items.isEmpty && !showSkeleton)
                 SliverFillRemaining(
                   hasScrollBody: false,
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            error,
-                            style: const TextStyle(color: Colors.white70),
-                          ),
-                          const SizedBox(height: 16),
-                          FilledButton(
-                            onPressed: controller.search,
-                            child: const Text('重新加载'),
-                          ),
-                        ],
-                      ),
-                    ),
+                  child: _EmptyState(
+                    error: error,
+                    keyword: keyword,
+                    onRetry: controller.search,
                   ),
                 )
-              else
+              else ...[
                 SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
+                  padding: const EdgeInsets.fromLTRB(
                     _gridPadding,
-                    12,
+                    4,
                     _gridPadding,
-                    0,
+                    8,
                   ),
                   sliver: Skeletonizer.sliver(
-                    enabled: showSkeletonGrid,
+                    enabled: showSkeleton,
                     child: SliverGrid(
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: _gridSpacing,
-                            crossAxisSpacing: _gridSpacing,
-                            childAspectRatio: _cardAspectRatio,
-                          ),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: gridLayout(
+                          context,
+                          gridSpacing: _gridSpacing,
+                          gridPadding: _gridPadding,
+                        ).crossAxisCount,
+                        mainAxisSpacing: _gridSpacing,
+                        crossAxisSpacing: _gridSpacing,
+                        childAspectRatio: _cardAspectRatio,
+                      ),
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
-                          if (showSkeletonGrid) {
-                            return _buildSkeletonCell();
+                          if (showSkeleton) {
+                            return const _PersonSkeletonCard();
                           }
-                          return _buildPersonCell(context, items[index]);
+                          final item = items[index];
+                          return _PersonCard(
+                            key: ValueKey(item.id ?? '${item.name}_$index'),
+                            item: item,
+                          );
                         },
-                        childCount: showSkeletonGrid
+                        childCount: showSkeleton
                             ? _skeletonGridCount
                             : items.length,
                       ),
                     ),
                   ),
                 ),
-              if (items.isNotEmpty && !showSkeletonGrid)
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                    child: _buildPaginationFooter(
-                      isLoading: isLoading,
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
+                    child: LoadMoreFooter(
                       hasMore: hasMore,
+                      isLoading: isLoading,
+                      hasItems: items.isNotEmpty,
+                      onLoadMore: controller.loadMore,
+                      endLabel: '没有更多演员了',
                     ),
                   ),
                 ),
-              const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
+              ],
+            ],
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildHeader(
+    BuildContext context, {
+    required String keyword,
+  }) {
+    final theme = Theme.of(context);
+    return SliverAppBar(
+      pinned: true,
+      floating: true,
+      backgroundColor: AppTheme.darkBackgroundColor.withValues(alpha: 0.92),
+      surfaceTintColor: Colors.transparent,
+      leading: IconButton(
+        onPressed: () => Get.back(),
+        icon: const Icon(CupertinoIcons.chevron_left, color: Colors.white),
+      ),
+      titleSpacing: 0,
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '演员搜索',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          if (keyword.isNotEmpty)
+            Text(
+              keyword,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.white.withValues(alpha: 0.62),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+        ],
+      ),
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(1),
+        child: Container(
+          height: 0.6,
+          color: Colors.white.withValues(alpha: 0.08),
+        ),
+      ),
+    );
+  }
+}
+
+class _LoadingScaffold extends StatelessWidget {
+  const _LoadingScaffold({required this.keyword});
+
+  final String keyword;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                const Color(0xFF0B1220),
+                AppTheme.darkBackgroundColor,
+                const Color(0xFF050816),
+              ],
+            ),
+          ),
+        ),
+        SafeArea(
+          child: Column(
+            children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: IconButton(
+                  onPressed: () => Get.back(),
+                  icon: const Icon(
+                    CupertinoIcons.chevron_left,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              AppLoading(
+                message: keyword.isEmpty ? '正在搜索演员' : '正在搜索「$keyword」',
+                messageStyle: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.78),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Spacer(flex: 2),
             ],
           ),
         ),
-      );
-    });
+      ],
+    );
   }
+}
 
-  Widget _buildSkeletonCell() {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(14),
-      ),
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({
+    required this.error,
+    required this.keyword,
+    required this.onRetry,
+  });
+
+  final String? error;
+  final String keyword;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final isNoResult = error == null || error == '没有找到匹配的演员';
+    final title = isNoResult ? '没有找到匹配的演员' : '搜索遇到问题';
+    final subtitle = isNoResult
+        ? (keyword.isEmpty
+              ? '换一个关键词再试试。'
+              : '没有命中 “$keyword”，可以试试中英文名或别名。')
+        : (error ?? '请稍后重试');
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(28, 12, 28, 40),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              width: double.infinity,
-              height: 100,
-              color: Colors.grey.shade300,
+          Container(
+            width: 78,
+            height: 78,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withValues(alpha: 0.06),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            child: Icon(
+              isNoResult
+                  ? CupertinoIcons.person_2
+                  : CupertinoIcons.exclamationmark_circle,
+              size: 34,
+              color: Colors.white.withValues(alpha: 0.72),
             ),
           ),
-          const SizedBox(height: 8),
-          Container(
-            width: double.infinity,
-            height: 14,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(7),
+          const SizedBox(height: 20),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
             ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Colors.white.withValues(alpha: 0.62),
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('重新搜索'),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildPersonCell(BuildContext context, Actor item) {
+class _PersonCard extends StatelessWidget {
+  const _PersonCard({super.key, required this.item});
+
+  final Actor item;
+
+  String get _avatarUrl {
     final avatar = item.profile_path != null && item.profile_path!.isNotEmpty
         ? item.profile_path
         : item.images?.large?.url;
-    final avatarUrl = avatar != null && avatar.isNotEmpty
-        ? ImageUtil.convertCacheImageUrl(avatar)
-        : '';
+    if (avatar == null || avatar.isEmpty) return '';
+    return ImageUtil.convertCacheImageUrl(avatar);
+  }
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
-      onTap: () {
-        final id = item.id;
-        if (id == null) return;
-        final source = MediaSourceUtil.sourceValue(item.source ?? '');
-        Get.toNamed(
-          '/person-detail',
-          parameters: {'id': id.toString(), 'source': source},
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: avatarUrl.isNotEmpty
-                  ? CachedImage(
-                      imageUrl: avatarUrl,
-                      width: double.infinity,
-                      height: 150,
-                      fit: BoxFit.cover,
-                    )
-                  : Container(
-                      width: double.infinity,
-                      height: 100,
-                      color: Colors.grey.shade300,
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+    final name = (item.name ?? '').trim().isEmpty ? '未知演员' : item.name!.trim();
+    final department = (item.known_for_department ?? '').trim();
+    final source = (item.source ?? '').trim();
+    final url = _avatarUrl;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () {
+          final id = item.id;
+          if (id == null) return;
+          HapticFeedback.selectionClick();
+          Get.toNamed(
+            '/person-detail',
+            parameters: {
+              'id': id.toString(),
+              'source': MediaSourceUtil.sourceValue(source),
+            },
+          );
+        },
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.22),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (url.isNotEmpty)
+                  CachedImage(imageUrl: url, fit: BoxFit.cover)
+                else
+                  ColoredBox(
+                    color: const Color(0xFF1B2333),
+                    child: Icon(
+                      CupertinoIcons.person_fill,
+                      size: 42,
+                      color: Colors.white.withValues(alpha: 0.28),
                     ),
+                  ),
+                const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0x14000000),
+                        Color(0x00000000),
+                        Color(0xCC0B1220),
+                        Color(0xF2050816),
+                      ],
+                      stops: [0, 0.42, 0.72, 1],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 10,
+                  right: 10,
+                  bottom: 10,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          height: 1.25,
+                        ),
+                      ),
+                      if (department.isNotEmpty || source.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          children: [
+                            if (department.isNotEmpty)
+                              _MiniChip(
+                                label: department,
+                                color: primary,
+                              ),
+                            if (source.isNotEmpty)
+                              _MiniChip(
+                                label: source.toUpperCase(),
+                                color: Colors.white70,
+                                muted: true,
+                              ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              item.name ?? '',
-              maxLines: 2,
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildPaginationFooter({
-    required bool isLoading,
-    required bool hasMore,
-  }) {
-    if (isLoading) {
-      return const Center(
-        child: CupertinoActivityIndicator(),
-      );
-    }
-    if (hasMore) {
-      return Center(
-        child: CupertinoButton.filled(
-          sizeStyle: CupertinoButtonSize.small,
-          onPressed: controller.loadMore,
-          child: const Text('加载更多'),
-        ),
-      );
-    }
-    return const Center(
+class _MiniChip extends StatelessWidget {
+  const _MiniChip({
+    required this.label,
+    required this.color,
+    this.muted = false,
+  });
+
+  final String label;
+  final Color color;
+  final bool muted;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: muted ? 0.10 : 0.18),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: muted ? 0.16 : 0.28)),
+      ),
       child: Text(
-        '没有更多数据',
-        style: TextStyle(color: Colors.white70),
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _PersonSkeletonCard extends StatelessWidget {
+  const _PersonSkeletonCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      padding: const EdgeInsets.all(10),
+      child: Column(
+        children: [
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            height: 12,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(6),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            height: 10,
+            width: 64,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+          ),
+        ],
       ),
     );
   }

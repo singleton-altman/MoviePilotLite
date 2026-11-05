@@ -4,75 +4,106 @@ import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_widget_sty
 import 'package:skeletonizer/skeletonizer.dart';
 import '../controllers/dashboard_controller.dart';
 
-/// 媒体统计组件
+/// 媒体统计组件：电影 / 电视剧 / 剧集 / 音乐（旧版服务端回退为用户）数量与本月新增
 class MediaStatsWidget extends StatelessWidget {
   const MediaStatsWidget({super.key});
-  Widget _buildInfo(BuildContext context) {
+
+  @override
+  Widget build(BuildContext context) {
     final controller = Get.find<DashboardController>();
     final palette = DashboardPalette.of(context);
     return Obx(() {
       final statisticData = controller.statisticData.value;
+      final musicCount = statisticData?.music_count;
 
-      // 构建统计项列表，添加颜色
-      final stats = [
-        {
-          'label': '电影',
-          'value': statisticData?.movie_count ?? 0,
-          'icon': CupertinoIcons.film,
-          'color': palette.primary,
-        },
-        {
-          'label': '电视剧',
-          'value': statisticData?.tv_count ?? 0,
-          'icon': CupertinoIcons.tv,
-          'color': palette.coolAccent,
-        },
-        {
-          'label': '剧集',
-          'value': statisticData?.episode_count ?? 0,
-          'icon': CupertinoIcons.collections,
-          'color': palette.warningAccent,
-        },
-        {
-          'label': '用户',
-          'value': statisticData?.user_count ?? 0,
-          'icon': CupertinoIcons.person,
-          'color': palette.successAccent,
-        },
+      final stats = <_StatItem>[
+        _StatItem(
+          label: '电影',
+          value: statisticData?.movie_count ?? 0,
+          monthlyAddition: statisticData?.movie_count_month ?? 0,
+          icon: CupertinoIcons.film,
+          color: palette.primary,
+        ),
+        _StatItem(
+          label: '电视剧',
+          value: statisticData?.tv_count ?? 0,
+          monthlyAddition: statisticData?.tv_count_month ?? 0,
+          icon: CupertinoIcons.tv,
+          color: palette.coolAccent,
+        ),
+        _StatItem(
+          label: '剧集',
+          value: statisticData?.episode_count ?? 0,
+          monthlyAddition: statisticData?.episode_count_month ?? 0,
+          icon: CupertinoIcons.collections,
+          color: palette.warningAccent,
+        ),
+        if (musicCount != null)
+          _StatItem(
+            label: '音乐',
+            value: musicCount,
+            monthlyAddition: statisticData?.music_count_month ?? 0,
+            icon: CupertinoIcons.music_note_2,
+            color: palette.successAccent,
+          )
+        else
+          _StatItem(
+            label: '用户',
+            value: statisticData?.user_count ?? 0,
+            monthlyAddition: null,
+            icon: CupertinoIcons.person,
+            color: palette.successAccent,
+          ),
       ];
+
       return Skeletonizer(
         enabled: statisticData == null,
-        child: Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: stats.map((stat) {
-            return SizedBox(
-              width: (MediaQuery.sizeOf(context).width - 72) / 2,
-              child: _buildStatItem(
-                stat['label'] as String,
-                (stat['value'] as int).toString(),
-                stat['icon'] as IconData,
-                stat['color'] as Color,
-              ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            const spacing = 12.0;
+            final tileWidth = (constraints.maxWidth - spacing) / 2;
+            return Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: [
+                for (final stat in stats)
+                  SizedBox(width: tileWidth, child: _StatTile(stat: stat)),
+              ],
             );
-          }).toList(),
+          },
         ),
       );
     });
   }
+}
+
+class _StatItem {
+  const _StatItem({
+    required this.label,
+    required this.value,
+    required this.monthlyAddition,
+    required this.icon,
+    required this.color,
+  });
+
+  final String label;
+  final int value;
+
+  /// 本月新增；为 null 的指标（如用户数）不显示增量
+  final int? monthlyAddition;
+  final IconData icon;
+  final Color color;
+}
+
+class _StatTile extends StatelessWidget {
+  const _StatTile({required this.stat});
+
+  final _StatItem stat;
 
   @override
   Widget build(BuildContext context) {
-    return _buildInfo(context);
-  }
-
-  Widget _buildStatItem(
-    String label,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
-    final palette = DashboardPalette.of(Get.context!);
+    final palette = DashboardPalette.of(context);
+    final addition = stat.monthlyAddition;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -80,40 +111,74 @@ class MediaStatsWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: palette.tileBorder),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Row(
         children: [
           Container(
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.16),
+              color: stat.color.withValues(alpha: 0.16),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(icon, size: 20, color: color),
+            child: Icon(stat.icon, size: 20, color: stat.color),
           ),
-          const SizedBox(height: 14),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w800,
-              color: palette.titleText,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label.toUpperCase(),
-            style: TextStyle(
-              fontSize: 11,
-              color: palette.mutedText,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.1,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  stat.label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: palette.mutedText,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _formatCount(stat.value),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    height: 1.15,
+                    color: palette.titleText,
+                  ),
+                ),
+                if (addition != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    '+${_formatCount(addition)} 本月新增',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w600,
+                      color: addition > 0
+                          ? palette.successAccent
+                          : palette.faintText,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  /// 千分位分隔，与 Web 端 toLocaleString 的展示一致
+  static String _formatCount(int value) {
+    final digits = value.abs().toString();
+    final buffer = StringBuffer();
+    for (var i = 0; i < digits.length; i++) {
+      final remaining = digits.length - i;
+      buffer.write(digits[i]);
+      if (remaining > 1 && remaining % 3 == 1) buffer.write(',');
+    }
+    return value < 0 ? '-$buffer' : buffer.toString();
   }
 }

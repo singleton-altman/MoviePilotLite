@@ -8,11 +8,12 @@ import 'package:moviepilot_mobile/modules/recommend/models/recommend_api_item.da
 import 'package:moviepilot_mobile/modules/recommend/widgets/recommend_item_base_card.dart';
 import 'package:moviepilot_mobile/modules/recommend/widgets/recommend_item_card.dart';
 import 'package:moviepilot_mobile/modules/search_result/controllers/search_result_controller.dart';
+import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/theme/app_theme.dart';
 import 'package:moviepilot_mobile/utils/grid_layout.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
-import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
+import 'package:moviepilot_mobile/widgets/app_loading.dart';
 import 'package:moviepilot_mobile/widgets/cached_image.dart';
 
 import '../controllers/media_search_list_controller.dart';
@@ -163,11 +164,9 @@ class MediaSearchListPage extends GetView<MediaSearchListController> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const _WarpLoading(size: 220),
-              const SizedBox(height: 18),
-              Text(
-                '正在搜索…',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              AppLoading.large(
+                message: '正在搜索…',
+                messageStyle: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Colors.white.withValues(alpha: 0.88),
                   fontWeight: FontWeight.w600,
                 ),
@@ -478,10 +477,9 @@ class MediaSearchListPage extends GetView<MediaSearchListController> {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Column(
             children: [
-              const _WarpLoading(size: 96),
-              Text(
-                '正在加载更多…',
-                style: TextStyle(
+              AppLoading.small(
+                message: '正在加载更多…',
+                messageStyle: TextStyle(
                   color: immersive ? Colors.white70 : Colors.grey,
                 ),
               ),
@@ -622,7 +620,9 @@ class MediaSearchListPage extends GetView<MediaSearchListController> {
               height: 160,
               child: (!isLoading && theme != null)
                   ? _buildPosterRow(theme.topItems)
-                  : const Center(child: _WarpLoading(size: 132)),
+                  : const Center(
+                      child: AppLoadingIndicator(size: AppLoading.sizeMedium),
+                    ),
             ),
           ),
         ),
@@ -765,150 +765,6 @@ class MediaSearchListPage extends GetView<MediaSearchListController> {
       return 'bangumi:$bangumiId';
     }
     return null;
-  }
-}
-
-class _WarpLoading extends StatefulWidget {
-  const _WarpLoading({required this.size});
-
-  final double size;
-
-  @override
-  State<_WarpLoading> createState() => _WarpLoadingState();
-}
-
-class _WarpLoadingState extends State<_WarpLoading>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1400),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox.square(
-      dimension: widget.size,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, _) {
-          return CustomPaint(
-            painter: _WarpLoadingPainter(progress: _controller.value),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _WarpLoadingPainter extends CustomPainter {
-  const _WarpLoadingPainter({required this.progress});
-
-  final double progress;
-
-  static const int _particleCount = 72;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = size.center(Offset.zero);
-    final shortest = size.shortestSide;
-    final maxRadius = shortest * 0.45;
-    final basePaint = Paint()
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke
-      ..blendMode = BlendMode.plus;
-    final glowPaint = Paint()
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8)
-      ..blendMode = BlendMode.plus;
-
-    _paintBackdrop(canvas, center, shortest);
-    _paintCore(canvas, center, shortest);
-
-    for (var i = 0; i < _particleCount; i++) {
-      final seed = i * 12.9898;
-      final angle = _pseudo(seed) * math.pi * 2;
-      final lane = _pseudo(seed + 7.31);
-      final phase = (progress + _pseudo(seed + 19.7)) % 1.0;
-      final curve = Curves.easeOutCubic.transform(phase);
-      final radius = shortest * (0.05 + lane * 0.06) + maxRadius * curve;
-      final trail = shortest * (0.035 + curve * 0.14);
-      final opacity = math.sin((1 - phase) * math.pi).clamp(0.0, 1.0);
-      final direction = Offset(math.cos(angle), math.sin(angle));
-      final start = center + direction * radius;
-      final end = center + direction * (radius + trail);
-      final hueMix = _pseudo(seed + 3.17);
-      final color = Color.lerp(
-        const Color(0xFF7DD3FC),
-        const Color(0xFFE0F2FE),
-        hueMix,
-      )!.withValues(alpha: 0.08 + opacity * 0.42);
-      final width = shortest * (0.0038 + curve * 0.0065);
-
-      glowPaint
-        ..color = color.withValues(alpha: opacity * 0.18)
-        ..strokeWidth = width * 3.2;
-      canvas.drawLine(start, end, glowPaint);
-
-      basePaint
-        ..color = color
-        ..strokeWidth = width;
-      canvas.drawLine(start, end, basePaint);
-    }
-  }
-
-  void _paintBackdrop(Canvas canvas, Offset center, double shortest) {
-    final washPaint = Paint()
-      ..shader = RadialGradient(
-        colors: [
-          const Color(0xFF1D4ED8).withValues(alpha: 0.18),
-          const Color(0xFF0F172A).withValues(alpha: 0.06),
-          Colors.transparent,
-        ],
-      ).createShader(Rect.fromCircle(center: center, radius: shortest * 0.62));
-    canvas.drawCircle(center, shortest * 0.62, washPaint);
-  }
-
-  void _paintCore(Canvas canvas, Offset center, double shortest) {
-    final pulse = math.sin(progress * math.pi * 2) * 0.5 + 0.5;
-    final coreRadius = shortest * (0.025 + pulse * 0.01);
-    final corePaint = Paint()
-      ..shader = RadialGradient(
-        colors: [
-          Colors.white.withValues(alpha: 0.7),
-          const Color(0xFF93C5FD).withValues(alpha: 0.26),
-          Colors.transparent,
-        ],
-      ).createShader(Rect.fromCircle(center: center, radius: shortest * 0.16));
-    canvas.drawCircle(center, shortest * 0.16, corePaint);
-
-    final ringPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = shortest * 0.005
-      ..color = const Color(0xFF60A5FA).withValues(alpha: 0.12 + pulse * 0.1);
-    canvas.drawCircle(center, coreRadius * 4.8, ringPaint);
-  }
-
-  double _pseudo(double value) {
-    final raw = math.sin(value) * 43758.5453123;
-    return raw - raw.floorToDouble();
-  }
-
-  @override
-  bool shouldRepaint(covariant _WarpLoadingPainter oldDelegate) {
-    return oldDelegate.progress != progress;
   }
 }
 

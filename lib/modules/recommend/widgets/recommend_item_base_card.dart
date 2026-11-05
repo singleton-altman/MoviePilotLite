@@ -15,75 +15,87 @@ class RecommendItemBaseCard extends GetView<SubscribeService> {
     super.key,
     required this.item,
     required this.child,
+    this.enableContextMenu = true,
   });
 
   final RecommendApiItem? item;
   final Widget child;
+  final bool enableContextMenu;
+
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
-      child: Obx(() {
-        final subscribeItem = controller.subscribeItems[item?.subscribeKey];
-        final isSubscribed = subscribeItem != null && subscribeItem.id != null;
-        final appService = Get.find<AppService>();
-        final menuActions = <Widget>[
-          Material(
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    item?.overview ?? '',
-                    maxLines: 4,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (_sourceLabels.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          CupertinoIcons.link,
-                          size: 14,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Wrap(
-                            spacing: 4,
-                            runSpacing: 4,
-                            children: _buildSourceSpans(context),
-                          ),
-                        ),
-                      ],
+      child: item == null || !enableContextMenu
+          ? child
+          : Obx(() {
+              final subscribeItem =
+                  controller.subscribeStatusRx(item!.subscribeKey).value;
+              final isSubscribed =
+                  subscribeItem != null && subscribeItem.id != null;
+              final appService = Get.find<AppService>();
+              final menuActions = <Widget>[
+                CupertinoContextMenuAction(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      minWidth: 220,
+                      maxWidth: 280,
+                      maxHeight: 112,
                     ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-          if (appService.canSubscribe)
-            _buildSubscribeAction(
-              context,
-              isSubscribed: isSubscribed,
-              subscribeKey: item!.subscribeKey,
-              subscribeItem: subscribeItem,
-            ),
-          if (appService.canSearch) _buildSearchAction(context),
-        ];
-        return CupertinoContextMenu.builder(
-          enableHapticFeedback: true,
-          builder: (context, menuState) {
-            return child;
-          },
-          actions: menuActions,
-        );
-      }),
+                    child: SingleChildScrollView(
+                      physics: const ClampingScrollPhysics(),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            item?.overview ?? '',
+                            maxLines: 4,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (_sourceLabels.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(
+                                  CupertinoIcons.link,
+                                  size: 14,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Wrap(
+                                    spacing: 4,
+                                    runSpacing: 4,
+                                    children: _buildSourceSpans(context),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                if (appService.canSubscribe)
+                  _buildSubscribeAction(
+                    context,
+                    isSubscribed: isSubscribed,
+                    subscribeKey: item!.subscribeKey,
+                    subscribeItem: subscribeItem,
+                  ),
+                if (appService.canSearch) _buildSearchAction(context),
+              ];
+              return CupertinoContextMenu.builder(
+                enableHapticFeedback: true,
+                builder: (context, menuState) => child,
+                actions: menuActions,
+              );
+            }),
     );
   }
 
@@ -202,7 +214,7 @@ class RecommendItemBaseCard extends GetView<SubscribeService> {
           final showEditSnack =
               ok && !isSubscribed && isTv && subscribeId != null;
           if (ok && isSubscribed) {
-            controller.subscribeItems[subscribeKey] = null;
+            controller.clearSubscribeStatus(subscribeKey);
           }
           if (ok && !isSubscribed) {
             controller.fetchAndSaveSubscribeStatus(

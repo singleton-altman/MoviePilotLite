@@ -7,6 +7,7 @@ import 'package:moviepilot_mobile/modules/login/repositories/auth_repository.dar
 import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:moviepilot_mobile/modules/media_organize/models/media_organize_models.dart';
 import 'package:moviepilot_mobile/modules/storage/controllers/storage_list_controller.dart';
+import 'package:moviepilot_mobile/modules/media_organize/services/transfer_assist_service.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -55,6 +56,46 @@ class MediaOrganizeController extends GetxController {
   final _authRepository = Get.find<AuthRepository>();
   final _appService = Get.find<AppService>();
   final String _initialKeyword;
+  late final _transferAssist = Get.isRegistered<TransferAssistService>()
+      ? Get.find<TransferAssistService>()
+      : TransferAssistService();
+  final _aiRedoSupported = false.obs;
+  final aiRedoSubmitting = false.obs;
+  String? _aiRedoServer;
+
+  bool get canAiRedo =>
+      _aiRedoSupported.value &&
+      _aiRedoServer == _apiClient.baseUrl &&
+      _appService.canManage &&
+      _appService.aiAgentEnabled.value;
+
+  Future<void> _checkAiRedoSupport() async {
+    final server = _apiClient.baseUrl;
+    _aiRedoSupported.value = false;
+    final supported = await _transferAssist.supportsAiRedo();
+    if (isClosed || server != _apiClient.baseUrl) return;
+    _aiRedoServer = server;
+    _aiRedoSupported.value = supported;
+  }
+
+  Future<({bool ok, String message})> aiRedoTransfer(
+    MediaOrganizeTransferItem item,
+  ) async {
+    if (!canAiRedo || item.id == null || item.id! <= 0) {
+      return (ok: false, message: '当前服务器或帐号不支持 AI 重新整理');
+    }
+    if (aiRedoSubmitting.value) {
+      return (ok: false, message: '正在提交，请勿重复操作');
+    }
+    aiRedoSubmitting.value = true;
+    try {
+      final result = await _transferAssist.aiRedoTransfer([item.id!]);
+      // Do not automatically retry a file-changing POST or imply completion.
+      return (ok: result.ok, message: result.message);
+    } finally {
+      aiRedoSubmitting.value = false;
+    }
+  }
 
   static const int _pageSize = 50;
   static const String _cacheKeyPrefix = 'media_organize_cache_v1';
@@ -344,6 +385,7 @@ class MediaOrganizeController extends GetxController {
   }
 
   Future<void> load() async {
+    unawaited(_checkAiRedoSupport());
     await _refreshImageCookie();
     final hasLocalData = items.isNotEmpty;
     clearSelection();

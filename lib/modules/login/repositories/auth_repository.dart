@@ -2,30 +2,104 @@ import 'dart:convert';
 import 'dart:async';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:get/get.dart' hide Response;
 import 'package:hive_ce/hive.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:altman_totp/services/totp_service.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:moviepilot_mobile/modules/profile/models/user_info.dart';
 import 'package:moviepilot_mobile/modules/profile/models/user_global_config.dart';
+import 'package:moviepilot_mobile/modules/agent/controllers/agent_controller.dart';
 import 'package:moviepilot_mobile/modules/site/controllers/site_controller.dart';
 import 'package:moviepilot_mobile/modules/system_message/controllers/system_message_controller.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/services/ios_shared_session_service.dart';
+import 'package:moviepilot_mobile/services/server_api_version_service.dart';
 import '../../../services/api_client.dart';
 import '../../../services/hive_service.dart';
-import '../../../utils/prefs_keys.dart';
 import '../models/login_profile.dart';
 import '../models/login_response.dart';
+
+/// 服务端要求二次验证：密码校验通过后需携带动态验证码（otp_password）重试登录。
+class MfaRequiredException implements Exception {
+  MfaRequiredException({required this.mfaMethods, this.message});
+
+  /// 服务端声明的二次验证方式，原样保留以备后续扩展（当前仅支持 otp）。
+  final List<String> mfaMethods;
+  final String? message;
+
+  @override
+  String toString() => message ?? '需要二次验证';
+}
+
+/// 登录凭据错误：保留服务端返回的错误信息用于展示。
+class LoginCredentialException implements Exception {
+  LoginCredentialException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
 
 class AuthRepository extends GetxService {
   final _talker = Get.find<AppLog>();
   final _api = Get.find<ApiClient>();
   final _appService = Get.find<AppService>();
   final _iosSharedSessionService = Get.find<IosSharedSessionService>();
+  ServerApiVersionService get _serverApiVersionService =>
+      Get.find<ServerApiVersionService>();
 
   Box<LoginProfile> get _loginBox => Get.find<HiveService>().loginProfileBox;
+
+  TotpService get _totpService => Get.find<TotpService>();
+
+  @override
+  void onInit() {
+    super.onInit();
+    _api.setAuthRecoveryHandler(_attemptSilentRelogin);
+  }
+
+  /// 服务器连通性探测（GET /api/v1/system/ping，短超时）。
+  Future<bool> probeServerConnectivity({
+    required String server,
+    String? accessToken,
+  }) {
+    return _api.probeConnectivity(server: server, accessToken: accessToken);
+  }
+
+  /// 401/403 后用最近一次使用的账号档案静默重登；成功返回 true，会话无缝续期。
+  Future<bool> _attemptSilentRelogin() async {
+    try {
+      final profiles = _loginBox.values.toList()
+        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      if (profiles.isEmpty) {
+        _talker.warning('静默重登失败: 无已保存的账号');
+        return false;
+      }
+      final profile = profiles.first;
+      final server = _normalizeServer(profile.server);
+      final username = profile.username.trim();
+      final password = profile.password;
+      if (server.isEmpty || username.isEmpty || password.isEmpty) {
+        _talker.warning('静默重登失败: 账号档案缺少服务器地址或密码');
+        return false;
+      }
+      final otpPassword = Get.isRegistered<TotpService>()
+          ? (_totpService.generateCurrentCode(server, username) ?? '')
+          : '';
+      _talker.info('尝试静默重登: $username @ $server');
+      await login(
+        server: server,
+        username: username,
+        password: password,
+        otpPassword: otpPassword,
+      );
+      return true;
+    } catch (e) {
+      _talker.warning('静默重登失败: $e');
+      return false;
+    }
+  }
 
   void _syncSystemMessagePolling() {
     if (_appService.isSuperuser) {
@@ -43,18 +117,15 @@ class AuthRepository extends GetxService {
     required String password,
     String otpPassword = '',
   }) async {
-    final normalizedServer = _normalizeServer(server);
-
-    // 每次登录前根据用户输入的服务器地址配置 API 客户端
-    _api.setBaseUrl(normalizedServer);
-    _talker.info('开始登录: $username @ $normalizedServer');
-
-    final response = await _api.postForm<Map<String, dynamic>>(
-      '/api/v1/login/access-token',
-      {'username': username, 'password': password, 'otp_password': otpPassword},
+    final login = await requestLoginToken(
+      server: server,
+      username: username,
+      password: password,
+      otpPassword: otpPassword,
     );
-    final login = LoginResponse.fromJson(response.data!);
+    final normalizedServer = _normalizeServer(server);
     _talker.info('登录成功: $username');
+    _serverApiVersionService.reset();
     // 登录成功后，后续请求统一携带 Token
     _api.setToken(login.accessToken);
 
@@ -78,6 +149,94 @@ class AuthRepository extends GetxService {
     _syncSystemMessagePolling();
 
     return login;
+  }
+
+  /// 请求登录令牌。服务端要求二次验证时抛 [MfaRequiredException]，
+  /// 携带验证码重试即可；其余 401 归一为 [LoginCredentialException]，
+  /// 网络等其他错误原样抛出。登录请求自身跳过全局 401 处置，避免误触发静默重登。
+  Future<LoginResponse> requestLoginToken({
+    required String server,
+    required String username,
+    required String password,
+    String otpPassword = '',
+  }) async {
+    final normalizedServer = _normalizeServer(server);
+
+    // 每次登录前根据用户输入的服务器地址配置 API 客户端
+    _api.setBaseUrl(normalizedServer);
+    _talker.info('开始登录: $username @ $normalizedServer');
+
+    try {
+      final response = await _api.postForm<Map<String, dynamic>>(
+        '/api/v1/login/access-token',
+        {
+          'username': username,
+          'password': password,
+          'otp_password': otpPassword,
+        },
+        skipUnauthorizedHandling: true,
+      );
+      // Web 端非 2xx 不抛 DioException，这里统一补一次挑战识别
+      final challenge = parseMfaChallenge(response);
+      if (challenge != null) throw challenge;
+      if (response.statusCode == 401) {
+        throw LoginCredentialException(_serverErrorMessage(response));
+      }
+      return LoginResponse.fromJson(response.data!);
+    } on DioException catch (e) {
+      if (e.response?.statusCode != 401) rethrow;
+      final challenge = parseMfaChallenge(e.response);
+      if (challenge != null) throw challenge;
+      throw LoginCredentialException(_serverErrorMessage(e.response));
+    }
+  }
+
+  /// 从 401 响应识别 MFA challenge：响应头 X-MFA-Required: true（不区分大小写），
+  /// 或响应体携带非空 mfa_methods（v3 在信封 data 内，v2 在顶层）。无标记返回 null。
+  static MfaRequiredException? parseMfaChallenge(Response<dynamic>? response) {
+    if (response?.statusCode != 401) return null;
+    var headerMarked = false;
+    response!.headers.map.forEach((key, value) {
+      if (key.toLowerCase() == 'x-mfa-required' &&
+          value.join(',').trim().toLowerCase() == 'true') {
+        headerMarked = true;
+      }
+    });
+    var methods = const <String>[];
+    String? message;
+    final body = _decodeBody(response.data);
+    if (body is Map) {
+      final data = body['data'];
+      final challengeMap = data is Map ? data : body;
+      final raw = challengeMap['mfa_methods'];
+      if (raw is List) {
+        methods = raw.whereType<String>().toList();
+      }
+      final rawMessage = body['message'] ?? body['detail'];
+      if (rawMessage != null) message = rawMessage.toString();
+    }
+    if (!headerMarked && methods.isEmpty) return null;
+    return MfaRequiredException(mfaMethods: methods, message: message);
+  }
+
+  static String _serverErrorMessage(Response<dynamic>? response) {
+    final body = _decodeBody(response?.data);
+    if (body is Map) {
+      final message = body['message'] ?? body['detail'];
+      if (message is String && message.trim().isNotEmpty) return message;
+    }
+    return '用户名或密码错误';
+  }
+
+  static dynamic _decodeBody(dynamic data) {
+    if (data is String) {
+      try {
+        return jsonDecode(data);
+      } catch (_) {
+        return null;
+      }
+    }
+    return data;
   }
 
   /// 更新用户信息
@@ -140,6 +299,7 @@ class AuthRepository extends GetxService {
       final userLookupKey = normalizedUserName.isNotEmpty
           ? normalizedUserName
           : normalizedLoginName;
+      _serverApiVersionService.reset();
       _appService.restoreSessionFromProfile(profile);
       _api.setBaseUrl(normalizedServer);
       _api.setToken(profile.accessToken);
@@ -158,6 +318,10 @@ class AuthRepository extends GetxService {
       unawaited(_warmSiteWidgetData());
 
       _talker.info('开始获取用户全局配置: $normalizedServer');
+      await getUserGlobalConfig(
+        server: normalizedServer,
+        accessToken: profile.accessToken,
+      );
       return true;
       // final response = await _api.get<Map<String, dynamic>>(
       //   '/api/v1/system/global/user',
@@ -186,9 +350,61 @@ class AuthRepository extends GetxService {
 
   void restoreLocalSession({required LoginProfile profile}) {
     final normalizedServer = _normalizeServer(profile.server);
+    _serverApiVersionService.reset();
     _appService.restoreSessionFromProfile(profile);
     _api.setBaseUrl(normalizedServer);
     _api.setToken(profile.accessToken);
+  }
+
+  /// 激活已保存的登录档案，并完整切换服务端会话。
+  Future<void> switchProfile(LoginProfile profile) async {
+    final normalizedServer = _normalizeServer(profile.server);
+    if (normalizedServer.isEmpty || profile.accessToken.isEmpty) {
+      throw StateError('登录档案缺少有效的服务器地址或访问令牌');
+    }
+
+    if (Get.isRegistered<AgentController>()) {
+      await Get.find<AgentController>().clearForLogout();
+    }
+    if (Get.isRegistered<SystemMessageController>()) {
+      Get.find<SystemMessageController>().clearForLogout();
+    }
+
+    // Cookie 与 baseUrl 都是会话的一部分，切换前必须一并清理旧会话。
+    await _api.clearSessionCookies();
+    _api.setToken('');
+    _appService.clearCookie();
+    _serverApiVersionService.reset();
+    _appService.restoreSessionFromProfile(profile);
+    _api.setBaseUrl(normalizedServer);
+    _api.setToken(profile.accessToken);
+
+    profile.updatedAt = DateTime.now();
+    await _loginBox.put(profile.id, profile);
+
+    await _iosSharedSessionService.syncSession(
+      server: normalizedServer,
+      accessToken: profile.accessToken,
+    );
+    await getUserGlobalConfig(
+      server: normalizedServer,
+      accessToken: profile.accessToken,
+    );
+
+    final role = profile.userName.trim().isNotEmpty
+        ? profile.userName.trim()
+        : profile.username.trim();
+    final userInfo = await getUserInfoByRole(role: role);
+    if (userInfo == null) {
+      throw StateError('切换账号失败：无法获取当前账号信息');
+    }
+
+    if (Get.isRegistered<SiteController>()) {
+      Get.delete<SiteController>(force: true);
+    }
+    await _iosSharedSessionService.reloadWidgets();
+    _syncSystemMessagePolling();
+    unawaited(_warmSiteWidgetData());
   }
 
   Future<void> _warmSiteWidgetData() async {
@@ -223,6 +439,9 @@ class AuthRepository extends GetxService {
         return null;
       }
 
+      if (data['success'] == true) {
+        _appService.applyUserGlobalConfig(data['data']);
+      }
       final configResponse = UserGlobalConfigResponse.fromJson(data);
       if (!configResponse.success) {
         _talker.warning(

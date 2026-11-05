@@ -203,9 +203,7 @@ _$ActorImpl _$$ActorImplFromJson(Map<String, dynamic> json) => _$ActorImpl(
   credit_id: json['credit_id'] as String?,
   order: _intFromJson(json['order']),
   avatar: _actorAvatarFromJson(json['avatar']),
-  images: json['images'] == null
-      ? null
-      : ActorImages.fromJson(json['images'] as Map<String, dynamic>),
+  images: _actorImagesFromJson(json['images']),
   sharing_url: json['sharing_url'] as String?,
 );
 
@@ -224,19 +222,14 @@ Map<String, dynamic> _$$ActorImplToJson(_$ActorImpl instance) =>
       'credit_id': instance.credit_id,
       'order': instance.order,
       'avatar': _actorAvatarToJson(instance.avatar),
-      'images': instance.images,
+      'images': _actorImagesToJson(instance.images),
       'sharing_url': instance.sharing_url,
     };
 
-_$ActorImagesImpl _$$ActorImagesImplFromJson(Map<String, dynamic> json) =>
-    _$ActorImagesImpl(
-      large: json['large'] == null
-          ? null
-          : ActorImage.fromJson(json['large'] as Map<String, dynamic>),
-      normal: json['normal'] == null
-          ? null
-          : ActorImage.fromJson(json['normal'] as Map<String, dynamic>),
-    );
+_$ActorImagesImpl _$$ActorImagesImplFromJson(Map<String, dynamic> json) {
+  final parsed = _actorImagesFromJson(json);
+  return _$ActorImagesImpl(large: parsed?.large, normal: parsed?.normal);
+}
 
 Map<String, dynamic> _$$ActorImagesImplToJson(_$ActorImagesImpl instance) =>
     <String, dynamic>{'large': instance.large, 'normal': instance.normal};

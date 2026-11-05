@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:altman_totp/services/totp_service.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
+import 'package:moviepilot_mobile/services/server_api_version_service.dart';
 
 import '../modules/login/controllers/login_controller.dart';
 import '../modules/login/repositories/auth_repository.dart';
@@ -15,6 +16,7 @@ class AppBinding extends Bindings {
     Get.put(AppLog(), permanent: true);
     Get.put(AppService(), permanent: true);
     Get.put(TotpService(), permanent: true);
+    Get.put(ServerApiVersionService(), permanent: true);
     Get.put(AuthRepository(), permanent: true);
     Get.put(LoginController(), permanent: true);
     Get.put(MediaDetailService(), permanent: true);

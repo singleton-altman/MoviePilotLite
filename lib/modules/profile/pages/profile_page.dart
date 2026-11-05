@@ -8,12 +8,25 @@ import 'package:moviepilot_mobile/gen/assets.gen.dart';
 import 'package:moviepilot_mobile/modules/login/models/login_profile.dart';
 import 'package:moviepilot_mobile/modules/profile/models/user_info.dart';
 import 'package:moviepilot_mobile/theme/section.dart';
+import 'package:moviepilot_mobile/utils/toast_util.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../controllers/profile_controller.dart';
 
 class ProfilePage extends GetView<ProfileController> {
   const ProfilePage({super.key});
+
+  /// 点击头像：从相册选择并上传（POST /api/v1/user/avatar/{user_id}）。
+  Future<void> _pickAvatar() async {
+    ToastUtil.loading(message: '正在上传头像…');
+    final error = await controller.pickAndUploadAvatar();
+    ToastUtil.dismiss();
+    if (error == null) {
+      ToastUtil.success('头像已更新');
+    } else if (error.isNotEmpty) {
+      ToastUtil.error(error);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,6 +85,15 @@ class ProfilePage extends GetView<ProfileController> {
                   child: _buildLogoutButton(context),
                 ),
               ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: _buildSwitchAccountButton(context),
+                ),
+              ),
               SliverToBoxAdapter(child: SizedBox(height: 24)),
             ],
           );
@@ -111,7 +133,34 @@ class ProfilePage extends GetView<ProfileController> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            _buildAvatar(userInfo?.avatar ?? profile.avatar),
+            GestureDetector(
+              onTap: _pickAvatar,
+              child: Stack(
+                children: [
+                  _buildAvatar(userInfo?.avatar ?? profile.avatar),
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.surface,
+                          width: 2,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.photo_camera_rounded,
+                        size: 11,
+                        color: Theme.of(context).colorScheme.onPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -219,10 +268,27 @@ class ProfilePage extends GetView<ProfileController> {
             value: 'Level ${profile.level}',
           ),
           const Divider(height: 20),
-          _buildInfoRow(
-            icon: CupertinoIcons.lock_shield,
-            label: '二步验证',
-            value: (userInfo?.isOtp == true) ? '已开启' : '未开启',
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => Get.toNamed('/mfa-settings'),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildInfoRow(
+                    icon: CupertinoIcons.lock_shield,
+                    label: '二步验证',
+                    value: (userInfo?.isOtp == true) ? '已开启' : '未开启',
+                  ),
+                ),
+                Icon(
+                  CupertinoIcons.chevron_right,
+                  size: 16,
+                  color: Theme.of(Get.context!)
+                      .colorScheme
+                      .onSurfaceVariant,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -403,6 +469,315 @@ class ProfilePage extends GetView<ProfileController> {
         child: const Text(
           '退出登录',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSwitchAccountButton(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () => _showAccountSwitcher(context),
+        icon: const Icon(Icons.switch_account_rounded),
+        label: const Text('切换账号'),
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size.fromHeight(52),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showAccountSwitcher(BuildContext context) async {
+    try {
+      await controller.loadAvailableProfiles();
+    } catch (_) {
+      ToastUtil.error('加载已保存账号失败，请稍后重试');
+      return;
+    }
+    if (!context.mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.45),
+      builder: (sheetContext) => Material(
+        color: Theme.of(sheetContext).colorScheme.surface,
+        clipBehavior: Clip.antiAlias,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.76,
+          ),
+          child: Obx(() {
+            final profiles = controller.availableProfiles;
+            final colorScheme = Theme.of(sheetContext).colorScheme;
+            return Column(
+              children: [
+                _buildSheetHandle(colorScheme),
+                _buildAccountSheetHeader(sheetContext),
+                Divider(
+                  height: 1,
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.6),
+                ),
+                Expanded(
+                  child: ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+                    itemCount: profiles.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (_, index) {
+                      final profile = profiles[index];
+                      final selected =
+                          profile.id == controller.currentProfile.value?.id;
+                      return _buildAccountOption(
+                        sheetContext,
+                        profile,
+                        selected,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          }),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSheetHandle(ColorScheme colorScheme) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12, bottom: 4),
+      child: Container(
+        width: 36,
+        height: 5,
+        decoration: BoxDecoration(
+          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.35),
+          borderRadius: BorderRadius.circular(999),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccountSheetHeader(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 12, 16),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              Icons.switch_account_rounded,
+              color: colorScheme.onPrimaryContainer,
+              size: 23,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '切换账号',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '服务器地址会随账号一起切换',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: '关闭',
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.close_rounded),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAccountOption(
+    BuildContext context,
+    LoginProfile profile,
+    bool selected,
+  ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final title = profile.username.trim().isEmpty ? '未命名账号' : profile.username;
+    final server = profile.server.trim().isEmpty ? '未设置服务器' : profile.server;
+
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '$title，服务器 $server${selected ? '，当前账号' : ''}',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: selected
+              ? null
+              : () async {
+                  Navigator.of(context).pop();
+                  ToastUtil.loading(message: '正在切换到 $title');
+                  final success = await controller.switchAccount(profile);
+                  ToastUtil.dismiss();
+                  if (!success) {
+                    ToastUtil.error('切换账号失败，请稍后重试');
+                    return;
+                  }
+                  if (context.mounted) {
+                    Get.offAllNamed('/main');
+                  }
+                },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            constraints: const BoxConstraints(minHeight: 76),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: selected
+                  ? colorScheme.primaryContainer.withValues(alpha: 0.55)
+                  : colorScheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: selected
+                    ? colorScheme.primary.withValues(alpha: 0.75)
+                    : colorScheme.outlineVariant.withValues(alpha: 0.7),
+                width: selected ? 1.5 : 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                _buildProfileInitial(context, title, selected),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          if (selected) ...[
+                            const SizedBox(width: 8),
+                            _buildCurrentBadge(context),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 5),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.dns_outlined,
+                            size: 16,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Text(
+                              server,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  selected
+                      ? Icons.check_circle_rounded
+                      : Icons.chevron_right_rounded,
+                  color: selected
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
+                  size: selected ? 25 : 22,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileInitial(
+    BuildContext context,
+    String title,
+    bool selected,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      width: 48,
+      height: 48,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: selected
+              ? [colorScheme.primary, colorScheme.tertiary]
+              : [colorScheme.secondaryContainer, colorScheme.tertiaryContainer],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Text(
+        title.characters.first.toUpperCase(),
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          color: selected
+              ? colorScheme.onPrimary
+              : colorScheme.onSecondaryContainer,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCurrentBadge(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: colorScheme.primary,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        '当前',
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: colorScheme.onPrimary,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );

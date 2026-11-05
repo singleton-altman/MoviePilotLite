@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -5,6 +7,7 @@ import 'package:moviepilot_mobile/modules/download/controllers/download_controll
 import 'package:moviepilot_mobile/modules/downloader/models/downloader_stats.dart';
 import 'package:moviepilot_mobile/modules/search_result/models/search_result_models.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
+import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/utils/size_formatter.dart';
 import 'package:moviepilot_mobile/widgets/bottom_sheet.dart';
 
@@ -300,6 +303,16 @@ class DownloadSheet extends GetView<DownloadController> {
             ),
           ),
           _buildDirectorySelector(context),
+          DownloadPathPicker(
+            apiClient: Get.find<ApiClient>(),
+            selectedPath: controller.selectedDirectory,
+            onSelected: controller.setDirectory,
+            requestScope: () => controller.directoryPreferenceScope,
+            onPathsLoaded: (paths, scope) => controller.setAvailableDownloadPaths(
+              paths.map((path) => path.savePath),
+              scope: scope,
+            ),
+          ),
         ],
       ),
     );
@@ -836,5 +849,151 @@ class DownloadSheet extends GetView<DownloadController> {
       parts.add('上传 ${(uploadFactor * 100).round()}%');
     }
     return parts.join('  /  ');
+  }
+}
+
+/// A server-provided save_path is opaque: preserve storage URI and directory name.
+class DownloadPathOption {
+  const DownloadPathOption({required this.label, required this.savePath});
+  final String label;
+  final String savePath;
+
+  static List<DownloadPathOption> parse(dynamic raw) {
+    dynamic data = raw is String ? jsonDecode(raw) : raw;
+    if (data is Map) {
+      if (data['success'] == false) throw StateError('获取下载路径失败');
+      data = data['data'];
+    }
+    if (data is! List) throw const FormatException('下载路径响应无效');
+    final seen = <String>{};
+    final result = <DownloadPathOption>[];
+    for (final entry in data.whereType<Map>()) {
+      var path = entry['save_path'];
+      final storage = entry['storage'];
+      if ((path is! String || path.trim().isEmpty) &&
+          (storage == null || storage == 'local')) {
+        path = entry['download_path'];
+      }
+      if (path is! String || path.trim().isEmpty || !seen.add(path)) continue;
+      final name = entry['name'];
+      result.add(
+        DownloadPathOption(
+          label: name is String && name.trim().isNotEmpty ? name : path,
+          savePath: path,
+        ),
+      );
+    }
+    return List.unmodifiable(result);
+  }
+}
+
+class DownloadPathService {
+  DownloadPathService(this.apiClient);
+  final ApiClient apiClient;
+
+  Future<List<DownloadPathOption>> load() async {
+    final response = await apiClient.get<dynamic>('/api/v1/download/paths');
+    if (response.statusCode != 200) {
+      throw ApiHttpException(response.statusCode ?? 0, '获取下载路径失败');
+    }
+    return DownloadPathOption.parse(response.data);
+  }
+}
+
+/// Optional picker: never changes automatic matching or existing selections on load.
+class DownloadPathPicker extends StatefulWidget {
+  const DownloadPathPicker({
+    super.key,
+    required this.apiClient,
+    required this.selectedPath,
+    required this.onSelected,
+    this.requestScope,
+    this.onPathsLoaded,
+  });
+
+  final ApiClient apiClient;
+  final RxString selectedPath;
+  final ValueChanged<String> onSelected;
+
+  /// 当前服务器/用户作用域,加载前捕获,避免切服后旧响应污染新作用域。
+  final String Function()? requestScope;
+
+  /// 仅在 /download/paths 成功返回后回调,控制器据此恢复远程目录。
+  final void Function(List<DownloadPathOption> paths, String scope)?
+  onPathsLoaded;
+
+  @override
+  State<DownloadPathPicker> createState() => _DownloadPathPickerState();
+}
+
+class _DownloadPathPickerState extends State<DownloadPathPicker> {
+  List<DownloadPathOption> _paths = const [];
+  bool _loading = true;
+  bool _failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _failed = false;
+    });
+    final scope = widget.requestScope?.call() ?? '';
+    try {
+      final paths = await DownloadPathService(widget.apiClient).load();
+      if (!mounted) return;
+      setState(() => _paths = paths);
+      widget.onPathsLoaded?.call(paths, scope);
+    } catch (_) {
+      if (mounted) setState(() => _failed = true);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 8),
+        child: LinearProgressIndicator(),
+      );
+    }
+    if (_failed) {
+      return Row(
+        children: [
+          const Expanded(child: Text('可用路径加载失败，可继续自动匹配或使用上方目录')),
+          TextButton(onPressed: _load, child: const Text('重试')),
+        ],
+      );
+    }
+    if (_paths.isEmpty) return const SizedBox.shrink();
+    return Obx(() {
+      final selected = widget.selectedPath.value;
+      return Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: _paths
+              .map(
+                (path) => Tooltip(
+                  message: path.savePath,
+                  child: ChoiceChip(
+                    label: Text(path.label),
+                    selected: selected == path.savePath,
+                    onSelected: (value) =>
+                        widget.onSelected(value ? path.savePath : ''),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      );
+    });
   }
 }

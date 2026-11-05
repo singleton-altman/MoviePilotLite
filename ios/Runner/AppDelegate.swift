@@ -14,9 +14,11 @@ private enum SharedSessionConfig {
 private let appWidgetLog = Logger(subsystem: "com.altman.moviepilot", category: "app_widget_route")
 
 @main
-@objc class AppDelegate: FlutterAppDelegate {
+@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   private let widgetRouteChannelName = "org.moviepilot/widget_navigation"
   private var pendingWidgetRoute: String?
+  private var widgetRouteChannel: FlutterMethodChannel?
+  private let sceneLifecycle = MoviePilotSceneLifecycle()
 
   override func application(
     _ application: UIApplication,
@@ -25,61 +27,112 @@ private let appWidgetLog = Logger(subsystem: "com.altman.moviepilot", category: 
     if let url = launchOptions?[.url] as? URL {
       pendingWidgetRoute = widgetRoute(from: url)
     }
-    GeneratedPluginRegistrant.register(with: self)
-    if let controller = window?.rootViewController as? FlutterViewController {
-      let channel = FlutterMethodChannel(
-        name: "org.moviepilot/ios_shared_session",
-        binaryMessenger: controller.binaryMessenger
-      )
-      channel.setMethodCallHandler { call, result in
-        switch call.method {
-        case "saveSharedSession":
-          guard
-            let arguments = call.arguments as? [String: Any],
-            let server = arguments["server"] as? String,
-            let accessToken = arguments["accessToken"] as? String
-          else {
-            result(FlutterError(code: "bad_args", message: "Missing session arguments", details: nil))
-            return
-          }
-          self.saveSharedSession(server: server, accessToken: accessToken)
-          result(nil)
-        case "clearSharedSession":
-          self.clearSharedSession()
-          result(nil)
-        case "saveSiteWidgetPayload":
-          guard
-            let arguments = call.arguments as? [String: Any],
-            let payload = arguments["payload"] as? String
-          else {
-            result(FlutterError(code: "bad_args", message: "Missing site widget payload", details: nil))
-            return
-          }
-          self.saveSiteWidgetPayload(payload)
-          result(nil)
-        case "reloadWidgets":
-          WidgetCenter.shared.reloadAllTimelines()
-          result(nil)
-        default:
-          result(FlutterMethodNotImplemented)
-        }
-      }
+    if pendingWidgetRoute == nil,
+      let userInfo = launchOptions?[.remoteNotification] as? [AnyHashable: Any]
+    {
+      pendingWidgetRoute = appRoute(fromNotificationUserInfo: userInfo)
+    }
+    self.registrar(forPlugin: "MoviePilotSceneLifecycle")?.addSceneDelegate(sceneLifecycle)
+    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
 
-      let widgetRouteChannel = FlutterMethodChannel(
-        name: widgetRouteChannelName,
-        binaryMessenger: controller.binaryMessenger
-      )
-      widgetRouteChannel.setMethodCallHandler { call, result in
-        switch call.method {
-        case "getPendingWidgetRoute":
-          result(self.pendingWidgetRoute)
-          self.pendingWidgetRoute = nil
-        default:
-          result(FlutterMethodNotImplemented)
+  func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
+    GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    let messenger = engineBridge.applicationRegistrar.messenger()
+
+    let appIconChannel = FlutterMethodChannel(
+      name: "org.moviepilot/app_icon",
+      binaryMessenger: messenger
+    )
+    appIconChannel.setMethodCallHandler { call, result in
+      guard call.method == "setAppIcon",
+        let arguments = call.arguments as? [String: Any],
+        let iconId = arguments["iconId"] as? String
+      else {
+        result(false)
+        return
+      }
+      self.setAlternateAppIcon(iconId: iconId, result: result)
+    }
+
+    let channel = FlutterMethodChannel(
+      name: "org.moviepilot/ios_shared_session",
+      binaryMessenger: messenger
+    )
+    channel.setMethodCallHandler { call, result in
+      switch call.method {
+      case "saveSharedSession":
+        guard
+          let arguments = call.arguments as? [String: Any],
+          let server = arguments["server"] as? String,
+          let accessToken = arguments["accessToken"] as? String
+        else {
+          result(
+            FlutterError(code: "bad_args", message: "Missing session arguments", details: nil))
+          return
         }
+        self.saveSharedSession(server: server, accessToken: accessToken)
+        result(nil)
+      case "clearSharedSession":
+        self.clearSharedSession()
+        result(nil)
+      case "saveSiteWidgetPayload":
+        guard
+          let arguments = call.arguments as? [String: Any],
+          let payload = arguments["payload"] as? String
+        else {
+          result(
+            FlutterError(code: "bad_args", message: "Missing site widget payload", details: nil))
+          return
+        }
+        self.saveSiteWidgetPayload(payload)
+        result(nil)
+      case "reloadWidgets":
+        WidgetCenter.shared.reloadAllTimelines()
+        result(nil)
+      default:
+        result(FlutterMethodNotImplemented)
       }
     }
-    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+
+    let widgetRouteChannel = FlutterMethodChannel(
+      name: widgetRouteChannelName,
+      binaryMessenger: messenger
+    )
+    widgetRouteChannel.setMethodCallHandler { call, result in
+      switch call.method {
+      case "getPendingWidgetRoute":
+        result(self.pendingWidgetRoute)
+        self.pendingWidgetRoute = nil
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+    self.widgetRouteChannel = widgetRouteChannel
+  }
+
+  private func setAlternateAppIcon(iconId: String, result: @escaping FlutterResult) {
+    guard UIApplication.shared.supportsAlternateIcons else {
+      result(false)
+      return
+    }
+    let iconName: String?
+    switch iconId {
+    case "default": iconName = nil
+    case "midnight": iconName = "IconMidnight"
+    case "sunset": iconName = "IconSunset"
+    case "mint": iconName = "IconMint"
+    case "neon": iconName = "IconNeon"
+    case "aurora": iconName = "IconAurora"
+    case "sunset_pop": iconName = "IconSunsetPop"
+    case "mono": iconName = "IconMono"
+    default:
+      result(false)
+      return
+    }
+    UIApplication.shared.setAlternateIconName(iconName) { error in
+      result(error == nil)
+    }
   }
 
   override func application(
@@ -138,6 +191,7 @@ private let appWidgetLog = Logger(subsystem: "com.altman.moviepilot", category: 
     didReceive response: UNNotificationResponse,
     withCompletionHandler completionHandler: @escaping () -> Void
   ) {
+    handleNotificationRoute(response.notification.request.content.userInfo)
     MPJPushHandleRemoteNotification(response.notification.request.content.userInfo)
     completionHandler()
   }
@@ -163,17 +217,123 @@ private let appWidgetLog = Logger(subsystem: "com.altman.moviepilot", category: 
     WidgetCenter.shared.reloadAllTimelines()
   }
 
-  private func handleWidgetRoute(_ url: URL) {
+  fileprivate func handleWidgetRoute(_ url: URL) {
     appWidgetLog.info("received widget url=\(url.absoluteString, privacy: .public)")
     guard let route = widgetRoute(from: url) else { return }
-    appWidgetLog.info("resolved widget route=\(route, privacy: .public)")
+    openAppRoute(route)
+  }
+
+  private func handleNotificationRoute(_ userInfo: [AnyHashable: Any]) {
+    guard let route = appRoute(fromNotificationUserInfo: userInfo) else { return }
+    appWidgetLog.info("resolved notification route=\(route, privacy: .public)")
+    openAppRoute(route)
+  }
+
+  private func openAppRoute(_ route: String) {
+    appWidgetLog.info("resolved app route=\(route, privacy: .public)")
     pendingWidgetRoute = route
-    guard let controller = window?.rootViewController as? FlutterViewController else { return }
-    let channel = FlutterMethodChannel(
-      name: widgetRouteChannelName,
-      binaryMessenger: controller.binaryMessenger
-    )
-    channel.invokeMethod("openWidgetRoute", arguments: route)
+    widgetRouteChannel?.invokeMethod("openWidgetRoute", arguments: route)
+  }
+
+  private func appRoute(fromNotificationUserInfo userInfo: [AnyHashable: Any]) -> String? {
+    if let route = firstMoviePilotRoute(in: userInfo) {
+      return route
+    }
+    if hasSystemMessageHint(in: userInfo) {
+      return "moviepilot://system-message"
+    }
+    return nil
+  }
+
+  private func firstMoviePilotRoute(in value: Any) -> String? {
+    if let string = value as? String {
+      let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+      if trimmed.lowercased().hasPrefix("moviepilot://"),
+        let url = URL(string: trimmed)
+      {
+        return widgetRoute(from: url)
+      }
+      if let data = trimmed.data(using: .utf8),
+        let json = try? JSONSerialization.jsonObject(with: data)
+      {
+        return firstMoviePilotRoute(in: json)
+      }
+      return nil
+    }
+    if let map = value as? [AnyHashable: Any] {
+      for nested in map.values {
+        if let route = firstMoviePilotRoute(in: nested) {
+          return route
+        }
+      }
+      return nil
+    }
+    if let map = value as? [String: Any] {
+      for nested in map.values {
+        if let route = firstMoviePilotRoute(in: nested) {
+          return route
+        }
+      }
+      return nil
+    }
+    if let list = value as? [Any] {
+      for nested in list {
+        if let route = firstMoviePilotRoute(in: nested) {
+          return route
+        }
+      }
+    }
+    return nil
+  }
+
+  private func hasSystemMessageHint(in value: Any) -> Bool {
+    let keys: Set<String> = ["page", "open_page", "target_page", "type", "route"]
+    let values: Set<String> = [
+      "system_message", "system-message", "systemmessage", "/system-message",
+    ]
+
+    if let string = value as? String {
+      let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+      if let data = trimmed.data(using: .utf8),
+        let json = try? JSONSerialization.jsonObject(with: data)
+      {
+        return hasSystemMessageHint(in: json)
+      }
+      return values.contains(trimmed.lowercased())
+    }
+    if let map = value as? [AnyHashable: Any] {
+      for (rawKey, nested) in map {
+        let key = String(describing: rawKey).lowercased()
+        if keys.contains(key), let string = nested as? String {
+          let value = string.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+          if values.contains(value) {
+            return true
+          }
+        }
+        if hasSystemMessageHint(in: nested) {
+          return true
+        }
+      }
+      return false
+    }
+    if let map = value as? [String: Any] {
+      for (key, nested) in map {
+        if keys.contains(key.lowercased()), let string = nested as? String {
+          let value = string.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+          if values.contains(value) {
+            return true
+          }
+        }
+        if hasSystemMessageHint(in: nested) {
+          return true
+        }
+      }
+      return false
+    }
+    if let list = value as? [Any] {
+      return list.contains { hasSystemMessageHint(in: $0) }
+    }
+    return false
   }
 
   private func widgetRoute(from url: URL) -> String? {
@@ -202,5 +362,23 @@ private let appWidgetLog = Logger(subsystem: "com.altman.moviepilot", category: 
       return "moviepilot://system-message"
     }
     return nil
+  }
+}
+
+private class MoviePilotSceneLifecycle: NSObject, FlutterSceneLifeCycleDelegate {
+  func scene(
+    _ scene: UIScene,
+    willConnectTo session: UISceneSession,
+    options connectionOptions: UIScene.ConnectionOptions?
+  ) -> Bool {
+    guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else { return false }
+    connectionOptions?.urlContexts.forEach { appDelegate.handleWidgetRoute($0.url) }
+    return false
+  }
+
+  func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) -> Bool {
+    guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else { return false }
+    URLContexts.forEach { appDelegate.handleWidgetRoute($0.url) }
+    return false
   }
 }

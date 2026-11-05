@@ -1,0 +1,7 @@
+interface:
+  display_name: "Dashboard Metric Card"
+  short_description: "Reuse CPU-style dashboard card"
+  default_prompt: "Use $dashboard-metric-card to refactor this dashboard metric section onto DashboardMetricCard."
+
+policy:
+  allow_implicit_invocation: true

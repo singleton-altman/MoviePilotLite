@@ -12,6 +12,7 @@ import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
 import 'package:moviepilot_mobile/utils/media_source_util.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
+import 'package:moviepilot_mobile/widgets/app_glass_card.dart';
 import 'package:moviepilot_mobile/widgets/cached_image.dart';
 
 class MediaSeasonDetailPage extends StatefulWidget {
@@ -26,6 +27,7 @@ class MediaSeasonDetailPage extends StatefulWidget {
     required this.doubanId,
     required this.mediaId,
     required this.subscribeItem,
+    this.scrollController,
   });
   final String reqPath;
   final String subscribeMediaKey;
@@ -36,6 +38,7 @@ class MediaSeasonDetailPage extends StatefulWidget {
   final String doubanId;
   final String mediaId;
   final SubscribeItem? subscribeItem;
+  final ScrollController? scrollController;
   @override
   State<MediaSeasonDetailPage> createState() => _MediaSeasonDetailPageState();
 }
@@ -210,6 +213,7 @@ class _MediaSeasonDetailPageState extends State<MediaSeasonDetailPage> {
     return Scaffold(
       backgroundColor: Colors.black,
       body: CustomScrollView(
+        controller: widget.scrollController,
         slivers: [
           _buildImmersiveHeader(context, seasonTitle),
           SliverToBoxAdapter(child: _buildSeasonMeta(context)),
@@ -294,9 +298,9 @@ class _MediaSeasonDetailPageState extends State<MediaSeasonDetailPage> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.10),
-                    Colors.black.withOpacity(0.55),
-                    Colors.black.withOpacity(0.88),
+                    Colors.black.withValues(alpha: 0.10),
+                    Colors.black.withValues(alpha: 0.55),
+                    Colors.black.withValues(alpha: 0.88),
                   ],
                   stops: const [0.0, 0.55, 1.0],
                 ),
@@ -372,14 +376,14 @@ class _MediaSeasonDetailPageState extends State<MediaSeasonDetailPage> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.06),
+                color: Colors.white.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withOpacity(0.08)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
               ),
               child: Text(
                 overview,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withOpacity(0.85),
+                  color: Colors.white.withValues(alpha: 0.85),
                   height: 1.35,
                 ),
               ),
@@ -454,9 +458,9 @@ class _MediaSeasonDetailPageState extends State<MediaSeasonDetailPage> {
       constraints: const BoxConstraints(minHeight: 24),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(accent == null ? 0.18 : 0.22),
+        color: color.withValues(alpha: accent == null ? 0.18 : 0.22),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withOpacity(0.22)),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
       ),
       child: Text(
         text,
@@ -477,9 +481,11 @@ class _MediaSeasonDetailPageState extends State<MediaSeasonDetailPage> {
       constraints: const BoxConstraints(minHeight: 24),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFF7C4DFF).withOpacity(0.22),
+        color: const Color(0xFF7C4DFF).withValues(alpha: 0.22),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFF7C4DFF).withOpacity(0.28)),
+        border: Border.all(
+          color: const Color(0xFF7C4DFF).withValues(alpha: 0.28),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -504,89 +510,218 @@ class _MediaSeasonDetailPageState extends State<MediaSeasonDetailPage> {
     final stillUrl = ep.still_path != null && ep.still_path!.isNotEmpty
         ? ImageUtil.convertMediaSeasonImageUrl(ep.still_path!)
         : '';
-    final title = '第 ${ep.episode_number ?? 0} 集 · ${ep.name ?? '未知'}'.trim();
+    final episodeNumber = ep.episode_number ?? 0;
+    final title = (ep.name?.trim().isNotEmpty ?? false)
+        ? ep.name!.trim()
+        : '未知标题';
     final overview = ep.overview?.trim() ?? '';
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.06),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+    final isMissing = _isEpisodeMissing(ep);
+    final accent = isMissing
+        ? const Color(0xFFFFB45C)
+        : const Color(0xFF7DD3FC);
+
+    return AppGlassCard(
+      padding: EdgeInsets.zero,
+      borderRadius: 20,
+      blurSigma: 22,
+      surfaceAlpha: 0.11,
+      borderAlpha: 0.16,
+      shadowAlpha: 0.22,
+      accentColor: accent,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: CustomPaint(
+                painter: _EpisodeCardGlowPainter(accent: accent),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final imageWidth = constraints.maxWidth < 360 ? 104.0 : 124.0;
+                  const imageHeight = 74.0;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _episodeStill(
+                            theme,
+                            stillUrl,
+                            episodeNumber,
+                            imageWidth,
+                            imageHeight,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  title,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                    color: Colors.white,
+                                    height: 1.16,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Wrap(
+                                  spacing: 7,
+                                  runSpacing: 7,
+                                  children: [
+                                    Obx(() {
+                                      final app = Get.find<AppService>();
+                                      if (!app
+                                          .enableFetchMediaserverLibraryStatus
+                                          .value) {
+                                        return _libraryChipDisabled();
+                                      }
+                                      return isMissing
+                                          ? _libraryChip(false)
+                                          : _libraryChip(true);
+                                    }),
+                                    if (ep.air_date != null &&
+                                        ep.air_date!.isNotEmpty)
+                                      _episodeInfoChip(ep.air_date!),
+                                    if (ep.runtime != null && ep.runtime! > 0)
+                                      _episodeInfoChip('${ep.runtime} 分钟'),
+                                    if (ep.vote_average != null &&
+                                        ep.vote_average! > 0)
+                                      _scoreChip(ep.vote_average!),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (overview.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          overview,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.white.withValues(alpha: 0.72),
+                            height: 1.38,
+                          ),
+                        ),
+                      ],
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (stillUrl.isNotEmpty)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: CachedImage(
-                    imageUrl: stillUrl,
-                    width: 120,
-                    height: 68,
-                    fit: BoxFit.cover,
-                    errorWidget: _episodePlaceholder(theme, 120, 68),
+    );
+  }
+
+  Widget _episodeStill(
+    ThemeData theme,
+    String stillUrl,
+    int episodeNumber,
+    double width,
+    double height,
+  ) {
+    final radius = BorderRadius.circular(14);
+    return SizedBox(
+      width: width,
+      height: height,
+      child: ClipRRect(
+        borderRadius: radius,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (stillUrl.isNotEmpty)
+              CachedImage(
+                imageUrl: stillUrl,
+                width: width,
+                height: height,
+                fit: BoxFit.cover,
+                errorWidget: _episodePlaceholder(theme, width, height),
+              )
+            else
+              _episodePlaceholder(theme, width, height),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.02),
+                    Colors.black.withValues(alpha: 0.48),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              left: 8,
+              bottom: 7,
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 22),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.48),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.20),
                   ),
-                )
-              else
-                _episodePlaceholder(theme, 120, 68),
-              const SizedBox(width: 12),
-              Expanded(
+                ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
+                      'E${episodeNumber.toString().padLeft(2, '0')}',
+                      style: const TextStyle(
                         color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 6,
-                      children: [
-                        Obx(() {
-                          final app = Get.find<AppService>();
-                          if (!app.enableFetchMediaserverLibraryStatus.value) {
-                            return _libraryChipDisabled();
-                          }
-                          final missing = _isEpisodeMissing(ep);
-                          return missing
-                              ? _libraryChip(false)
-                              : _libraryChip(true);
-                        }),
-                        if (ep.air_date != null && ep.air_date!.isNotEmpty)
-                          _chip(ep.air_date!),
-                        if (ep.runtime != null && ep.runtime! > 0)
-                          _chip('${ep.runtime} 分钟'),
-                        if (ep.vote_average != null && ep.vote_average! > 0)
-                          _scoreChip(ep.vote_average!),
-                      ],
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
-          if (overview.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Text(
-              overview,
-              maxLines: 4,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.white.withOpacity(0.85),
-                height: 1.35,
+            ),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: radius,
+                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
               ),
             ),
           ],
-        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _episodeInfoChip(String text) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.09),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      child: Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        softWrap: false,
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: 0.76),
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -619,7 +754,7 @@ class _MediaSeasonDetailPageState extends State<MediaSeasonDetailPage> {
   }
 
   Widget _libraryChip(bool inLibrary) {
-    final color = inLibrary ? const Color(0xFF81C784) : const Color(0xFFFFB74D);
+    final color = inLibrary ? const Color(0xFF86EFAC) : const Color(0xFFFFB45C);
     final text = inLibrary ? '已入库' : '未入库';
     final icon = inLibrary
         ? Icons.check_circle_rounded
@@ -628,14 +763,14 @@ class _MediaSeasonDetailPageState extends State<MediaSeasonDetailPage> {
       constraints: const BoxConstraints(minHeight: 24),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.38),
+        color: color.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withOpacity(0.55)),
+        border: Border.all(color: color.withValues(alpha: 0.42)),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.18),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: color.withValues(alpha: 0.14),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -665,9 +800,9 @@ class _MediaSeasonDetailPageState extends State<MediaSeasonDetailPage> {
       constraints: const BoxConstraints(minHeight: 24),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.10),
+        color: Colors.white.withValues(alpha: 0.07),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withOpacity(0.18)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
       ),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
@@ -695,14 +830,68 @@ class _MediaSeasonDetailPageState extends State<MediaSeasonDetailPage> {
       width: w,
       height: h,
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withValues(alpha: 0.13),
+            Colors.white.withValues(alpha: 0.04),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Icon(
         Icons.tv_outlined,
-        color: theme.colorScheme.onSurfaceVariant,
-        size: 28,
+        color: Colors.white.withValues(alpha: 0.48),
+        size: 26,
       ),
     );
+  }
+}
+
+class _EpisodeCardGlowPainter extends CustomPainter {
+  const _EpisodeCardGlowPainter({required this.accent});
+
+  final Color accent;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final bounds = Offset.zero & size;
+    final radius = Radius.circular(20);
+    final rrect = RRect.fromRectAndRadius(bounds, radius);
+
+    final innerGlowPaint = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(-0.88, -0.76),
+        radius: 1.08,
+        colors: [
+          Colors.white.withValues(alpha: 0.17),
+          accent.withValues(alpha: 0.07),
+          Colors.transparent,
+        ],
+        stops: const [0.0, 0.42, 1.0],
+      ).createShader(bounds);
+    canvas.drawRRect(rrect, innerGlowPaint);
+
+    final lowerGlowPaint = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(0.92, 0.88),
+        radius: 0.9,
+        colors: [accent.withValues(alpha: 0.13), Colors.transparent],
+      ).createShader(bounds);
+    canvas.drawRRect(rrect, lowerGlowPaint);
+
+    canvas.drawRRect(
+      rrect.deflate(0.6),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.7
+        ..color = Colors.white.withValues(alpha: 0.08),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _EpisodeCardGlowPainter oldDelegate) {
+    return oldDelegate.accent != accent;
   }
 }

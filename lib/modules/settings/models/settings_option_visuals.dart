@@ -45,7 +45,7 @@ const Map<String, Map<String, SettingsOptionVisual>> settingsOptionVisuals = {
     'copy': SettingsOptionVisual(icon: Icons.copy_all_outlined),
     'move': SettingsOptionVisual(icon: Icons.drive_file_move_outline),
     'softlink': SettingsOptionVisual(icon: Icons.link_outlined),
-    'hardlink': SettingsOptionVisual(icon: Icons.link),
+    'link': SettingsOptionVisual(icon: Icons.link),
   },
   'DIR_OVERWRITE_MODE': {
     'always': SettingsOptionVisual(icon: Icons.autorenew),

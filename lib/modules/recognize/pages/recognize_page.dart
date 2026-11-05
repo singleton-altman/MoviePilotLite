@@ -12,7 +12,9 @@ import '../controllers/recognize_controller.dart';
 import '../models/recognize_model.dart';
 
 class RecognizePage extends GetView<RecognizeController> {
-  const RecognizePage({super.key});
+  const RecognizePage({super.key, this.scrollController});
+
+  final ScrollController? scrollController;
 
   @override
   Widget build(BuildContext context) {
@@ -26,6 +28,7 @@ class RecognizePage extends GetView<RecognizeController> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
+          controller: scrollController,
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -236,7 +239,6 @@ class RecognizePage extends GetView<RecognizeController> {
     final actorsText = _buildActors(media.actors);
     final genres = _buildGenres(media.genres);
     final altNames = _buildAltNames(media.names);
-    final tmdbUrl = _buildTmdbUrl(media);
 
     final cardColor = Theme.of(context).cardColor;
 

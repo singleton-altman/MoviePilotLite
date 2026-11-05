@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:get/get.dart' hide Response;
 import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
+import 'package:moviepilot_mobile/services/api_auth_failure.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
 
 enum SystemHealthStatus {
@@ -35,26 +36,30 @@ class SystemHealthItem {
 }
 
 class SystemHealthController extends GetxController {
+  SystemHealthController({
+    ApiClient? apiClient,
+    AppLog? log,
+    AppService? appService,
+  }) : _apiClient = apiClient ?? Get.find<ApiClient>(),
+       _log = log ?? Get.find<AppLog>(),
+       _appService = appService ?? Get.find<AppService>();
+
   static const String _moduleListEndpoint = '/api/v1/system/modulelist';
   static const String _moduleTestEndpointBase = '/api/v1/system/moduletest';
-  static const List<String> _healthEndpoints = [
-    '/api/v1/system/health',
-    '/api/v1/system/healthcheck',
-    '/api/v1/system/health-check',
-    '/api/v1/system/health_check',
-    '/api/v1/system/check',
-  ];
 
-  final _log = Get.find<AppLog>();
-  final _apiClient = Get.find<ApiClient>();
-  final _appService = Get.find<AppService>();
+  /// 回退探测仅用 /system/ping:它在 v2/v3 均存在,只表示"服务可达"。
+  /// /system/versions 返回的是 GitHub Release 列表,不是健康状态,
+  /// 不能当作模块级健康检查结果展示。
+  static const String _pingEndpoint = '/api/v1/system/ping';
+
+  final AppLog _log;
+  final ApiClient _apiClient;
+  final AppService _appService;
 
   final isLoading = false.obs;
   final lastRunAt = Rxn<DateTime>();
   final errorMessage = RxnString();
   final items = <SystemHealthItem>[].obs;
-
-  String? _resolvedEndpoint;
 
   @override
   void onReady() {
@@ -71,7 +76,7 @@ class SystemHealthController extends GetxController {
       final token =
           _apiClient.token ?? _appService.latestLoginProfileAccessToken;
       if (token == null || token.isEmpty) {
-        errorMessage.value = '缺少 Token，请重新登录';
+        errorMessage.value = ApiAuthFailure.notLoggedInMessage;
         items.clear();
         return;
       }
@@ -84,27 +89,20 @@ class SystemHealthController extends GetxController {
         return;
       }
 
-      final response = await _requestHealth(token);
+      final response = await _requestPing(token);
       if (response == null) {
         errorMessage.value = '无法连接健康检查接口';
         items.clear();
         return;
       }
 
-      final statusCode = response.statusCode ?? 0;
-      if (statusCode >= 400) {
-        errorMessage.value = '请求失败 (HTTP $statusCode)';
-      }
-
-      final parsed = _parseItems(response.data);
-      if (parsed.isEmpty) {
-        if (errorMessage.value == null) {
-          errorMessage.value = '未获取到健康检查数据';
-        }
-        items.clear();
-      } else {
-        items.assignAll(parsed);
+      final item = _buildPingItem(response);
+      items.assignAll([item]);
+      if (item.status == SystemHealthStatus.ok) {
+        errorMessage.value = null;
         lastRunAt.value = DateTime.now();
+      } else if (errorMessage.value == null) {
+        errorMessage.value = '服务连通性检查未通过';
       }
     } catch (e, st) {
       _log.handle(e, stackTrace: st, message: '系统健康检查异常');
@@ -134,26 +132,69 @@ class SystemHealthController extends GetxController {
     }
   }
 
-  Future<Response<dynamic>?> _requestHealth(String token) async {
-    final endpoints = <String>[
-      if (_resolvedEndpoint != null) _resolvedEndpoint!,
-      ..._healthEndpoints,
-    ];
-    Response<dynamic>? lastResponse;
-    for (final endpoint in endpoints.toSet()) {
-      try {
-        final response = await _apiClient.get<dynamic>(endpoint, token: token);
-        lastResponse = response;
-        final statusCode = response.statusCode ?? 0;
-        if (statusCode != 404) {
-          _resolvedEndpoint = endpoint;
-          return response;
-        }
-      } catch (_) {
-        // ignore and try next endpoint
-      }
+  Future<Response<dynamic>?> _requestPing(String token) async {
+    try {
+      return await _apiClient.get<dynamic>(_pingEndpoint, token: token);
+    } catch (e, st) {
+      _log.handle(e, stackTrace: st, message: '服务连通性探测失败');
+      return null;
     }
-    return lastResponse;
+  }
+
+  /// 把 ping 响应建模为单条「服务连接」结果。
+  /// ping 只证明服务可达:该服务端版本不提供模块级健康检查时,
+  /// 不得把结果伪装成全部模块正常。
+  SystemHealthItem _buildPingItem(Response<dynamic> response) {
+    final statusCode = response.statusCode ?? 0;
+    final checkedAt = DateTime.now();
+    if (statusCode >= 400) {
+      return SystemHealthItem(
+        id: 'server-ping',
+        title: '服务连接',
+        status: SystemHealthStatus.error,
+        message: 'HTTP $statusCode',
+        lastCheckedAt: checkedAt,
+      );
+    }
+    final payload = _decodePayload(response.data);
+    if (payload == null) {
+      return SystemHealthItem(
+        id: 'server-ping',
+        title: '服务连接',
+        status: SystemHealthStatus.unknown,
+        message: '响应解析失败',
+        lastCheckedAt: checkedAt,
+      );
+    }
+    final success = payload['success'];
+    final message = payload['message']?.toString();
+    if (success is bool && success) {
+      return SystemHealthItem(
+        id: 'server-ping',
+        title: '服务连接',
+        status: SystemHealthStatus.ok,
+        message: message,
+        detail: '该服务端版本不提供模块级健康检查，仅确认服务可达',
+        lastCheckedAt: checkedAt,
+      );
+    }
+    if (success is bool) {
+      return SystemHealthItem(
+        id: 'server-ping',
+        title: '服务连接',
+        status: SystemHealthStatus.error,
+        message:
+            (message == null || message.isEmpty) ? '服务返回失败' : message,
+        lastCheckedAt: checkedAt,
+      );
+    }
+    return SystemHealthItem(
+      id: 'server-ping',
+      title: '服务连接',
+      status: SystemHealthStatus.unknown,
+      message: '响应解析失败',
+      lastCheckedAt: checkedAt,
+    );
   }
 
   Future<void> _runModuleTests(String token) async {
@@ -210,47 +251,6 @@ class SystemHealthController extends GetxController {
       });
       return false;
     }
-  }
-
-  List<SystemHealthItem> _parseItems(dynamic data) {
-    if (data == null) return const [];
-    final payload = _decodePayload(data);
-    if (payload == null) {
-      if (data is List) {
-        return _parseList(data);
-      }
-      return const [];
-    }
-
-    final list = _extractList(payload);
-    if (list.isNotEmpty) {
-      return _parseList(list);
-    }
-
-    final moduleMap = _extractModuleMap(payload);
-    if (moduleMap != null && moduleMap.isNotEmpty) {
-      return _parseModuleMap(moduleMap);
-    }
-
-    return const [];
-  }
-
-  List<SystemHealthItem> _parseList(List<dynamic> list) {
-    final results = <SystemHealthItem>[];
-    for (var i = 0; i < list.length; i += 1) {
-      final item = _parseItem(list[i], fallbackId: 'item-$i');
-      if (item != null) results.add(item);
-    }
-    return results;
-  }
-
-  List<SystemHealthItem> _parseModuleMap(Map<String, dynamic> map) {
-    final results = <SystemHealthItem>[];
-    map.forEach((key, value) {
-      final item = _parseItem(value, fallbackId: key, fallbackTitle: key);
-      if (item != null) results.add(item);
-    });
-    return results;
   }
 
   List<SystemHealthItem> _parseModuleList(List<dynamic> list) {
@@ -336,10 +336,13 @@ class SystemHealthController extends GetxController {
       if (success) {
         status = _mapStatusFromText(message) ?? SystemHealthStatus.ok;
       } else {
-        if (message == null || message.trim().isEmpty) {
-          status = SystemHealthStatus.disabled;
+        // 测试失败就是失败:仅当消息明确表达"未启用"等状态时才归类,
+        // 否则一律 error,不能把业务失败伪装成 disabled 或正常。
+        final mapped = _mapStatusFromText(message);
+        if (mapped == null || mapped == SystemHealthStatus.ok) {
+          status = SystemHealthStatus.error;
         } else {
-          status = _mapStatusFromText(message) ?? SystemHealthStatus.error;
+          status = mapped;
         }
       }
     } else {
@@ -347,88 +350,6 @@ class SystemHealthController extends GetxController {
     }
 
     return _ModuleTestResult(status: status, message: message, detail: detail);
-  }
-
-  SystemHealthItem? _parseItem(
-    dynamic raw, {
-    String? fallbackId,
-    String? fallbackTitle,
-  }) {
-    if (raw == null) return null;
-
-    final map = _toMap(raw);
-    if (map == null) {
-      final title = fallbackTitle ?? raw.toString();
-      final status = _mapStatus(raw);
-      return SystemHealthItem(
-        id: fallbackId ?? title,
-        title: title,
-        status: status,
-      );
-    }
-
-    final id =
-        _stringValue(
-          map['id'],
-          fallback: _stringValue(
-            map['key'],
-            fallback: _stringValue(
-              map['name'],
-              fallback: fallbackId ?? 'unknown',
-            ),
-          ),
-        ) ??
-        fallbackId ??
-        'unknown';
-    final title =
-        _stringValue(
-          map['title'],
-          fallback: _stringValue(map['name'], fallback: fallbackTitle ?? id),
-        ) ??
-        id;
-
-    final enabled = _parseBool(
-      map['enabled'] ??
-          map['enable'] ??
-          map['active'] ??
-          map['is_enabled'] ??
-          map['isEnabled'],
-    );
-
-    final statusValue =
-        map['status'] ??
-        map['state'] ??
-        map['health'] ??
-        map['ok'] ??
-        map['success'] ??
-        map['result'];
-
-    final message = _stringValue(
-      map['message'],
-      fallback: _stringValue(map['summary']),
-    );
-    final detail = _stringValue(
-      map['detail'],
-      fallback: _stringValue(
-        map['error'],
-        fallback: _stringValue(map['reason']),
-      ),
-    );
-
-    final status = _mapStatus(
-      statusValue,
-      enabled: enabled,
-      messageHint: message ?? detail,
-    );
-
-    return SystemHealthItem(
-      id: id,
-      title: title,
-      status: status,
-      message: message,
-      detail: detail,
-      lastCheckedAt: DateTime.now(),
-    );
   }
 
   void _updateItem(
@@ -439,15 +360,8 @@ class SystemHealthController extends GetxController {
     items.refresh();
   }
 
-  SystemHealthStatus _mapStatus(
-    dynamic status, {
-    bool? enabled,
-    String? messageHint,
-  }) {
+  SystemHealthStatus _mapStatus(dynamic status, {bool? enabled}) {
     if (enabled == false) return SystemHealthStatus.disabled;
-    if (status == null) {
-      return _mapStatusFromText(messageHint) ?? SystemHealthStatus.unknown;
-    }
     if (status is bool) {
       return status ? SystemHealthStatus.ok : SystemHealthStatus.error;
     }
@@ -537,47 +451,6 @@ class SystemHealthController extends GetxController {
       } catch (_) {
         return null;
       }
-    }
-    return null;
-  }
-
-  List<dynamic> _extractList(Map<String, dynamic> payload) {
-    final direct = payload['data'];
-    if (direct is List) return direct;
-
-    final candidates = [
-      payload['items'],
-      payload['list'],
-      payload['modules'],
-      payload['checks'],
-      payload['results'],
-      direct,
-    ];
-
-    for (final candidate in candidates) {
-      if (candidate is List) return candidate;
-      if (candidate is Map<String, dynamic>) {
-        for (final key in ['items', 'list', 'modules', 'checks', 'results']) {
-          final nested = candidate[key];
-          if (nested is List) return nested;
-        }
-      }
-    }
-    return const [];
-  }
-
-  Map<String, dynamic>? _extractModuleMap(Map<String, dynamic> payload) {
-    final candidates = [
-      payload['modules'],
-      payload['data'],
-      payload['items'],
-      payload['list'],
-      payload['checks'],
-      payload['results'],
-    ];
-    for (final candidate in candidates) {
-      if (candidate is Map<String, dynamic>) return candidate;
-      if (candidate is Map) return Map<String, dynamic>.from(candidate);
     }
     return null;
   }

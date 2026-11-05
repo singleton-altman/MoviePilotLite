@@ -42,6 +42,15 @@ class LoginController extends GetxController {
   final isLoading = false.obs;
   final isPasswordVisible = false.obs;
 
+  /// 服务端要求二次验证后置位，登录页据此提示输入动态验证码
+  final mfaRequired = false.obs;
+
+  /// 服务端声明的二次验证方式（原样保留，当前仅支持 otp）
+  final mfaMethods = <String>[].obs;
+
+  /// 自动登录时连接服务器失败（进入主页前探测未通过）
+  final connectFailed = false.obs;
+
   /// 当前步骤：1=仅服务器，2=账号密码
   final step = 1.obs;
   final isAutoLogin = false.obs;
@@ -113,36 +122,26 @@ class LoginController extends GetxController {
     super.onClose();
   }
 
-  /// 进入下一步：验证服务器、获取壁纸、进入步骤 2
+  /// 进入下一步：进入账号密码步骤，壁纸改为后台加载，不阻塞步骤切换
   Future<void> goToNextStep() async {
-    final server = serverController.text.trim();
-    if (server.isEmpty) {
-      ToastUtil.info('请输入服务器地址');
-      return;
-    }
+    final server = _validatedServerInput();
+    if (server == null) return;
+    serverController.text = server;
 
-    // 简单校验 URL 格式
-    final uri = Uri.tryParse(server);
-    if (uri == null || !uri.hasScheme) {
-      ToastUtil.info('请输入有效的服务器地址（含协议，如 https://example.com）');
-      return;
-    }
+    step.value = 2;
+    unawaited(_loadWallpapersForServer(server));
+  }
 
-    isLoading.value = true;
+  Future<void> _loadWallpapersForServer(String server) async {
     try {
       final list = await _repository.fetchWallpapers(server);
       wallpapers.assignAll(list.isNotEmpty ? list : defaultWallpapers);
-      currentWallpaperIndex.value = 0;
-      step.value = 2;
-      _startWallpaperTimer();
     } catch (e) {
       _talker.warning('获取壁纸失败: $e');
       wallpapers.assignAll(defaultWallpapers);
-      _startWallpaperTimer();
-      step.value = 2;
-    } finally {
-      isLoading.value = false;
     }
+    currentWallpaperIndex.value = 0;
+    _startWallpaperTimer();
   }
 
   /// 返回步骤 1（保留壁纸以保持背景一致）
@@ -169,7 +168,16 @@ class LoginController extends GetxController {
   void resetForLogout() {
     isAutoLogin.value = false;
     isLoading.value = false;
+    connectFailed.value = false;
+    mfaRequired.value = false;
+    mfaMethods.clear();
     step.value = 1;
+  }
+
+  /// 连接失败后由用户手动重试自动登录
+  Future<void> retryBootstrap() async {
+    connectFailed.value = false;
+    await _bootstrapSavedSession();
   }
 
   Future<void> _bootstrapSavedSession() async {
@@ -185,6 +193,18 @@ class LoginController extends GetxController {
 
     isAutoLogin.value = true;
     try {
+      // 进入主页前先用短超时探测服务器连通性，避免连不上时在主页挂 2 分钟。
+      final reachable = await _repository.probeServerConnectivity(
+        server: latestProfile.server,
+        accessToken: latestProfile.accessToken,
+      );
+      if (!reachable) {
+        _talker.warning('启动连接服务器失败: ${latestProfile.server}');
+        isAutoLogin.value = false;
+        connectFailed.value = true;
+        return;
+      }
+
       _repository.restoreLocalSession(profile: latestProfile);
       _talker.info('已恢复本地登录态');
 
@@ -195,9 +215,7 @@ class LoginController extends GetxController {
         Get.offAllNamed('/main');
       }
       imageUtil.loadGlobalCachedConfig();
-      Future.delayed(const Duration(seconds: 1), () {
-        isAutoLogin.value = false;
-      });
+      isAutoLogin.value = false;
     } catch (e) {
       _talker.warning('恢复本地登录态失败: $e');
       isAutoLogin.value = false;
@@ -289,16 +307,17 @@ class LoginController extends GetxController {
   }
 
   Future<void> submitLogin() async {
-    final server = serverController.text.trim();
+    final server = _validatedServerInput(showEmptyMessage: false);
     final username = usernameController.text.trim();
     final password = passwordController.text;
     _autofillTotpIfMatched();
     final otpPassword = otpController.text.trim();
 
-    if (server.isEmpty || username.isEmpty || password.isEmpty) {
+    if (server == null || username.isEmpty || password.isEmpty) {
       ToastUtil.info('服务器地址、用户名和密码不能为空');
       return;
     }
+    serverController.text = server;
 
     isLoading.value = true;
     try {
@@ -323,7 +342,18 @@ class LoginController extends GetxController {
       } else {
         Get.offAllNamed('/main');
       }
+    } on MfaRequiredException catch (e) {
+      mfaRequired.value = true;
+      mfaMethods.assignAll(e.mfaMethods);
+      final hint = (e.message == null || e.message!.trim().isEmpty)
+          ? '请输入两步验证码后重试'
+          : '${e.message}，请输入两步验证码后重试';
+      ToastUtil.info(hint, title: '需要二次验证');
+    } on LoginCredentialException catch (e) {
+      mfaRequired.value = false;
+      ToastUtil.error(e.message, title: '登录失败');
     } catch (e) {
+      mfaRequired.value = false;
       ToastUtil.error(e.toString(), title: '登录失败');
     } finally {
       isLoading.value = false;
@@ -338,6 +368,55 @@ class LoginController extends GetxController {
     if (code == null || code.isEmpty) return;
     if (!force && otpController.text.trim().isNotEmpty) return;
     otpController.text = code;
+  }
+
+  String? _validatedServerInput({bool showEmptyMessage = true}) {
+    final raw = serverController.text;
+    var server = raw.trim();
+    if (server.isEmpty) {
+      if (showEmptyMessage) {
+        ToastUtil.info('请输入服务器地址');
+      }
+      return null;
+    }
+    if (RegExp(r'\s').hasMatch(server)) {
+      ToastUtil.info('服务器地址不能包含空格或换行');
+      return null;
+    }
+
+    final lower = server.toLowerCase();
+    if (!lower.startsWith('http://') && !lower.startsWith('https://')) {
+      server = 'https://$server';
+      ToastUtil.info('未输入协议，已自动补全 https://');
+    }
+
+    final uri = Uri.tryParse(server);
+    if (uri == null ||
+        !uri.hasScheme ||
+        (uri.scheme != 'http' && uri.scheme != 'https') ||
+        uri.host.isEmpty) {
+      ToastUtil.info('请输入有效的服务器地址（含协议，如 https://example.com）');
+      return null;
+    }
+
+    try {
+      if (uri.hasPort) {
+        uri.port;
+      }
+    } catch (_) {
+      ToastUtil.info('服务器地址端口不合法');
+      return null;
+    }
+
+    if (uri.hasQuery || uri.hasFragment) {
+      ToastUtil.info('服务器地址不能包含查询参数或片段');
+      return null;
+    }
+
+    final normalized = server.endsWith('/')
+        ? server.substring(0, server.length - 1)
+        : server;
+    return normalized;
   }
 
   Future<int?> _loadLastTabIndex() async {

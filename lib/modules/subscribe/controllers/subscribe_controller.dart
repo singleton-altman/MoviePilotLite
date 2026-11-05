@@ -1,7 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
-import 'package:moviepilot_mobile/modules/login/models/login_profile.dart';
 import 'package:moviepilot_mobile/modules/login/repositories/auth_repository.dart';
 import 'package:moviepilot_mobile/modules/multifunction/controllers/multifunction_controller.dart';
 import 'package:moviepilot_mobile/modules/recommend/models/recommend_api_item.dart';
@@ -11,13 +9,28 @@ import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_models.dart
 import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_submit_resp.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
+import 'package:moviepilot_mobile/services/ios_shared_session_service.dart';
 import 'package:moviepilot_mobile/services/hive_service.dart';
+import 'package:moviepilot_mobile/services/server_api_version_service.dart';
+import 'package:moviepilot_mobile/utils/media_identity_util.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-/// 订阅类型：电视剧 / 电影
-enum SubscribeType { tv, movie }
+/// 订阅类型：电视剧 / 电影 / 音乐
+enum SubscribeType { tv, movie, music }
 
 enum SubscribeCollectionTab { following, washing }
+
+enum SubscribeSortKey { addedAt }
+
+extension SubscribeSortKeyX on SubscribeSortKey {
+  String get displayName {
+    switch (this) {
+      case SubscribeSortKey.addedAt:
+        return '添加时间';
+    }
+  }
+}
 
 /// 订阅状态
 enum SubscribeState {
@@ -49,23 +62,39 @@ extension SubscribeStateX on SubscribeState {
 }
 
 extension SubscribeTypeX on SubscribeType {
-  String get stype => this == SubscribeType.tv ? '电视剧' : '电影';
-  String get displayName => this == SubscribeType.tv ? '电视剧订阅' : '电影订阅';
+  String get stype =>
+      switch (this) {
+        SubscribeType.tv => '电视剧',
+        SubscribeType.movie => '电影',
+        SubscribeType.music => '音乐',
+      };
+  String get displayName =>
+      switch (this) {
+        SubscribeType.tv => '电视剧订阅',
+        SubscribeType.movie => '电影订阅',
+        SubscribeType.music => '音乐订阅',
+      };
 }
 
 class SubscribeController extends GetxController {
   static const int _recommendationThreshold = 10;
   static const int _recommendationPreviewCount = 5;
+  static const String _sortKeyPrefPrefix = 'subscribe.sort.key';
+  static const String _sortAscendingPrefPrefix = 'subscribe.sort.ascending';
 
   final _apiClient = Get.find<ApiClient>();
   final _appService = Get.find<AppService>();
   final _log = Get.find<AppLog>();
   final _authRepository = Get.put(AuthRepository());
+  final _versionService = Get.find<ServerApiVersionService>();
   final subscribeService = Get.put(SubscribeService());
   var subscribeType = SubscribeType.tv;
 
   final userItems = <SubscribeItem>[].obs;
   final userLoading = false.obs;
+
+  /// 原始订阅记录（按订阅 id 索引），供音乐订阅等场景读取模型未覆盖的字段
+  final rawSubscribeById = <String, Map<String, dynamic>>{}.obs;
 
   final errorText = RxnString();
   final recommendationItems = <RecommendApiItem>[].obs;
@@ -74,12 +103,27 @@ class SubscribeController extends GetxController {
   final keyword = ''.obs;
   final selectedStates = <SubscribeState>{}.obs;
   final selectedCollectionTab = SubscribeCollectionTab.following.obs;
+  final sortKey = SubscribeSortKey.addedAt.obs;
+  final sortAscending = false.obs;
   int _recommendationRequestId = 0;
+
+  /// v3 执行可观测入口（活动记录/运行日志）可见性；v2 服务端隐藏，不发出 v3 请求
+  final executionEntriesVisible = false.obs;
 
   @override
   void onReady() {
     super.onReady();
+    _restoreSortPreferences();
+    _resolveExecutionEntriesVisible();
     loadAll();
+  }
+
+  Future<void> _resolveExecutionEntriesVisible() async {
+    try {
+      executionEntriesVisible.value = await _versionService.isV3();
+    } catch (_) {
+      executionEntriesVisible.value = false;
+    }
   }
 
   bool get isTv => subscribeType == SubscribeType.tv;
@@ -89,6 +133,9 @@ class SubscribeController extends GetxController {
   }
 
   Future<void> _notifyMultifunctionSubscribeChanged() async {
+    if (Get.isRegistered<IosSharedSessionService>()) {
+      Get.find<IosSharedSessionService>().reloadWidgets();
+    }
     if (!Get.isRegistered<MultifunctionController>()) return;
     final controller = Get.find<MultifunctionController>();
     await controller.refreshSubscribeSection();
@@ -119,9 +166,8 @@ class SubscribeController extends GetxController {
   String? _latestProfileUsername() {
     if (!Get.isRegistered<HiveService>()) return null;
     try {
-      final profiles =
-          Get.find<HiveService>().loginProfileBox.values.toList()
-            ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      final profiles = Get.find<HiveService>().loginProfileBox.values.toList()
+        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       if (profiles.isEmpty) return null;
       return _normalizeUsername(profiles.first.username);
     } catch (_) {
@@ -160,8 +206,19 @@ class SubscribeController extends GetxController {
       if (token == null || token.isEmpty) {
         errorText.value = '请先登录';
         userItems.clear();
+        rawSubscribeById.clear();
         _clearRecommendations();
         return;
+      }
+      if (subscribeType == SubscribeType.music) {
+        final supported = await _versionService.isV3();
+        if (!supported) {
+          errorText.value = '音乐功能需要 MoviePilot v3 服务端';
+          userItems.clear();
+          rawSubscribeById.clear();
+          _clearRecommendations();
+          return;
+        }
       }
       final response = await _apiClient.get<dynamic>(
         '/api/v1/subscribe/',
@@ -171,21 +228,32 @@ class SubscribeController extends GetxController {
       if (status >= 400) {
         errorText.value = '请求失败 (HTTP $status)';
         userItems.clear();
+        rawSubscribeById.clear();
         _clearRecommendations();
         return;
       }
       _refreshUserCookie();
       final list = _extractList(response.data);
+      rawSubscribeById.assignAll({
+        for (final entry in list.whereType<Map<String, dynamic>>())
+          if (entry['id'] != null) '${entry['id']}': entry,
+      });
       final currentUsernames = await _currentUsernames();
       final parsed = list
           .whereType<Map<String, dynamic>>()
-          .map(SubscribeItem.fromJson)
+          .map(
+            (item) =>
+                SubscribeItem.fromJson(normalizeSubscribeJson(item)),
+          )
           .where(
             (e) => _matchesType(e) && _matchesCurrentUser(e, currentUsernames),
           )
           .toList();
       userItems.assignAll(parsed);
-      if (parsed.length < _recommendationThreshold) {
+      if (subscribeType == SubscribeType.music) {
+        // 音乐暂无热门推荐数据源
+        _clearRecommendations();
+      } else if (parsed.length < _recommendationThreshold) {
         _loadRecommendationPreview();
       } else {
         _clearRecommendations();
@@ -194,6 +262,7 @@ class SubscribeController extends GetxController {
       _log.handle(e, stackTrace: st, message: '获取订阅列表失败');
       errorText.value = '请求失败，请稍后重试';
       userItems.clear();
+      rawSubscribeById.clear();
       _clearRecommendations();
     } finally {
       userLoading.value = false;
@@ -221,10 +290,14 @@ class SubscribeController extends GetxController {
 
   bool _matchesType(SubscribeItem item) {
     final t = item.type?.trim().toLowerCase() ?? '';
-    if (subscribeType == SubscribeType.tv) {
-      return t.contains('电视剧') || t.contains('tv') || t == 'tv';
+    switch (subscribeType) {
+      case SubscribeType.tv:
+        return t.contains('电视剧') || t.contains('tv') || t == 'tv';
+      case SubscribeType.movie:
+        return t.contains('电影') || t.contains('movie') || t == 'movie';
+      case SubscribeType.music:
+        return t.contains('音乐') || t == 'music';
     }
-    return t.contains('电影') || t.contains('movie') || t == 'movie';
   }
 
   bool _matchesCurrentUser(SubscribeItem item, Set<String> currentUsernames) {
@@ -262,6 +335,23 @@ class SubscribeController extends GetxController {
     selectedCollectionTab.value = tab;
   }
 
+  String get sortValue => sortKey.value.name;
+
+  void setSortValue(String value) {
+    final next = SubscribeSortKey.values.firstWhereOrNull(
+      (key) => key.name == value,
+    );
+    if (next == null || next == sortKey.value) return;
+    sortKey.value = next;
+    _saveSortPreferences();
+  }
+
+  void setSortDirection(bool ascending) {
+    if (sortAscending.value == ascending) return;
+    sortAscending.value = ascending;
+    _saveSortPreferences();
+  }
+
   List<SubscribeItem> get filteredUserItems {
     var list = userItems.toList();
     final key = keyword.value.trim().toLowerCase();
@@ -276,7 +366,7 @@ class SubscribeController extends GetxController {
           .where((e) => states.contains(_resolveSubscribeState(e)))
           .toList();
     }
-    return list;
+    return _sortItems(list);
   }
 
   List<SubscribeItem> get visibleUserItems => filteredUserItems;
@@ -323,6 +413,48 @@ class SubscribeController extends GetxController {
       keyword.value.trim().isEmpty &&
       selectedStates.isEmpty &&
       recommendationLoading.value;
+
+  List<SubscribeItem> _sortItems(List<SubscribeItem> source) {
+    final sorted = source.toList();
+    sorted.sort(_compareSubscribeItems);
+    return sorted;
+  }
+
+  int _compareSubscribeItems(SubscribeItem a, SubscribeItem b) {
+    final factor = sortAscending.value ? 1 : -1;
+    switch (sortKey.value) {
+      case SubscribeSortKey.addedAt:
+        final compared = _compareAddedSequence(a, b);
+        if (compared != 0) return compared * factor;
+        return _compareNullableStrings(a.name, b.name);
+    }
+  }
+
+  int _compareAddedSequence(SubscribeItem a, SubscribeItem b) {
+    final aValue = _addedSequenceValue(a);
+    final bValue = _addedSequenceValue(b);
+    return aValue.compareTo(bValue);
+  }
+
+  int _addedSequenceValue(SubscribeItem item) {
+    final parsedDate = _parseDate(item.date);
+    if (parsedDate != null) {
+      return parsedDate.millisecondsSinceEpoch;
+    }
+    return item.id ?? 0;
+  }
+
+  DateTime? _parseDate(String? raw) {
+    final value = raw?.trim();
+    if (value == null || value.isEmpty) return null;
+    return DateTime.tryParse(value);
+  }
+
+  int _compareNullableStrings(String? a, String? b) {
+    final av = a?.trim().toLowerCase() ?? '';
+    final bv = b?.trim().toLowerCase() ?? '';
+    return av.compareTo(bv);
+  }
 
   /// 解析订阅项的状态：洗板中由 best_version 决定，其余由 state 字段映射
   SubscribeState _resolveSubscribeState(SubscribeItem item) {
@@ -440,6 +572,37 @@ class SubscribeController extends GetxController {
 
   bool get hasActiveFilters => selectedStates.isNotEmpty;
 
+  String get _sortKeyPrefKey => '$_sortKeyPrefPrefix.${subscribeType.name}';
+
+  String get _sortAscendingPrefKey =>
+      '$_sortAscendingPrefPrefix.${subscribeType.name}';
+
+  Future<void> _restoreSortPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final storedKey = prefs.getString(_sortKeyPrefKey);
+      final restoredKey = SubscribeSortKey.values.firstWhereOrNull(
+        (key) => key.name == storedKey,
+      );
+      if (restoredKey != null) {
+        sortKey.value = restoredKey;
+      }
+      sortAscending.value = prefs.getBool(_sortAscendingPrefKey) ?? false;
+    } catch (e, st) {
+      _log.handle(e, stackTrace: st, message: '读取订阅排序偏好失败');
+    }
+  }
+
+  Future<void> _saveSortPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_sortKeyPrefKey, sortKey.value.name);
+      await prefs.setBool(_sortAscendingPrefKey, sortAscending.value);
+    } catch (e, st) {
+      _log.handle(e, stackTrace: st, message: '写入订阅排序偏好失败');
+    }
+  }
+
   /// 用于卡片等展示：显示订阅项的状态名称
   String resolveStateDisplayName(SubscribeItem item) {
     return _resolveSubscribeState(item).displayName;
@@ -472,7 +635,13 @@ class SubscribeController extends GetxController {
     if (fullPayload['doubanid'] is int) {
       fullPayload['doubanid'] = fullPayload['doubanid'].toString();
     }
-    final response = await _apiClient.put('/api/v1/subscribe/', fullPayload);
+    final requestPayload = await subscribeService.prepareSubscribePayload(
+      fullPayload,
+    );
+    final response = await _apiClient.put(
+      '/api/v1/subscribe/',
+      requestPayload,
+    );
     if (response.statusCode == null || response.statusCode! >= 400) {
       return false;
     }
@@ -602,20 +771,16 @@ class SubscribeController extends GetxController {
     String? tmdbid,
     String? year = '',
   }) async {
-    final payload = {
-      'bangumiid': bangumiid,
-      'best_version': bestVersion,
-      'doubanid': doubanid,
-      'episode_group': episodeGroup,
-      'mediaid': mediaid,
-      'name': name,
-      'season': season,
-      'tmdbid': tmdbid,
-      'year': year,
-    };
-    final resp = await subscribeService.submitSubscribe(
-      'movie',
-      payload: payload,
+    final resp = await subscribeService.submitMovieSubscribe(
+      bangumiid: bangumiid,
+      bestVersion: bestVersion,
+      doubanid: doubanid,
+      episodeGroup: episodeGroup,
+      mediaid: mediaid,
+      name: name,
+      season: season,
+      tmdbid: tmdbid,
+      year: year,
     );
     if (resp.success == true) {
       await _notifyMultifunctionSubscribeChanged();
@@ -632,18 +797,16 @@ class SubscribeController extends GetxController {
     String? tmdbid,
     String? year = '',
   }) async {
-    final payload = {
-      'doubanid': doubanid,
-      'episode_group': episode_group,
-      'mediaid': mediaid,
-      'name': name,
-      'season': season,
-      'tmdbid': tmdbid,
-      'year': year,
-      'best_version': 0,
-      'type': '电视剧',
-    };
-    final resp = await subscribeService.submitSubscribe('tv', payload: payload);
+    final resp = await subscribeService.submitTvSubscribe(
+      doubanid: doubanid,
+      episode_group: episode_group,
+      mediaid: mediaid,
+      name: name,
+      season: season,
+      tmdbid: tmdbid,
+      year: year,
+      bestVersionFull: null,
+    );
     if (resp.success == true) {
       await _notifyMultifunctionSubscribeChanged();
     }

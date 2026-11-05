@@ -12,6 +12,7 @@ import 'package:moviepilot_mobile/utils/prefs_keys.dart';
 import 'package:moviepilot_mobile/modules/login/models/login_response.dart';
 import 'package:moviepilot_mobile/modules/profile/models/user_info.dart';
 import 'package:moviepilot_mobile/services/hive_service.dart';
+import 'package:moviepilot_mobile/services/app_icon_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 应用全局服务
@@ -25,6 +26,14 @@ class AppService extends GetxService {
   final enableSpecialDownload = false.obs;
   final useExternalBrowser = false.obs;
   final enableFetchMediaserverLibraryStatus = false.obs;
+  final aiAgentEnabled = false.obs;
+  final aiAgentHideEntry = true.obs;
+  final llmSupportAudioInput = false.obs;
+  final llmSupportAudioOutput = false.obs;
+  final aiRecommendEnabled = false.obs;
+  final agentCacheScopeKey = ''.obs;
+  final selectedAppIconId = 'default'.obs;
+  final appIconService = AppIconService();
 
   // 背景图设置
   final backgroundImageBytes = Rxn<Uint8List>();
@@ -34,6 +43,7 @@ class AppService extends GetxService {
   final backgroundImageEnabled = false.obs;
   final backgroundImageUseServer = false.obs;
   final backgroundImageServerUrl = ''.obs;
+  final hideBottomNavBar = false.obs;
 
   @override
   Future<void> onInit() async {
@@ -57,6 +67,7 @@ class AppService extends GetxService {
         : prefs.getBool('useExternalBrowser') ?? false;
     enableFetchMediaserverLibraryStatus.value =
         prefs.getBool('enableFetchMediaserverLibraryStatus') ?? false;
+    selectedAppIconId.value = prefs.getString('selectedAppIconId') ?? 'default';
 
     // 背景图设置
     backgroundImageEnabled.value =
@@ -113,6 +124,15 @@ class AppService extends GetxService {
     prefs.setInt('primaryColorG', g);
     prefs.setInt('primaryColorB', b);
     Get.forceAppUpdate();
+  }
+
+  Future<bool> updateAppIcon(String iconId) async {
+    final changed = await appIconService.setIcon(iconId);
+    if (!changed) return false;
+    selectedAppIconId.value = iconId;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('selectedAppIconId', iconId);
+    return true;
   }
 
   Future<void> updateShowSearchButton(bool value) async {
@@ -321,9 +341,8 @@ class AppService extends GetxService {
   }) {
     if (!Get.isRegistered<HiveService>()) return null;
     try {
-      final profiles =
-          Get.find<HiveService>().loginProfileBox.values.toList()
-            ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      final profiles = Get.find<HiveService>().loginProfileBox.values.toList()
+        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       if (profiles.isEmpty) return null;
 
       final normalizedServer = server?.trim();
@@ -379,6 +398,7 @@ class AppService extends GetxService {
     if (!isSameUser) {
       _userInfo = null;
     }
+    _syncAgentCacheScope();
     _clearRestrictedPluginCachesIfNeeded();
   }
 
@@ -422,13 +442,11 @@ class AppService extends GetxService {
       final scopeKey = pluginCacheScopeKey;
       if (scopeKey.isEmpty) return;
       final hive = Get.find<HiveService>();
-      final installedKeys = hive
-          .installedPluginModelCacheBox.values
+      final installedKeys = hive.installedPluginModelCacheBox.values
           .where((item) => matchesInstalledPluginScope(item.id, scopeKey))
           .map((e) => e.id)
           .toList();
-      final marketKeys = hive
-          .pluginModelCacheBox.values
+      final marketKeys = hive.pluginModelCacheBox.values
           .where((item) => matchesPluginMarketScope(item.id, scopeKey))
           .map((e) => e.id)
           .toList();
@@ -499,9 +517,10 @@ class AppService extends GetxService {
   bool get canManage => hasPermission('manage');
 
   bool get hasLoggedInSession {
-    final loginToken = _loginResponse?.accessToken?.trim();
+    final loginToken = _loginResponse?.accessToken.trim();
     if (loginToken != null && loginToken.isNotEmpty) return true;
-    final profileToken = currentStoredProfile?.accessToken.trim();
+    final profile = currentStoredProfile;
+    final profileToken = profile?.accessToken.trim();
     return profileToken != null && profileToken.isNotEmpty;
   }
 
@@ -509,6 +528,48 @@ class AppService extends GetxService {
   bool get canBrowseMediaCatalog => hasLoggedInSession;
 
   bool get canAccessAppSettings => true;
+
+  bool get canShowAiAgentEntry =>
+      agentCacheScopeKey.value.isNotEmpty &&
+      hasLoggedInSession &&
+      aiAgentEnabled.value &&
+      !aiAgentHideEntry.value;
+
+  void applyUserGlobalConfig(dynamic raw) {
+    final source = _normalizeConfigMap(raw);
+    if (source == null) return;
+    aiAgentEnabled.value =
+        _parsePermissionValue(
+          _permissionValueFromMap(source, 'AI_AGENT_ENABLE'),
+        ) ??
+        false;
+    aiAgentHideEntry.value =
+        _parsePermissionValue(
+          _permissionValueFromMap(source, 'AI_AGENT_HIDE_ENTRY'),
+        ) ??
+        true;
+    llmSupportAudioInput.value =
+        _parsePermissionValue(
+          _permissionValueFromMap(source, 'LLM_SUPPORT_AUDIO_INPUT'),
+        ) ??
+        false;
+    llmSupportAudioOutput.value =
+        _parsePermissionValue(
+          _permissionValueFromMap(source, 'LLM_SUPPORT_AUDIO_OUTPUT'),
+        ) ??
+        false;
+    aiRecommendEnabled.value =
+        _parsePermissionValue(
+          _permissionValueFromMap(source, 'AI_RECOMMEND_ENABLED'),
+        ) ??
+        false;
+  }
+
+  Map<String, dynamic>? _normalizeConfigMap(dynamic raw) {
+    if (raw is Map<String, dynamic>) return raw;
+    if (raw is Map) return Map<String, dynamic>.from(raw);
+    return null;
+  }
 
   bool canAccessRoute(String? route, {bool defaultValue = true}) {
     final normalized = route?.trim();
@@ -523,12 +584,22 @@ class AppService extends GetxService {
     }
 
     if (normalized == '/search-result' ||
-        normalized == '/search-media-result') {
+        normalized == '/search-media-result' ||
+        normalized == '/subtitle-search-result') {
       return canSearch;
     }
 
-    if (normalized == '/system-message') {
+    if (normalized == '/system-message' ||
+        normalized == '/mcp-tools' ||
+        normalized == '/system-maintenance') {
       return isSuperuser;
+    }
+
+    if (normalized == '/mfa-settings' ||
+        normalized == '/download-history' ||
+        normalized == '/music' ||
+        normalized.startsWith('/music/')) {
+      return hasLoggedInSession;
     }
 
     if (normalized.startsWith('/subscribe') || normalized == '/workflow') {
@@ -559,6 +630,7 @@ class AppService extends GetxService {
         normalized == '/downloader-config' ||
         normalized == '/mediaserver-config' ||
         normalized == '/media-organize' ||
+        normalized == '/transfer-queue' ||
         normalized.startsWith('/file-manager') ||
         normalized.startsWith('/plugin') ||
         normalized == '/site' ||
@@ -583,11 +655,21 @@ class AppService extends GetxService {
       return '当前帐号无应用设置权限';
     }
     if (normalized == '/search-result' ||
-        normalized == '/search-media-result') {
+        normalized == '/search-media-result' ||
+        normalized == '/subtitle-search-result') {
       return '当前帐号无资源搜索权限';
     }
     if (normalized == '/system-message') {
       return '当前帐号无系统消息权限';
+    }
+    if (normalized == '/mcp-tools' || normalized == '/system-maintenance') {
+      return '该功能仅限管理员使用';
+    }
+    if (normalized == '/mfa-settings' ||
+        normalized == '/download-history' ||
+        normalized == '/music' ||
+        normalized.startsWith('/music/')) {
+      return '请先登录后使用该功能';
     }
     if (normalized.startsWith('/subscribe') || normalized == '/workflow') {
       return '当前帐号无订阅权限';
@@ -614,6 +696,7 @@ class AppService extends GetxService {
         normalized == '/downloader-config' ||
         normalized == '/mediaserver-config' ||
         normalized == '/media-organize' ||
+        normalized == '/transfer-queue' ||
         normalized.startsWith('/file-manager') ||
         normalized.startsWith('/plugin') ||
         normalized == '/site' ||
@@ -652,6 +735,12 @@ class AppService extends GetxService {
     _loginResponse = null;
     _userInfo = null;
     _cookie = null;
+    agentCacheScopeKey.value = '';
+    aiAgentEnabled.value = false;
+    aiAgentHideEntry.value = true;
+    llmSupportAudioInput.value = false;
+    llmSupportAudioOutput.value = false;
+    aiRecommendEnabled.value = false;
     if (kIsWeb) {
       SharedPreferences.getInstance().then(
         (p) => p.remove(kAppSessionCookieKey),
@@ -673,12 +762,18 @@ class AppService extends GetxService {
     if (!isSameUser) {
       _userInfo = null;
     }
+    _syncAgentCacheScope();
     _clearRestrictedPluginCachesIfNeeded();
   }
 
   void saveUserInfo(UserInfo userInfo) {
     _userInfo = userInfo;
+    _syncAgentCacheScope();
     _clearRestrictedPluginCachesIfNeeded();
+  }
+
+  void _syncAgentCacheScope() {
+    agentCacheScopeKey.value = pluginCacheScopeKey;
   }
 
   /// 检查是否有缓存的cookie

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/modules/search/controllers/app_setting_controller.dart';
+import 'package:moviepilot_mobile/models/app_icon_option.dart';
 import 'package:moviepilot_mobile/theme/section.dart';
 import 'package:moviepilot_mobile/widgets/section_header.dart';
 
@@ -46,6 +47,8 @@ class AppThemeSettingPage extends GetView<AppSettingController> {
                   )
                   .toList(),
             ),
+            const SizedBox(height: 24),
+            _buildAppIconSection(context),
             const SizedBox(height: 24),
             Section(
               header: SectionHeader(title: '主题色'),
@@ -123,6 +126,205 @@ class AppThemeSettingPage extends GetView<AppSettingController> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAppIconSection(BuildContext context) {
+    return Section(
+      header: const SectionHeader(title: '应用图标'),
+      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: Obx(() {
+        final selectedId = controller.selectedAppIconId.value;
+        final isChanging = controller.isChangingAppIcon.value;
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
+            final columns = width < 330
+                ? 3
+                : width >= 520
+                ? 5
+                : 4;
+            final itemWidth = (width - 10 * (columns - 1)) / columns;
+
+            return Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: appIconOptions
+                  .map(
+                    (option) => SizedBox(
+                      width: itemWidth,
+                      child: _buildAppIconOption(
+                        context,
+                        option,
+                        selectedId: selectedId,
+                        isChanging: isChanging,
+                      ),
+                    ),
+                  )
+                  .toList(),
+            );
+          },
+        );
+      }),
+    );
+  }
+
+  Widget _buildAppIconOption(
+    BuildContext context,
+    AppIconOption option, {
+    required String selectedId,
+    required bool isChanging,
+  }) {
+    final selected = selectedId == option.id;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final disabled = isChanging && !selected;
+
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 160),
+      opacity: disabled ? 0.52 : 1,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: isChanging ? null : () => controller.updateAppIcon(option),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: selected
+                  ? option.previewColor.withValues(alpha: 0.08)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: selected
+                    ? option.previewColor.withValues(alpha: 0.7)
+                    : Colors.transparent,
+                width: 1.2,
+              ),
+              boxShadow: selected
+                  ? [
+                      BoxShadow(
+                        color: option.previewColor.withValues(alpha: 0.18),
+                        blurRadius: 14,
+                        offset: const Offset(0, 6),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AspectRatio(
+                  aspectRatio: 1,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Positioned.fill(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(18),
+                            color: scheme.surface,
+                            border: Border.all(
+                              color: scheme.outlineVariant.withValues(
+                                alpha: 0.26,
+                              ),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.07),
+                                blurRadius: 9,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(3),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: Image.asset(
+                                option.assetPath,
+                                fit: BoxFit.contain,
+                                filterQuality: FilterQuality.high,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (selected)
+                        Positioned(
+                          top: -3,
+                          right: -3,
+                          child: Container(
+                            width: 23,
+                            height: 23,
+                            decoration: BoxDecoration(
+                              color: scheme.primary,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: theme.cardColor,
+                                width: 2,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.check,
+                              color: Colors.white,
+                              size: 14,
+                            ),
+                          ),
+                        ),
+                      if (isChanging && selected)
+                        Positioned.fill(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: scheme.surface.withValues(alpha: 0.62),
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            alignment: Alignment.center,
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.2,
+                                color: scheme.primary,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  option.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                    color: selected ? scheme.onSurface : scheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  selected ? '使用中' : option.description,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: selected
+                        ? option.previewColor
+                        : scheme.onSurfaceVariant,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    height: 1.1,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

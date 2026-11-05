@@ -33,6 +33,21 @@ mixin _$StatisticModel {
   /// 用户数量
   int get user_count => throw _privateConstructorUsedError;
 
+  /// 音乐数量（旧版服务端不返回，为 null 时隐藏音乐统计）
+  int? get music_count => throw _privateConstructorUsedError;
+
+  /// 本月新增电影
+  int get movie_count_month => throw _privateConstructorUsedError;
+
+  /// 本月新增剧集
+  int get tv_count_month => throw _privateConstructorUsedError;
+
+  /// 本月新增集数
+  int get episode_count_month => throw _privateConstructorUsedError;
+
+  /// 本月新增音乐
+  int get music_count_month => throw _privateConstructorUsedError;
+
   /// Serializes this StatisticModel to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -50,7 +65,17 @@ abstract class $StatisticModelCopyWith<$Res> {
     $Res Function(StatisticModel) then,
   ) = _$StatisticModelCopyWithImpl<$Res, StatisticModel>;
   @useResult
-  $Res call({int movie_count, int tv_count, int episode_count, int user_count});
+  $Res call({
+    int movie_count,
+    int tv_count,
+    int episode_count,
+    int user_count,
+    int? music_count,
+    int movie_count_month,
+    int tv_count_month,
+    int episode_count_month,
+    int music_count_month,
+  });
 }
 
 /// @nodoc
@@ -72,6 +97,11 @@ class _$StatisticModelCopyWithImpl<$Res, $Val extends StatisticModel>
     Object? tv_count = null,
     Object? episode_count = null,
     Object? user_count = null,
+    Object? music_count = freezed,
+    Object? movie_count_month = null,
+    Object? tv_count_month = null,
+    Object? episode_count_month = null,
+    Object? music_count_month = null,
   }) {
     return _then(
       _value.copyWith(
@@ -91,6 +121,26 @@ class _$StatisticModelCopyWithImpl<$Res, $Val extends StatisticModel>
                 ? _value.user_count
                 : user_count // ignore: cast_nullable_to_non_nullable
                       as int,
+            music_count: freezed == music_count
+                ? _value.music_count
+                : music_count // ignore: cast_nullable_to_non_nullable
+                      as int?,
+            movie_count_month: null == movie_count_month
+                ? _value.movie_count_month
+                : movie_count_month // ignore: cast_nullable_to_non_nullable
+                      as int,
+            tv_count_month: null == tv_count_month
+                ? _value.tv_count_month
+                : tv_count_month // ignore: cast_nullable_to_non_nullable
+                      as int,
+            episode_count_month: null == episode_count_month
+                ? _value.episode_count_month
+                : episode_count_month // ignore: cast_nullable_to_non_nullable
+                      as int,
+            music_count_month: null == music_count_month
+                ? _value.music_count_month
+                : music_count_month // ignore: cast_nullable_to_non_nullable
+                      as int,
           )
           as $Val,
     );
@@ -106,7 +156,17 @@ abstract class _$$StatisticModelImplCopyWith<$Res>
   ) = __$$StatisticModelImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({int movie_count, int tv_count, int episode_count, int user_count});
+  $Res call({
+    int movie_count,
+    int tv_count,
+    int episode_count,
+    int user_count,
+    int? music_count,
+    int movie_count_month,
+    int tv_count_month,
+    int episode_count_month,
+    int music_count_month,
+  });
 }
 
 /// @nodoc
@@ -127,6 +187,11 @@ class __$$StatisticModelImplCopyWithImpl<$Res>
     Object? tv_count = null,
     Object? episode_count = null,
     Object? user_count = null,
+    Object? music_count = freezed,
+    Object? movie_count_month = null,
+    Object? tv_count_month = null,
+    Object? episode_count_month = null,
+    Object? music_count_month = null,
   }) {
     return _then(
       _$StatisticModelImpl(
@@ -146,6 +211,26 @@ class __$$StatisticModelImplCopyWithImpl<$Res>
             ? _value.user_count
             : user_count // ignore: cast_nullable_to_non_nullable
                   as int,
+        music_count: freezed == music_count
+            ? _value.music_count
+            : music_count // ignore: cast_nullable_to_non_nullable
+                  as int?,
+        movie_count_month: null == movie_count_month
+            ? _value.movie_count_month
+            : movie_count_month // ignore: cast_nullable_to_non_nullable
+                  as int,
+        tv_count_month: null == tv_count_month
+            ? _value.tv_count_month
+            : tv_count_month // ignore: cast_nullable_to_non_nullable
+                  as int,
+        episode_count_month: null == episode_count_month
+            ? _value.episode_count_month
+            : episode_count_month // ignore: cast_nullable_to_non_nullable
+                  as int,
+        music_count_month: null == music_count_month
+            ? _value.music_count_month
+            : music_count_month // ignore: cast_nullable_to_non_nullable
+                  as int,
       ),
     );
   }
@@ -159,6 +244,11 @@ class _$StatisticModelImpl implements _StatisticModel {
     this.tv_count = 0,
     this.episode_count = 0,
     this.user_count = 0,
+    this.music_count,
+    this.movie_count_month = 0,
+    this.tv_count_month = 0,
+    this.episode_count_month = 0,
+    this.music_count_month = 0,
   });
 
   factory _$StatisticModelImpl.fromJson(Map<String, dynamic> json) =>
@@ -184,9 +274,33 @@ class _$StatisticModelImpl implements _StatisticModel {
   @JsonKey()
   final int user_count;
 
+  /// 音乐数量（旧版服务端不返回，为 null 时隐藏音乐统计）
+  @override
+  final int? music_count;
+
+  /// 本月新增电影
+  @override
+  @JsonKey()
+  final int movie_count_month;
+
+  /// 本月新增剧集
+  @override
+  @JsonKey()
+  final int tv_count_month;
+
+  /// 本月新增集数
+  @override
+  @JsonKey()
+  final int episode_count_month;
+
+  /// 本月新增音乐
+  @override
+  @JsonKey()
+  final int music_count_month;
+
   @override
   String toString() {
-    return 'StatisticModel(movie_count: $movie_count, tv_count: $tv_count, episode_count: $episode_count, user_count: $user_count)';
+    return 'StatisticModel(movie_count: $movie_count, tv_count: $tv_count, episode_count: $episode_count, user_count: $user_count, music_count: $music_count, movie_count_month: $movie_count_month, tv_count_month: $tv_count_month, episode_count_month: $episode_count_month, music_count_month: $music_count_month)';
   }
 
   @override
@@ -201,7 +315,17 @@ class _$StatisticModelImpl implements _StatisticModel {
             (identical(other.episode_count, episode_count) ||
                 other.episode_count == episode_count) &&
             (identical(other.user_count, user_count) ||
-                other.user_count == user_count));
+                other.user_count == user_count) &&
+            (identical(other.music_count, music_count) ||
+                other.music_count == music_count) &&
+            (identical(other.movie_count_month, movie_count_month) ||
+                other.movie_count_month == movie_count_month) &&
+            (identical(other.tv_count_month, tv_count_month) ||
+                other.tv_count_month == tv_count_month) &&
+            (identical(other.episode_count_month, episode_count_month) ||
+                other.episode_count_month == episode_count_month) &&
+            (identical(other.music_count_month, music_count_month) ||
+                other.music_count_month == music_count_month));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -212,6 +336,11 @@ class _$StatisticModelImpl implements _StatisticModel {
     tv_count,
     episode_count,
     user_count,
+    music_count,
+    movie_count_month,
+    tv_count_month,
+    episode_count_month,
+    music_count_month,
   );
 
   /// Create a copy of StatisticModel
@@ -237,6 +366,11 @@ abstract class _StatisticModel implements StatisticModel {
     final int tv_count,
     final int episode_count,
     final int user_count,
+    final int? music_count,
+    final int movie_count_month,
+    final int tv_count_month,
+    final int episode_count_month,
+    final int music_count_month,
   }) = _$StatisticModelImpl;
 
   factory _StatisticModel.fromJson(Map<String, dynamic> json) =
@@ -257,6 +391,26 @@ abstract class _StatisticModel implements StatisticModel {
   /// 用户数量
   @override
   int get user_count;
+
+  /// 音乐数量（旧版服务端不返回，为 null 时隐藏音乐统计）
+  @override
+  int? get music_count;
+
+  /// 本月新增电影
+  @override
+  int get movie_count_month;
+
+  /// 本月新增剧集
+  @override
+  int get tv_count_month;
+
+  /// 本月新增集数
+  @override
+  int get episode_count_month;
+
+  /// 本月新增音乐
+  @override
+  int get music_count_month;
 
   /// Create a copy of StatisticModel
   /// with the given fields replaced by the non-null parameter values.

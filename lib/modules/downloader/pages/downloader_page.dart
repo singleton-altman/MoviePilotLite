@@ -2,8 +2,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/modules/downloader/controllers/downloader_controller.dart';
+import 'package:moviepilot_mobile/modules/downloader/models/download_task.dart';
 import 'package:moviepilot_mobile/modules/downloader/widgets/downloader_client_tab_chip.dart';
 import 'package:moviepilot_mobile/modules/downloader/widgets/downloader_task_item_card.dart';
+import 'package:moviepilot_mobile/utils/toast_util.dart';
 
 class DownloaderPage extends GetView<DownloaderController> {
   const DownloaderPage({super.key});
@@ -11,7 +13,18 @@ class DownloaderPage extends GetView<DownloaderController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('下载管理'), centerTitle: false),
+      appBar: AppBar(
+        title: const Text('下载管理'),
+        centerTitle: false,
+        actions: [
+          IconButton(
+            tooltip: '下载历史',
+            icon: const Icon(Icons.history_rounded, size: 22),
+            onPressed: () => Get.toNamed('/download-history'),
+          ),
+          const SizedBox(width: 6),
+        ],
+      ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -42,6 +55,15 @@ class DownloaderPage extends GetView<DownloaderController> {
             ),
         ],
       ),
+    );
+  }
+
+  void _confirmDeleteTask(BuildContext context, DownloadTask task) {
+    final label = (task.title ?? task.name ?? '').trim();
+    ToastUtil.warning(
+      label.isEmpty ? '删除后将无法恢复,确定删除该任务吗?' : '删除后将无法恢复,确定删除「$label」吗?',
+      title: '删除下载任务',
+      onConfirm: () => controller.deleteTask(task),
     );
   }
 
@@ -87,7 +109,7 @@ class DownloaderPage extends GetView<DownloaderController> {
               return DownloaderTaskItemCard(
                 task: task,
                 onPauseResume: () => controller.togglePauseResume(task),
-                onDelete: () => controller.deleteTask(task),
+                onDelete: () => _confirmDeleteTask(context, task),
                 isDownloading: controller.isDownloading(task),
                 isOperating:
                     task.hash != null &&

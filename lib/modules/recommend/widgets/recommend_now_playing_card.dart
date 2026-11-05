@@ -13,6 +13,8 @@ class RecommendNowPlayingCard extends StatelessWidget {
 
   final RecommendApiItem item;
   final VoidCallback onTap;
+  static const double _cardWidth = 116;
+  static const double _cardHeight = 180;
 
   @override
   Widget build(BuildContext context) {
@@ -27,71 +29,76 @@ class RecommendNowPlayingCard extends StatelessWidget {
           title,
           if (rating > 0) '评分 ${rating.toStringAsFixed(1)}',
         ].join('，'),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(14),
-            child: Ink(
-              width: 116,
-              decoration: BoxDecoration(
-                color: const Color(0xFF10211F),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.09)),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(13),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    ColoredBox(
-                      color: const Color(0xFF0B1716),
-                      child: _buildPoster(),
-                    ),
-                    const DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          stops: [0.52, 1],
-                          colors: [Colors.transparent, Color(0xE6000000)],
+        child: SizedBox(
+          width: _cardWidth,
+          height: _cardHeight,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(14),
+              child: Ink(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10211F),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.09),
+                  ),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(13),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ColoredBox(
+                        color: const Color(0xFF0B1716),
+                        child: _buildPoster(),
+                      ),
+                      const DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            stops: [0.52, 1],
+                            colors: [Colors.transparent, Color(0xE6000000)],
+                          ),
                         ),
                       ),
-                    ),
-                    if (rating > 0)
+                      if (rating > 0)
+                        Positioned(
+                          right: 6,
+                          top: 6,
+                          child: _Badge(
+                            icon: Icons.star_rounded,
+                            label: rating.toStringAsFixed(1),
+                            iconColor: Color(0xFFFFC857),
+                          ),
+                        ),
                       Positioned(
-                        right: 6,
-                        top: 6,
-                        child: _Badge(
-                          icon: Icons.star_rounded,
-                          label: rating.toStringAsFixed(1),
-                          iconColor: Color(0xFFFFC857),
+                        left: 9,
+                        right: 9,
+                        bottom: 9,
+                        child: Text(
+                          title.isEmpty ? '未命名影片' : title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            height: 1.15,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black87,
+                                blurRadius: 6,
+                                offset: Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                    Positioned(
-                      left: 9,
-                      right: 9,
-                      bottom: 9,
-                      child: Text(
-                        title.isEmpty ? '未命名影片' : title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          height: 1.15,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black87,
-                              blurRadius: 6,
-                              offset: Offset(0, 1),
-                            ),
-                          ],
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

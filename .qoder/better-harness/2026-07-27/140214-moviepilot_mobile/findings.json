@@ -1,0 +1,198 @@
+{
+  "summary": {
+    "projectName": "MoviePilot Mobile",
+    "locale": "en",
+    "modelId": "agent-work-loop-v4",
+    "reportContractVersion": 25,
+    "overview": "Documented agent entry point and build commands exist, but CI lacks quality gates and AGENTS.md contradicts active CI on platform scope. The code-generation repair path is blocked by a known duplicate-class issue and learning capture is unevaluable with current session evidence.",
+    "aiAgentPractice": {
+      "inspectedSurfaces": [
+        "Rules",
+        "Workflows",
+        "Memories"
+      ],
+      "coverageRows": [
+        {
+          "surface": "Rules",
+          "scopes": [
+            "Project"
+          ],
+          "count": 1,
+          "paths": [
+            "AGENTS.md"
+          ]
+        },
+        {
+          "surface": "Workflows",
+          "scopes": [
+            "Project"
+          ],
+          "count": 2,
+          "paths": [
+            ".github/workflows/build-release.yml",
+            ".github/workflows/deploy-web-vercel.yml"
+          ]
+        },
+        {
+          "surface": "Memories",
+          "scopes": [
+            "Project"
+          ],
+          "count": 12
+        },
+        {
+          "surface": "Custom Agents",
+          "scopes": [
+            "Project"
+          ],
+          "count": 0
+        }
+      ]
+    },
+    "assignmentSummaries": [],
+    "dimensions": [
+      {
+        "id": "task-understanding",
+        "label": "Task Understanding",
+        "score": 55,
+        "summary": "AGENTS.md provides a clear task entry point and command surface, but its platform-scope section contradicts active CI and the inferred core boundary misses the Dart source tree.",
+        "findingRefs": [
+          "agents-md-platform-conflict",
+          "core-boundary-misses-dart"
+        ]
+      },
+      {
+        "id": "controlled-execution",
+        "label": "Controlled Execution",
+        "score": 62,
+        "summary": "Flutter SDK is pinned and commands are documented, but environment provenance is Cursor-specific and no runtime exercise is evidenced in the session window.",
+        "findingRefs": []
+      },
+      {
+        "id": "change-validation",
+        "label": "Change Validation",
+        "score": 42,
+        "summary": "CI builds but never lints or tests; the standard code-generation repair path is blocked by a known duplicate-class issue; application-level exception correlation is disabled.",
+        "findingRefs": [
+          "ci-no-quality-gate",
+          "generated-code-regeneration-trap",
+          "applog-exception-handler-disabled"
+        ]
+      },
+      {
+        "id": "reliable-delivery",
+        "label": "Reliable Delivery",
+        "score": 38,
+        "summary": "CI produces release artifacts but lacks a quality gate, rollback mechanism, or visible approval path.",
+        "findingRefs": []
+      },
+      {
+        "id": "learning-capture",
+        "label": "Learning Capture",
+        "score": 38,
+        "summary": "Session evidence is too sparse to evaluate learning (unobserved); one Memory title collision is pending governance review.",
+        "findingRefs": [
+          "memory-title-collision"
+        ]
+      }
+    ]
+  },
+  "findings": [
+    {
+      "id": "ci-no-quality-gate",
+      "title": "CI pipeline builds but never lints or tests",
+      "severity": "Medium",
+      "reason": "Both CI workflows run only build commands without flutter analyze or flutter test. build-release.yml triggers on workflow_dispatch and a weekly cron, running flutter build apk --release and flutter build ios --release. deploy-web-vercel.yml triggers on push to master/main, running flutter build web --release and deploying to Vercel production. Neither workflow includes a lint or test step, and no separate PR-check workflow exists in the project. AGENTS.md itself lists flutter analyze and flutter test as commands, so the capability is known but not gated in CI. Release artifacts and web production deploys therefore proceed without automated validation.",
+      "expectedOutput": [
+        "Both CI workflows run flutter analyze and flutter test before build jobs",
+        "The build step is gated on analyze and test success",
+        "A failing lint or test blocks release artifacts and web production deploys"
+      ],
+      "expectedArtifact": "CI workflow update",
+      "aiFixPrompt": "/better-harness fix this issue\n\nAdd flutter analyze and flutter test steps to both CI workflows before the build jobs. Gate the build on their success so lint errors or test failures block release artifacts and web deploys.\n\n## Validation\n\n- Run flutter analyze and confirm it passes with zero errors\n- Run flutter test and confirm all tests pass\n- Verify the CI workflow fails when analyze or test fails",
+      "dimensionRefs": [
+        "change-validation"
+      ]
+    },
+    {
+      "id": "agents-md-platform-conflict",
+      "title": "AGENTS.md platform scope contradicts active CI",
+      "severity": "Medium",
+      "reason": "AGENTS.md states the project targets Android/iOS/macOS only and explicitly excludes web and linux. However, deploy-web-vercel.yml actively builds flutter build web --release and deploys to Vercel production on push to master/main, and a web/ directory tree exists in the repository. Conversely, AGENTS.md claims macOS support, but build-release.yml has no macOS build job. An agent following AGENTS.md would treat web as out-of-scope and macOS as in-scope, inverting the CI-supported reality. A secondary inconsistency exists: the web build omits the --dart-define=FLUTTER_APP_ENV=release flag that both mobile builds set.",
+      "expectedOutput": [
+        "AGENTS.md platform-scope section accurately reflects active CI (web is deployed, macOS is not CI-built)",
+        "An agent reading AGENTS.md correctly identifies web as in-scope and macOS as not CI-covered",
+        "The web build uses the same --dart-define as mobile builds"
+      ],
+      "expectedArtifact": "AGENTS.md update",
+      "aiFixPrompt": "/better-harness fix this issue\n\nUpdate the platform-scope section of AGENTS.md to match active CI. Web is deployed to production via Vercel and should be in-scope. macOS is not CI-covered and should be marked accordingly. Add the --dart-define=FLUTTER_APP_ENV=release flag to the web build in deploy-web-vercel.yml for consistency with mobile builds.\n\n## Validation\n\n- Confirm AGENTS.md platform section matches the CI workflows\n- Confirm the web build includes the same dart-define as mobile builds",
+      "dimensionRefs": [
+        "task-understanding"
+      ]
+    },
+    {
+      "id": "generated-code-regeneration-trap",
+      "title": "Standard code-generation repair breaks the build",
+      "severity": "Medium",
+      "reason": "The standard code-generation repair command, dart run build_runner build --delete-conflicting-outputs, breaks the build when it regenerates form_block_models.freezed.dart. This file has a known duplicate-class issue where InfoCardRowMenu is used for both the menu and group constructors in InfoCardRow. AGENTS.md and README explicitly warn not to regenerate this file, stating the build succeeds only with the committed version. However, no mechanical guard in CI or pre-commit prevents an agent or developer from running the standard regeneration command and breaking the build. The warning exists only in documentation prose.",
+      "expectedOutput": [
+        "dart run build_runner build --delete-conflicting-outputs completes without breaking the build",
+        "The InfoCardRowMenu duplicate-class issue is resolved in the source model",
+        "The AGENTS.md and README regeneration warnings can be removed or updated"
+      ],
+      "expectedArtifact": "Source model fix",
+      "aiFixPrompt": "/better-harness fix this issue\n\nFix the InfoCardRowMenu duplicate-class issue in the source model so that dart run build_runner build --delete-conflicting-outputs regenerates form_block_models.freezed.dart without introducing a duplicate class. The source model uses InfoCardRowMenu for both menu and group constructors in InfoCardRow; separate them or use distinct class names.\n\n## Validation\n\n- Run dart run build_runner build --delete-conflicting-outputs and confirm the build succeeds\n- Run flutter analyze and confirm no duplicate-class errors\n- Confirm the regenerated form_block_models.freezed.dart matches the committed version's behavior",
+      "dimensionRefs": [
+        "change-validation"
+      ]
+    },
+    {
+      "id": "applog-exception-handler-disabled",
+      "title": "Application exception handler is commented out",
+      "severity": "Low",
+      "reason": "AppLog.handle() has the talker.handle(e, stackTrace, message) call commented out in lib/applog/app_log.dart, so application-level exceptions are logged as message strings without stack-trace correlation. HTTP traces via TalkerDioLogger still capture full request and response bodies, but application-level exception correlation is broken. The 100-item in-memory history cap further limits retrospective reach for debugging. Whether console logging was intentionally disabled for production performance is unverified, but a commented-out handler in active code is a code-level defect regardless of intent; the proper way to disable logging would be a runtime flag, not a code comment.",
+      "expectedOutput": [
+        "The talker.handle call is uncommented and active in AppLog.handle()",
+        "Application exceptions retain stack traces in the Talker log history",
+        "Console logging can be controlled via a runtime flag if needed"
+      ],
+      "expectedArtifact": "AppLog fix",
+      "aiFixPrompt": "/better-harness fix this issue\n\nUncomment the talker.handle call in AppLog.handle() in lib/applog/app_log.dart to restore stack-trace correlation for application exceptions. If console logging must be disabled for production, use a runtime flag instead of a code comment.\n\n## Validation\n\n- Run flutter analyze and confirm no errors\n- Confirm application exceptions retain stack traces in the Talker log history\n- Verify the handler is active in debug mode",
+      "dimensionRefs": [
+        "change-validation"
+      ]
+    },
+    {
+      "id": "core-boundary-misses-dart",
+      "title": "Core boundary configuration misses the Dart source tree",
+      "severity": "Low",
+      "reason": "The core-change-watch evidence pack has no configured core-code rules because the .better-harness/core-code file is missing in the repository. The pack infers the core boundary and detects only 1 C file (ios/Runner/Runner-Bridging-Header.h) as the primary source, missing the 475 Dart files in lib/ where 99 percent of churn occurs. The real hotspots (lib/main.dart with 96 commits, dashboard_page.dart with 43, api_client.dart with 37) appear only as demoted supporting files. Hotspot ranking, core candidate detection, and diff-impact signals are unreliable for any Dart change as a result.",
+      "expectedOutput": [
+        "A .better-harness/core-code file exists with include patterns for lib/**/*.dart",
+        "Generated files (*.g.dart, *.freezed.dart) are excluded from the core boundary",
+        "The evidence pack detects Dart/Flutter as the primary language and ranks lib/ hotspots correctly"
+      ],
+      "expectedArtifact": "Core-code rules configuration",
+      "aiFixPrompt": "/better-harness fix this issue\n\nCreate a .better-harness/core-code file in the repository root with include patterns for the Dart source tree and exclude patterns for generated files. Use the following format (one glob pattern per line, lines starting with ! are excludes, # for comments):\n\nlib/**/*.dart\n!**/*.g.dart\n!**/*.freezed.dart\n\n## Validation\n\n- Run the core-change-watch evidence pack and confirm it detects Dart as the primary language\n- Confirm the hotspot ranking includes lib/ files as primary hot files\n- Verify the core candidates reference lib/ modules, not ios/ scaffolding",
+      "dimensionRefs": [
+        "task-understanding"
+      ]
+    },
+    {
+      "id": "memory-title-collision",
+      "title": "Two project Memory titles collide and need governance review",
+      "severity": "Low",
+      "reason": "The asset-integrity envelope confirms that two project Memory titles normalize to the same name, creating a deterministic title collision in the technology stack category. This proves only a title-metadata collision, not duplicate body content, conflict, or current runtime impact. Retrieval routing ambiguity may result when both titles resolve to the same lookup key. The collision is an ordinary governance finding pending metadata review; merge or deletion requires separate authority to verify same-scope bodies.",
+      "expectedOutput": [
+        "The two colliding Memory titles are identified via SearchMemory",
+        "One title is renamed so both are distinguishable, using the UpdateMemory route",
+        "The asset-integrity envelope reports zero title collisions after the fix"
+      ],
+      "expectedArtifact": "Memory metadata review",
+      "aiFixPrompt": "/better-harness fix this issue\n\nUse SearchMemory to locate the two project Memory titles that normalize to the same name in the technology stack category. Review their title metadata and scope. If same-scope duplicate bodies are confirmed with separate authority, use UpdateMemory (action: update) to rename one title so both are distinguishable. Do not merge or delete without separate authority. Never edit Memory files directly.\n\n## Validation\n\n- Run the asset-integrity envelope again and confirm the title collision count is zero\n- Confirm both Memories remain accessible with distinct, non-colliding titles",
+      "dimensionRefs": [
+        "learning-capture"
+      ]
+    }
+  ]
+}

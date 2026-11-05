@@ -17,8 +17,10 @@ class SystemMessagePage extends StatefulWidget {
 
 class _SystemMessagePageState extends State<SystemMessagePage> {
   late final SystemMessageController controller;
+  final _inputFocusNode = FocusNode();
 
   static const double _pageHorizontalPadding = 16;
+  static const double _contentMaxWidth = 760;
   String _selectedType = '全部';
 
   @override
@@ -34,6 +36,12 @@ class _SystemMessagePageState extends State<SystemMessagePage> {
       }
       await controller.markAsRead();
     });
+  }
+
+  @override
+  void dispose() {
+    _inputFocusNode.dispose();
+    super.dispose();
   }
 
   @override
@@ -327,46 +335,64 @@ class _SystemMessagePageState extends State<SystemMessagePage> {
   }
 
   Widget _buildMessageList(BuildContext context, List<SystemMessage> items) {
-    return CustomScrollView(
-      controller: controller.scrollController,
-      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      slivers: [
-        CupertinoSliverRefreshControl(onRefresh: controller.loadMore),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(
-            _pageHorizontalPadding,
-            10,
-            _pageHorizontalPadding,
-            16,
-          ),
-          sliver: SliverList(
-            delegate: SliverChildBuilderDelegate((context, index) {
-              final message = items[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: SystemMessageItem(message: message),
-              );
-            }, childCount: items.length),
-          ),
-        ),
-        if (!controller.hasMore.value)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 18),
-              child: Center(
-                child: Text(
-                  '没有更多了',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final horizontalInset = constraints.maxWidth > _contentMaxWidth
+            ? (constraints.maxWidth - _contentMaxWidth) / 2
+            : 0.0;
+        return CustomScrollView(
+          controller: controller.scrollController,
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          slivers: [
+            CupertinoSliverRefreshControl(onRefresh: controller.loadMore),
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(
+                horizontalInset + _pageHorizontalPadding,
+                10,
+                horizontalInset + _pageHorizontalPadding,
+                16,
+              ),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final message = items[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: SystemMessageItem(
+                      message: message,
+                      onCommandSelected: _fillInputCommand,
+                    ),
+                  );
+                }, childCount: items.length),
+              ),
+            ),
+            if (!controller.hasMore.value)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 18),
+                  child: Center(
+                    child: Text(
+                      '没有更多了',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
-        const SliverToBoxAdapter(child: SizedBox(height: 6)),
-      ],
+            const SliverToBoxAdapter(child: SizedBox(height: 6)),
+          ],
+        );
+      },
     );
+  }
+
+  void _fillInputCommand(String command) {
+    controller.inputController.value = TextEditingValue(
+      text: command,
+      selection: TextSelection.collapsed(offset: command.length),
+    );
+    _inputFocusNode.requestFocus();
   }
 
   Widget _buildInputBar(
@@ -395,49 +421,55 @@ class _SystemMessagePageState extends State<SystemMessagePage> {
                 ),
               ),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: CupertinoTextField(
-                    controller: controller.inputController,
-                    placeholder: '输入消息内容',
-                    minLines: 1,
-                    maxLines: 3,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: cs.surfaceContainerHighest.withValues(
-                        alpha: isDark ? 0.52 : 0.76,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: _contentMaxWidth),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: CupertinoTextField(
+                        controller: controller.inputController,
+                        focusNode: _inputFocusNode,
+                        placeholder: '输入消息内容',
+                        minLines: 1,
+                        maxLines: 3,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: cs.surfaceContainerHighest.withValues(
+                            alpha: isDark ? 0.52 : 0.76,
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: cs.outlineVariant.withValues(alpha: 0.72),
+                          ),
+                        ),
                       ),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: cs.outlineVariant.withValues(alpha: 0.72),
+                    ),
+                    const SizedBox(width: 10),
+                    Obx(
+                      () => SizedBox(
+                        height: 42,
+                        width: 46,
+                        child: CupertinoButton.filled(
+                          padding: EdgeInsets.zero,
+                          onPressed: controller.isSending.value
+                              ? null
+                              : controller.sendMessage,
+                          child: controller.isSending.value
+                              ? const CupertinoActivityIndicator(radius: 8)
+                              : const Icon(
+                                  CupertinoIcons.paperplane_fill,
+                                  size: 18,
+                                ),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-                const SizedBox(width: 10),
-                Obx(
-                  () => SizedBox(
-                    height: 42,
-                    width: 46,
-                    child: CupertinoButton.filled(
-                      padding: EdgeInsets.zero,
-                      onPressed: controller.isSending.value
-                          ? null
-                          : controller.sendMessage,
-                      child: controller.isSending.value
-                          ? const CupertinoActivityIndicator(radius: 8)
-                          : const Icon(
-                              CupertinoIcons.paperplane_fill,
-                              size: 18,
-                            ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),

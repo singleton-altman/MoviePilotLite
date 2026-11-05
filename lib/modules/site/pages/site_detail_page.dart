@@ -7,6 +7,7 @@ import 'package:moviepilot_mobile/modules/site/controllers/site_detail_controlle
 import 'package:moviepilot_mobile/theme/app_theme.dart';
 import 'package:moviepilot_mobile/theme/section.dart';
 import 'package:moviepilot_mobile/utils/open_url.dart';
+import 'package:moviepilot_mobile/utils/toast_util.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 class SiteDetailPage extends GetView<SiteDetailController> {
@@ -50,6 +51,31 @@ class SiteDetailPage extends GetView<SiteDetailController> {
               },
               child: const Icon(Icons.mediation),
             ),
+            PopupMenuButton<String>(
+              tooltip: '站点维护',
+              icon: const Icon(Icons.more_vert, size: 22),
+              onSelected: (value) {
+                switch (value) {
+                  case 'cookie':
+                    _showUpdateCookieDialog(context);
+                  case 'test':
+                    _runSiteAction('连接测试中…', controller.testSiteConnectivity);
+                  case 'cookiecloud':
+                    _runSiteAction(
+                      'CookieCloud 同步中…',
+                      controller.syncCookieCloud,
+                    );
+                }
+              },
+              itemBuilder: (context) => const [
+                PopupMenuItem(
+                  value: 'cookie',
+                  child: Text('更新 Cookie & UA'),
+                ),
+                PopupMenuItem(value: 'test', child: Text('连接测试')),
+                PopupMenuItem(value: 'cookiecloud', child: Text('CookieCloud 同步')),
+              ],
+            ),
           ],
         ),
         body: CustomScrollView(
@@ -75,6 +101,99 @@ class SiteDetailPage extends GetView<SiteDetailController> {
         ),
       ),
     );
+  }
+
+  Future<void> _runSiteAction(
+    String loadingText,
+    Future<({bool ok, String message})> Function() action,
+  ) async {
+    ToastUtil.loading(message: loadingText);
+    final result = await action();
+    ToastUtil.dismiss();
+    if (result.ok) {
+      ToastUtil.success(result.message);
+    } else {
+      ToastUtil.error(result.message);
+    }
+  }
+
+  /// 使用站点账号密码更新 Cookie&UA（POST /api/v1/site/cookie/{id}）。
+  /// 服务端不支持直接粘贴 Cookie，走账号密码自动登录流程。
+  Future<void> _showUpdateCookieDialog(BuildContext context) async {
+    final usernameCtrl = TextEditingController();
+    final passwordCtrl = TextEditingController();
+    final codeCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    final submitted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('更新 Cookie & UA'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '使用站点登录账号密码自动更新 Cookie 与 UA',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(dialogContext).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: usernameCtrl,
+                decoration: const InputDecoration(labelText: '站点用户名'),
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? '请输入用户名' : null,
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: passwordCtrl,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: '站点密码'),
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? '请输入密码' : null,
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: codeCtrl,
+                decoration: const InputDecoration(
+                  labelText: '二步验证码 / 密钥（可选）',
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              if (formKey.currentState?.validate() ?? false) {
+                Navigator.of(dialogContext).pop(true);
+              }
+            },
+            child: const Text('更新'),
+          ),
+        ],
+      ),
+    );
+    if (submitted != true) return;
+    await _runSiteAction(
+      '正在更新 Cookie…',
+      () => controller.updateSiteCookie(
+        username: usernameCtrl.text.trim(),
+        password: passwordCtrl.text,
+        code: codeCtrl.text,
+      ),
+    );
+    usernameCtrl.dispose();
+    passwordCtrl.dispose();
+    codeCtrl.dispose();
   }
 
   Widget _buildBasicInfoSection(BuildContext context) {

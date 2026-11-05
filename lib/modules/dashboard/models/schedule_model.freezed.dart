@@ -36,6 +36,34 @@ mixin _$ScheduleModel {
   /// 下次运行时间
   String get next_run => throw _privateConstructorUsedError;
 
+  /// 服务端按当前语言生成的名称
+  String? get name_i18n => throw _privateConstructorUsedError;
+
+  /// 服务端按当前语言生成的提供者
+  String? get provider_i18n => throw _privateConstructorUsedError;
+
+  /// 服务端按当前语言生成的状态
+  String? get status_i18n => throw _privateConstructorUsedError;
+
+  /// 服务端按当前语言生成的下次运行时间
+  String? get next_run_i18n => throw _privateConstructorUsedError;
+
+  /// 运行进度百分比（0-100）
+  double get progress => throw _privateConstructorUsedError;
+
+  /// 运行进度说明
+  String? get progress_text => throw _privateConstructorUsedError;
+
+  /// 服务端按当前语言生成的进度说明
+  String? get progress_text_i18n => throw _privateConstructorUsedError;
+
+  /// 是否启用进度上报（启用即视为运行中）
+  bool get progress_enable => throw _privateConstructorUsedError;
+
+  /// 进度详情（ScheduleProgress）
+  Map<String, dynamic>? get progress_detail =>
+      throw _privateConstructorUsedError;
+
   /// Serializes this ScheduleModel to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -59,6 +87,15 @@ abstract class $ScheduleModelCopyWith<$Res> {
     String provider,
     String status,
     String next_run,
+    String? name_i18n,
+    String? provider_i18n,
+    String? status_i18n,
+    String? next_run_i18n,
+    double progress,
+    String? progress_text,
+    String? progress_text_i18n,
+    bool progress_enable,
+    Map<String, dynamic>? progress_detail,
   });
 }
 
@@ -82,6 +119,15 @@ class _$ScheduleModelCopyWithImpl<$Res, $Val extends ScheduleModel>
     Object? provider = null,
     Object? status = null,
     Object? next_run = null,
+    Object? name_i18n = freezed,
+    Object? provider_i18n = freezed,
+    Object? status_i18n = freezed,
+    Object? next_run_i18n = freezed,
+    Object? progress = null,
+    Object? progress_text = freezed,
+    Object? progress_text_i18n = freezed,
+    Object? progress_enable = null,
+    Object? progress_detail = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -105,6 +151,42 @@ class _$ScheduleModelCopyWithImpl<$Res, $Val extends ScheduleModel>
                 ? _value.next_run
                 : next_run // ignore: cast_nullable_to_non_nullable
                       as String,
+            name_i18n: freezed == name_i18n
+                ? _value.name_i18n
+                : name_i18n // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            provider_i18n: freezed == provider_i18n
+                ? _value.provider_i18n
+                : provider_i18n // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            status_i18n: freezed == status_i18n
+                ? _value.status_i18n
+                : status_i18n // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            next_run_i18n: freezed == next_run_i18n
+                ? _value.next_run_i18n
+                : next_run_i18n // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            progress: null == progress
+                ? _value.progress
+                : progress // ignore: cast_nullable_to_non_nullable
+                      as double,
+            progress_text: freezed == progress_text
+                ? _value.progress_text
+                : progress_text // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            progress_text_i18n: freezed == progress_text_i18n
+                ? _value.progress_text_i18n
+                : progress_text_i18n // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            progress_enable: null == progress_enable
+                ? _value.progress_enable
+                : progress_enable // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            progress_detail: freezed == progress_detail
+                ? _value.progress_detail
+                : progress_detail // ignore: cast_nullable_to_non_nullable
+                      as Map<String, dynamic>?,
           )
           as $Val,
     );
@@ -126,6 +208,15 @@ abstract class _$$ScheduleModelImplCopyWith<$Res>
     String provider,
     String status,
     String next_run,
+    String? name_i18n,
+    String? provider_i18n,
+    String? status_i18n,
+    String? next_run_i18n,
+    double progress,
+    String? progress_text,
+    String? progress_text_i18n,
+    bool progress_enable,
+    Map<String, dynamic>? progress_detail,
   });
 }
 
@@ -148,6 +239,15 @@ class __$$ScheduleModelImplCopyWithImpl<$Res>
     Object? provider = null,
     Object? status = null,
     Object? next_run = null,
+    Object? name_i18n = freezed,
+    Object? provider_i18n = freezed,
+    Object? status_i18n = freezed,
+    Object? next_run_i18n = freezed,
+    Object? progress = null,
+    Object? progress_text = freezed,
+    Object? progress_text_i18n = freezed,
+    Object? progress_enable = null,
+    Object? progress_detail = freezed,
   }) {
     return _then(
       _$ScheduleModelImpl(
@@ -171,6 +271,42 @@ class __$$ScheduleModelImplCopyWithImpl<$Res>
             ? _value.next_run
             : next_run // ignore: cast_nullable_to_non_nullable
                   as String,
+        name_i18n: freezed == name_i18n
+            ? _value.name_i18n
+            : name_i18n // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        provider_i18n: freezed == provider_i18n
+            ? _value.provider_i18n
+            : provider_i18n // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        status_i18n: freezed == status_i18n
+            ? _value.status_i18n
+            : status_i18n // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        next_run_i18n: freezed == next_run_i18n
+            ? _value.next_run_i18n
+            : next_run_i18n // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        progress: null == progress
+            ? _value.progress
+            : progress // ignore: cast_nullable_to_non_nullable
+                  as double,
+        progress_text: freezed == progress_text
+            ? _value.progress_text
+            : progress_text // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        progress_text_i18n: freezed == progress_text_i18n
+            ? _value.progress_text_i18n
+            : progress_text_i18n // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        progress_enable: null == progress_enable
+            ? _value.progress_enable
+            : progress_enable // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        progress_detail: freezed == progress_detail
+            ? _value._progress_detail
+            : progress_detail // ignore: cast_nullable_to_non_nullable
+                  as Map<String, dynamic>?,
       ),
     );
   }
@@ -185,7 +321,16 @@ class _$ScheduleModelImpl implements _ScheduleModel {
     this.provider = '',
     this.status = '',
     this.next_run = '',
-  });
+    this.name_i18n,
+    this.provider_i18n,
+    this.status_i18n,
+    this.next_run_i18n,
+    this.progress = 0.0,
+    this.progress_text,
+    this.progress_text_i18n,
+    this.progress_enable = false,
+    final Map<String, dynamic>? progress_detail,
+  }) : _progress_detail = progress_detail;
 
   factory _$ScheduleModelImpl.fromJson(Map<String, dynamic> json) =>
       _$$ScheduleModelImplFromJson(json);
@@ -215,9 +360,56 @@ class _$ScheduleModelImpl implements _ScheduleModel {
   @JsonKey()
   final String next_run;
 
+  /// 服务端按当前语言生成的名称
+  @override
+  final String? name_i18n;
+
+  /// 服务端按当前语言生成的提供者
+  @override
+  final String? provider_i18n;
+
+  /// 服务端按当前语言生成的状态
+  @override
+  final String? status_i18n;
+
+  /// 服务端按当前语言生成的下次运行时间
+  @override
+  final String? next_run_i18n;
+
+  /// 运行进度百分比（0-100）
+  @override
+  @JsonKey()
+  final double progress;
+
+  /// 运行进度说明
+  @override
+  final String? progress_text;
+
+  /// 服务端按当前语言生成的进度说明
+  @override
+  final String? progress_text_i18n;
+
+  /// 是否启用进度上报（启用即视为运行中）
+  @override
+  @JsonKey()
+  final bool progress_enable;
+
+  /// 进度详情（ScheduleProgress）
+  final Map<String, dynamic>? _progress_detail;
+
+  /// 进度详情（ScheduleProgress）
+  @override
+  Map<String, dynamic>? get progress_detail {
+    final value = _progress_detail;
+    if (value == null) return null;
+    if (_progress_detail is EqualUnmodifiableMapView) return _progress_detail;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(value);
+  }
+
   @override
   String toString() {
-    return 'ScheduleModel(id: $id, name: $name, provider: $provider, status: $status, next_run: $next_run)';
+    return 'ScheduleModel(id: $id, name: $name, provider: $provider, status: $status, next_run: $next_run, name_i18n: $name_i18n, provider_i18n: $provider_i18n, status_i18n: $status_i18n, next_run_i18n: $next_run_i18n, progress: $progress, progress_text: $progress_text, progress_text_i18n: $progress_text_i18n, progress_enable: $progress_enable, progress_detail: $progress_detail)';
   }
 
   @override
@@ -231,13 +423,48 @@ class _$ScheduleModelImpl implements _ScheduleModel {
                 other.provider == provider) &&
             (identical(other.status, status) || other.status == status) &&
             (identical(other.next_run, next_run) ||
-                other.next_run == next_run));
+                other.next_run == next_run) &&
+            (identical(other.name_i18n, name_i18n) ||
+                other.name_i18n == name_i18n) &&
+            (identical(other.provider_i18n, provider_i18n) ||
+                other.provider_i18n == provider_i18n) &&
+            (identical(other.status_i18n, status_i18n) ||
+                other.status_i18n == status_i18n) &&
+            (identical(other.next_run_i18n, next_run_i18n) ||
+                other.next_run_i18n == next_run_i18n) &&
+            (identical(other.progress, progress) ||
+                other.progress == progress) &&
+            (identical(other.progress_text, progress_text) ||
+                other.progress_text == progress_text) &&
+            (identical(other.progress_text_i18n, progress_text_i18n) ||
+                other.progress_text_i18n == progress_text_i18n) &&
+            (identical(other.progress_enable, progress_enable) ||
+                other.progress_enable == progress_enable) &&
+            const DeepCollectionEquality().equals(
+              other._progress_detail,
+              _progress_detail,
+            ));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, name, provider, status, next_run);
+  int get hashCode => Object.hash(
+    runtimeType,
+    id,
+    name,
+    provider,
+    status,
+    next_run,
+    name_i18n,
+    provider_i18n,
+    status_i18n,
+    next_run_i18n,
+    progress,
+    progress_text,
+    progress_text_i18n,
+    progress_enable,
+    const DeepCollectionEquality().hash(_progress_detail),
+  );
 
   /// Create a copy of ScheduleModel
   /// with the given fields replaced by the non-null parameter values.
@@ -260,6 +487,15 @@ abstract class _ScheduleModel implements ScheduleModel {
     final String provider,
     final String status,
     final String next_run,
+    final String? name_i18n,
+    final String? provider_i18n,
+    final String? status_i18n,
+    final String? next_run_i18n,
+    final double progress,
+    final String? progress_text,
+    final String? progress_text_i18n,
+    final bool progress_enable,
+    final Map<String, dynamic>? progress_detail,
   }) = _$ScheduleModelImpl;
 
   factory _ScheduleModel.fromJson(Map<String, dynamic> json) =
@@ -284,6 +520,42 @@ abstract class _ScheduleModel implements ScheduleModel {
   /// 下次运行时间
   @override
   String get next_run;
+
+  /// 服务端按当前语言生成的名称
+  @override
+  String? get name_i18n;
+
+  /// 服务端按当前语言生成的提供者
+  @override
+  String? get provider_i18n;
+
+  /// 服务端按当前语言生成的状态
+  @override
+  String? get status_i18n;
+
+  /// 服务端按当前语言生成的下次运行时间
+  @override
+  String? get next_run_i18n;
+
+  /// 运行进度百分比（0-100）
+  @override
+  double get progress;
+
+  /// 运行进度说明
+  @override
+  String? get progress_text;
+
+  /// 服务端按当前语言生成的进度说明
+  @override
+  String? get progress_text_i18n;
+
+  /// 是否启用进度上报（启用即视为运行中）
+  @override
+  bool get progress_enable;
+
+  /// 进度详情（ScheduleProgress）
+  @override
+  Map<String, dynamic>? get progress_detail;
 
   /// Create a copy of ScheduleModel
   /// with the given fields replaced by the non-null parameter values.

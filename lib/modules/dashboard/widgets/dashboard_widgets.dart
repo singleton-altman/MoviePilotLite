@@ -2,6 +2,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:moviepilot_mobile/modules/dashboard/widgets/recently_playing_widget.dart';
 import 'package:moviepilot_mobile/utils/open_url.dart';
+import 'media_recommend_widget.dart';
+import 'quick_actions_widget.dart';
+import 'recent_imports_widget.dart';
 import 'schedule_widget.dart';
 import 'storage_widget.dart';
 import 'media_stats_widget.dart';
@@ -12,6 +15,7 @@ import 'memory_widget.dart';
 import 'network_traffic_widget.dart';
 import 'my_media_library_widget.dart';
 import 'recent_added_widget.dart';
+import 'system_info_widget.dart';
 
 /// Dashboard 组件工厂
 class DashboardWidgets {
@@ -22,6 +26,8 @@ class DashboardWidgets {
         return const StorageWidget();
       case '媒体统计':
         return const MediaStatsWidget();
+      case '推荐媒体':
+        return const MediaRecommendWidget();
       case '最近入库':
         return const RecentAddedWidget();
       case '实时速率':
@@ -44,6 +50,12 @@ class DashboardWidgets {
         return const RecentlyAddedWidget();
       case '继续观看':
         return const RecentlyPlayingWidget();
+      case '近期整理':
+        return const RecentImportsWidget();
+      case '快捷操作':
+        return const QuickActionsWidget();
+      case '系统信息':
+        return const SystemInfoWidget();
       default:
         return Container(
           padding: const EdgeInsets.all(16),

@@ -36,11 +36,9 @@ class SubscribeCalendarPage extends GetView<SubscribeCalendarController> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: CupertinoDynamicColor.resolve(
-        CupertinoColors.systemGroupedBackground,
-        context,
-      ),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('订阅日历'),
         centerTitle: false,
@@ -370,21 +368,33 @@ class _TimelineEpisodeTile extends StatelessWidget {
         ? theme.colorScheme.outline
         : theme.colorScheme.secondary;
 
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 24,
-            child: Column(
-              children: [
-                if (!isFirst)
-                  Container(
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 24,
+          height: _posterHeight + 38,
+          child: Stack(
+            alignment: Alignment.topCenter,
+            children: [
+              if (!isFirst)
+                Positioned(
+                  top: 0,
+                  child: Container(
                     width: _timelineLineWidth,
                     height: 6,
                     color: lineColor,
                   ),
-                Container(
+                ),
+              if (!isLast)
+                Positioned(
+                  top: _dotSize + 8,
+                  bottom: 0,
+                  child: Container(width: _timelineLineWidth, color: lineColor),
+                ),
+              Positioned(
+                top: 6,
+                child: Container(
                   width: _dotSize,
                   height: _dotSize,
                   decoration: BoxDecoration(
@@ -396,107 +406,99 @@ class _TimelineEpisodeTile extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (!isLast)
-                  Expanded(
-                    child: Container(
-                      width: _timelineLineWidth,
-                      margin: const EdgeInsets.only(top: 2),
-                      color: lineColor,
-                    ),
-                  ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 14),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: CupertinoDynamicColor.resolve(
-                    CupertinoColors.secondarySystemGroupedBackground,
-                    context,
-                  ),
-                  borderRadius: BorderRadius.circular(18),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: CupertinoDynamicColor.resolve(
+                  CupertinoColors.secondarySystemGroupedBackground,
+                  context,
                 ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildPoster(context, episodeNumber),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  ep.name ?? '第 ${episodeNumber ?? 0} 集',
-                                  style: theme.textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    height: 1.25,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildPoster(context, episodeNumber),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                ep.name ?? '第 ${episodeNumber ?? 0} 集',
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.25,
                                 ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(width: 8),
-                              _StatusPill(
-                                label: _statusText,
-                                color: _statusColor(theme),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            item.showName,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w500,
-                              color: theme.colorScheme.onSurface,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 6,
-                            runSpacing: 6,
-                            children: [
-                              _SeasonEpisodePill(
-                                label:
-                                    'S$seasonNumber${episodeNumber == null ? '' : 'E$episodeNumber'}',
-                              ),
-                              if (ep.runtime != null && ep.runtime! > 0)
-                                _MetaPill(label: '${ep.runtime} 分钟'),
-                              _MetaPill(label: _subtitleText),
-                            ],
-                          ),
-                          if (ep.overview != null &&
-                              ep.overview!.trim().isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              ep.overview!.trim(),
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                                height: 1.4,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                            const SizedBox(width: 8),
+                            _StatusPill(
+                              label: _statusText,
+                              color: _statusColor(theme),
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          item.showName,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w500,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            _SeasonEpisodePill(
+                              label:
+                                  'S$seasonNumber${episodeNumber == null ? '' : 'E$episodeNumber'}',
+                            ),
+                            if (ep.runtime != null && ep.runtime! > 0)
+                              _MetaPill(label: '${ep.runtime} 分钟'),
+                            _MetaPill(label: _subtitleText),
+                          ],
+                        ),
+                        if (ep.overview != null &&
+                            ep.overview!.trim().isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            ep.overview!.trim(),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                              height: 1.4,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ],
-                      ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

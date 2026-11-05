@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-class SettingsTextInputRow extends StatelessWidget {
+class SettingsTextInputRow extends StatefulWidget {
   const SettingsTextInputRow({
     super.key,
     required this.title,
@@ -36,10 +36,18 @@ class SettingsTextInputRow extends StatelessWidget {
   final bool enabled;
 
   final Widget? suffix;
+
+  @override
+  State<SettingsTextInputRow> createState() => _SettingsTextInputRowState();
+}
+
+class _SettingsTextInputRowState extends State<SettingsTextInputRow> {
+  bool _plainText = false;
+
   String? get _helperText {
-    final s = description?.trim();
+    final s = widget.description?.trim();
     if (s == null || s.isEmpty) return null;
-    return description;
+    return widget.description;
   }
 
   InputDecoration _decoration(
@@ -60,7 +68,7 @@ class SettingsTextInputRow extends StatelessWidget {
       ),
     );
     return InputDecoration(
-      labelText: title,
+      labelText: widget.title,
       helperText: _helperText,
       helperMaxLines: 2,
       hintText: hintText,
@@ -72,40 +80,54 @@ class SettingsTextInputRow extends StatelessWidget {
       filled: true,
       fillColor: Colors.transparent,
       alignLabelWithHint: alignEnd,
-      counterText: countableLength != null
-          ? '${textController?.text.length ?? 0}/$countableLength'
+      counterText: widget.countableLength != null
+          ? '${widget.textController?.text.length ?? 0}/${widget.countableLength}'
           : null,
       suffixIcon: _buildSuffixIcon(context),
-      suffixIconConstraints: suffix != null
-          ? const BoxConstraints(minWidth: 48, minHeight: 48)
+      suffixIconConstraints: widget.suffix != null || widget.obscureText
+          ? const BoxConstraints(minWidth: 58, minHeight: 48)
           : null,
       prefixIcon: _buildPrefixIcon(context),
     );
   }
 
   Widget? _buildPrefixIcon(BuildContext context) {
-    return icon != null ? Icon(icon, color: iconColor, size: 15) : null;
+    return widget.icon != null
+        ? Icon(widget.icon, color: widget.iconColor, size: 15)
+        : null;
   }
 
   Widget? _buildSuffixIcon(BuildContext context) {
-    if (suffix != null) return suffix;
+    if (widget.suffix != null) return widget.suffix;
+    if (widget.obscureText) {
+      return TextButton(
+        onPressed: () => setState(() => _plainText = !_plainText),
+        style: TextButton.styleFrom(
+          minimumSize: const Size(48, 36),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        child: Text(_plainText ? '隐藏' : '明文'),
+      );
+    }
     return null;
   }
 
   Widget _buildSingleLineInput(BuildContext context) {
+    final effectiveObscure = widget.obscureText && !_plainText;
     return Material(
       color: Colors.transparent,
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: TextField(
-          readOnly: !editable,
+          readOnly: !widget.editable,
           enabled: true,
-          maxLines: obscureText ? 1 : maxLines,
-          keyboardType: keyboardType,
-          controller: textController,
-          obscureText: obscureText,
-          onChanged: onTextChanged,
-          onSubmitted: onTextSubmitted,
+          maxLines: effectiveObscure ? 1 : widget.maxLines,
+          keyboardType: widget.keyboardType,
+          controller: widget.textController,
+          obscureText: effectiveObscure,
+          onChanged: widget.onTextChanged,
+          onSubmitted: widget.onTextSubmitted,
           textAlign: TextAlign.start,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15),
           decoration: _decoration(context),

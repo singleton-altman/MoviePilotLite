@@ -8,6 +8,7 @@ import 'package:moviepilot_mobile/modules/media_organize/models/media_organize_m
 import 'package:moviepilot_mobile/modules/recognize/models/recognize_model.dart';
 import 'package:moviepilot_mobile/modules/storage/controllers/storage_list_controller.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
+import 'package:moviepilot_mobile/services/server_api_version_service.dart';
 
 class FileActionResult {
   const FileActionResult({required this.success, this.message = ''});
@@ -20,6 +21,8 @@ class FileActionResult {
 class FileManagerBrowserController extends GetxController {
   final _apiClient = Get.find<ApiClient>();
   final _log = Get.find<AppLog>();
+  ServerApiVersionService get _serverApiVersionService =>
+      Get.find<ServerApiVersionService>();
 
   /// 当前路径（本页）
   final currentPath = '/'.obs;
@@ -515,7 +518,10 @@ class FileManagerBrowserController extends GetxController {
       return const FileActionResult(success: false, message: '缺少源存储或目标存储');
     }
 
-    final normalizedTransferType = transferType.trim();
+    final normalizedTransferType = switch (transferType.trim()) {
+      'hardlink' => 'link',
+      final value => value,
+    };
     final normalizedTargetPath = targetPath.trim();
     final normalizedTmdbId = tmdbId.trim();
     final normalizedPart = part.trim();
@@ -548,7 +554,12 @@ class FileManagerBrowserController extends GetxController {
     }
 
     if (normalizedTmdbId.isNotEmpty) {
-      payload['tmdbid'] = normalizedTmdbId;
+      if (await _serverApiVersionService.isV3()) {
+        payload['media_source'] = 'themoviedb';
+        payload['media_id'] = normalizedTmdbId;
+      } else {
+        payload['tmdbid'] = normalizedTmdbId;
+      }
     }
 
     if (normalizedPart.isNotEmpty) {

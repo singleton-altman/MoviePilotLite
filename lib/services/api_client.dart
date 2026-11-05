@@ -1,5 +1,5 @@
+import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
@@ -8,14 +8,14 @@ import 'package:path_provider/path_provider.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:talker/talker.dart';
 import 'package:talker_dio_logger/talker_dio_logger.dart';
+import 'package:moviepilot_mobile/services/api_auth_recovery.dart';
+import 'package:moviepilot_mobile/services/api_response_interceptors.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/utils/dio_adapter_config_stub.dart'
     if (dart.library.io) 'package:moviepilot_mobile/utils/dio_adapter_config_io.dart'
     if (dart.library.js_interop) 'package:moviepilot_mobile/utils/dio_adapter_config_web.dart';
 import 'package:moviepilot_mobile/services/ios_shared_session_service.dart';
 import 'package:moviepilot_mobile/services/hive_service.dart';
-import 'package:moviepilot_mobile/utils/toast_util.dart';
-import 'package:moviepilot_mobile/modules/login/models/login_profile.dart';
 import 'package:get/get.dart' as g;
 
 enum RequestMethod { get, post, put, delete }
@@ -55,8 +55,10 @@ class ApiClient extends g.GetxController {
   String? _cachedCookieHeader;
   Uri? _cachedCookieUri;
   DateTime? _cachedCookieAt;
-  bool _authRedirecting = false;
   bool _authClearing = false;
+
+  /// 401/403 处置器:静默重登恢复,失败则清理会话并踢回登录页。
+  late final ApiAuthRecovery _recovery;
 
   static const Duration _cookieCacheTtl = Duration(seconds: 30);
 
@@ -76,7 +78,9 @@ class ApiClient extends g.GetxController {
       BaseOptions(
         // 初始时 baseUrl 为空，后续在登录时根据服务器地址进行配置。
         baseUrl: _appService.baseUrl ?? '',
-        connectTimeout: const Duration(seconds: 120),
+        // 连接超时收紧到 10 秒：服务器不可达时快速失败，而不是挂 2 分钟。
+        connectTimeout: const Duration(seconds: 10),
+        // 接收超时保留较大值：搜索等长耗时接口依赖它。
         receiveTimeout: const Duration(seconds: 120),
         // FormData 需要 multipart/form-data；这里不强行设置，
         // 让 dio 根据 data 类型自动推导 Content-Type。
@@ -90,6 +94,7 @@ class ApiClient extends g.GetxController {
     }
     _dioReady = true;
     configureDioHttpClientAdapter(_dio);
+    _recovery = ApiAuthRecovery(clearSession: _clearSession);
 
     final CookieJar cookieJar;
     if (kIsWeb) {
@@ -108,6 +113,7 @@ class ApiClient extends g.GetxController {
           _maybeHandleUnauthorized(
             response.requestOptions,
             response.statusCode,
+            response.data,
           );
           handler.next(response);
         },
@@ -115,6 +121,7 @@ class ApiClient extends g.GetxController {
           _maybeHandleUnauthorized(
             error.requestOptions,
             error.response?.statusCode,
+            error.response?.data,
           );
           handler.next(error);
         },
@@ -124,82 +131,34 @@ class ApiClient extends g.GetxController {
       TalkerDioLogger(
         talker: _log.talker,
         settings: const TalkerDioLoggerSettings(
-          printRequestHeaders: true,
-          printResponseHeaders: true,
+          printRequestHeaders: false,
+          printResponseHeaders: false,
           printResponseMessage: true,
-          printRequestData: true,
-          printResponseData: true,
+          printRequestData: false,
+          printResponseData: false,
           logLevel: LogLevel.debug,
         ),
       ),
     );
     if (kIsWeb) {
       _dio.interceptors.add(
-        InterceptorsWrapper(
-          onResponse: (response, handler) {
-            final data = response.data;
-            if (data is! String) {
-              handler.next(response);
-              return;
-            }
-            final raw = data.trim();
-            final status = response.statusCode ?? 0;
-            if (status >= 400) {
-              handler.reject(
-                DioException(
-                  requestOptions: response.requestOptions,
-                  response: response,
-                  type: DioExceptionType.badResponse,
-                  message: raw.isEmpty ? 'HTTP $status' : raw,
-                ),
-              );
-              return;
-            }
-            if (raw.isEmpty) {
-              response.data = null;
-              handler.next(response);
-              return;
-            }
-            try {
-              final decoded = jsonDecode(raw);
-              if (decoded is Map<String, dynamic>) {
-                response.data = decoded;
-              } else if (decoded is Map) {
-                response.data = Map<String, dynamic>.from(decoded);
-              } else {
-                handler.reject(
-                  DioException(
-                    requestOptions: response.requestOptions,
-                    response: response,
-                    type: DioExceptionType.badResponse,
-                    message: 'Unexpected JSON root: ${decoded.runtimeType}',
-                  ),
-                );
-                return;
-              }
-            } catch (_) {
-              handler.reject(
-                DioException(
-                  requestOptions: response.requestOptions,
-                  response: response,
-                  type: DioExceptionType.badResponse,
-                  message: raw,
-                ),
-              );
-              return;
-            }
-            handler.next(response);
-          },
-        ),
+        InterceptorsWrapper(onResponse: decodeJsonResponseOnResponse),
       );
     }
+    _dio.interceptors.add(
+      InterceptorsWrapper(onResponse: unwrapV3EnvelopeOnResponse),
+    );
   }
 
   Future<void> _ensureReady() => _ready;
 
-  void _maybeHandleUnauthorized(RequestOptions? opts, int? status) {
+  void _maybeHandleUnauthorized(
+    RequestOptions? opts,
+    int? status, [
+    dynamic body,
+  ]) {
     if (opts?.extra['skipUnauthorizedHandling'] == true) return;
-    _handleUnauthorized(status);
+    _handleUnauthorized(status, body);
   }
 
   Future<Uint8List?> fetchResourceProxyImage(String absoluteUrl) async {
@@ -313,6 +272,55 @@ class ApiClient extends g.GetxController {
     _log.info('更新 API Token');
   }
 
+  /// 注册 401/403 时的静默恢复钩子（由 AuthRepository 在初始化时调用）。
+  void setAuthRecoveryHandler(Future<bool> Function()? handler) {
+    _recovery.handler = handler;
+  }
+
+  /// 探测服务器连通性：请求 GET /api/v1/system/ping（Swagger 定义），
+  /// 短超时；只要收到任意 HTTP 响应（含 401/403）即视为网络可达。
+  Future<bool> probeConnectivity({
+    required String server,
+    String? accessToken,
+    Duration connectTimeout = const Duration(seconds: 5),
+    Duration receiveTimeout = const Duration(seconds: 8),
+  }) async {
+    final normalized = server.trim();
+    if (normalized.isEmpty) return false;
+    final probe = Dio(
+      BaseOptions(
+        connectTimeout: connectTimeout,
+        receiveTimeout: receiveTimeout,
+        headers: const {'accept': 'application/json'},
+        validateStatus: (_) => true,
+      ),
+    );
+    try {
+      final response = await probe.get<dynamic>(
+        '$normalized/api/v1/system/ping',
+        options: Options(
+          headers: {
+            if (accessToken != null && accessToken.isNotEmpty)
+              'authorization': 'Bearer $accessToken',
+          },
+        ),
+      );
+      return response.statusCode != null;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 清理当前传输层会话，避免切换账号时复用上一个账号的 Cookie。
+  Future<void> clearSessionCookies() async {
+    _cachedCookieHeader = null;
+    _cachedCookieUri = null;
+    _cachedCookieAt = null;
+    try {
+      await _cookieJar.deleteAll();
+    } catch (_) {}
+  }
+
   Future<Response<T>> request<T>(
     String url,
     RequestMethod method,
@@ -339,7 +347,7 @@ class ApiClient extends g.GetxController {
         queryParameters: queryParameters,
         options: options,
       );
-      _handleUnauthorized(response.statusCode);
+      _handleUnauthorized(response.statusCode, response.data);
       return response;
     } else if (method == RequestMethod.post) {
       final response = await _dio.post<T>(
@@ -348,7 +356,7 @@ class ApiClient extends g.GetxController {
         queryParameters: queryParameters,
         options: options,
       );
-      _handleUnauthorized(response.statusCode);
+      _handleUnauthorized(response.statusCode, response.data);
       return response;
     } else if (method == RequestMethod.put) {
       final response = await _dio.put<T>(
@@ -357,7 +365,7 @@ class ApiClient extends g.GetxController {
         queryParameters: queryParameters,
         options: options,
       );
-      _handleUnauthorized(response.statusCode);
+      _handleUnauthorized(response.statusCode, response.data);
       return response;
     } else if (method == RequestMethod.delete) {
       final response = await _dio.delete<T>(
@@ -366,7 +374,7 @@ class ApiClient extends g.GetxController {
         queryParameters: queryParameters,
         options: options,
       );
-      _handleUnauthorized(response.statusCode);
+      _handleUnauthorized(response.statusCode, response.data);
       return response;
     } else {
       throw ArgumentError('Invalid method: $method');
@@ -377,6 +385,7 @@ class ApiClient extends g.GetxController {
     String path,
     Map<String, dynamic> data, {
     int? timeout,
+    bool skipUnauthorizedHandling = false,
   }) async {
     await _ensureReady();
     final formData = FormData.fromMap(data);
@@ -386,11 +395,47 @@ class ApiClient extends g.GetxController {
       options: kIsWeb
           ? Options(
               receiveTimeout: Duration(seconds: timeout ?? 30),
+              extra: {
+                if (skipUnauthorizedHandling) 'skipUnauthorizedHandling': true,
+              },
               validateStatus: (_) => true,
             )
-          : Options(receiveTimeout: Duration(seconds: timeout ?? 30)),
+          : Options(
+              receiveTimeout: Duration(seconds: timeout ?? 30),
+              extra: {
+                if (skipUnauthorizedHandling) 'skipUnauthorizedHandling': true,
+              },
+            ),
     );
-    _handleUnauthorized(response.statusCode);
+    if (!skipUnauthorizedHandling) {
+      _handleUnauthorized(response.statusCode, response.data);
+    }
+    return response;
+  }
+
+  Future<Response<T>> postMultipart<T>(
+    String path,
+    FormData formData, {
+    String? token,
+    int? timeout,
+    Map<String, dynamic>? headers,
+  }) async {
+    await _ensureReady();
+    final authToken = token ?? this.token;
+    final response = await _dio.post<T>(
+      path,
+      data: formData,
+      options: Options(
+        receiveTimeout: Duration(seconds: timeout ?? 120),
+        sendTimeout: Duration(seconds: timeout ?? 120),
+        headers: {
+          if (authToken != null) 'authorization': 'Bearer $authToken',
+          ...?headers,
+        },
+        validateStatus: (_) => true,
+      ),
+    );
+    _handleUnauthorized(response.statusCode, response.data);
     return response;
   }
 
@@ -401,6 +446,7 @@ class ApiClient extends g.GetxController {
     String? token,
     int? timeout,
     Map<String, dynamic>? headers,
+    bool skipUnauthorizedHandling = false,
   }) async {
     await _ensureReady();
     final authToken = token ?? this.token;
@@ -414,6 +460,7 @@ class ApiClient extends g.GetxController {
         if (authToken != null) 'authorization': 'Bearer $authToken',
         ...?headers,
       },
+      extra: {if (skipUnauthorizedHandling) 'skipUnauthorizedHandling': true},
       followRedirects: true,
       maxRedirects: 5,
       validateStatus: (status) {
@@ -427,7 +474,9 @@ class ApiClient extends g.GetxController {
       queryParameters: queryParameters,
       options: options,
     );
-    _handleUnauthorized(response.statusCode);
+    if (!skipUnauthorizedHandling) {
+      _handleUnauthorized(response.statusCode, response.data);
+    }
     return response;
   }
 
@@ -457,7 +506,7 @@ class ApiClient extends g.GetxController {
       queryParameters: queryParameters,
       options: options,
     );
-    _handleUnauthorized(response.statusCode);
+    _handleUnauthorized(response.statusCode, response.data);
     return response;
   }
 
@@ -486,7 +535,7 @@ class ApiClient extends g.GetxController {
       validateStatus: (status) => true,
     );
     final response = await _dio.post<T>(path, data: data, options: options);
-    _handleUnauthorized(response.statusCode);
+    _handleUnauthorized(response.statusCode, response.data);
     return response;
   }
 
@@ -496,6 +545,8 @@ class ApiClient extends g.GetxController {
     String? token,
     int? timeout,
     Map<String, dynamic>? headers,
+    bool skipUnauthorizedHandling = false,
+    bool skipV3EnvelopeUnwrap = false,
   }) async {
     await _ensureReady();
     final authToken = token ?? this.token;
@@ -511,13 +562,19 @@ class ApiClient extends g.GetxController {
         // 允许所有状态码，让调用者自己处理错误
         return true;
       },
+      extra: {
+        if (skipUnauthorizedHandling) 'skipUnauthorizedHandling': true,
+        if (skipV3EnvelopeUnwrap) kSkipV3EnvelopeUnwrapKey: true,
+      },
     );
     final response = await _dio.get<T>(
       path,
       queryParameters: queryParameters,
       options: options,
     );
-    _handleUnauthorized(response.statusCode);
+    if (!skipUnauthorizedHandling) {
+      _handleUnauthorized(response.statusCode, response.data);
+    }
     return response;
   }
 
@@ -550,7 +607,7 @@ class ApiClient extends g.GetxController {
       queryParameters: queryParameters,
       options: options,
     );
-    _handleUnauthorized(response.statusCode);
+    _handleUnauthorized(response.statusCode, response.data);
     return response;
   }
 
@@ -558,28 +615,43 @@ class ApiClient extends g.GetxController {
   Future<Stream<String>> streamLines(
     String path, {
     String? token,
-    int? timeout = 30,
+    int? timeout,
+    Map<String, dynamic>? headers,
+    bool handleAuth = true,
   }) async {
     await _ensureReady();
     final authToken = token ?? this.token;
     _log.info('API流式请求: $path, token: ${authToken != null ? '***' : 'null'}');
+    final requestHeaders = <String, dynamic>{
+      'accept': 'text/event-stream',
+      'cache-control': 'no-cache',
+      if (authToken != null) 'authorization': 'Bearer $authToken',
+      ...?headers,
+    };
+    if (!kIsWeb && !requestHeaders.containsKey('Cookie')) {
+      final cookieHeader = await getCookieHeader() ?? _appService.cookie;
+      if (cookieHeader != null && cookieHeader.isNotEmpty) {
+        requestHeaders['Cookie'] = cookieHeader;
+      }
+    }
     final response = await _dio.get<ResponseBody>(
       path,
       options: Options(
         responseType: ResponseType.stream,
-        sendTimeout: Duration(seconds: timeout ?? 30),
-        receiveTimeout: Duration(seconds: timeout ?? 30),
-        headers: {
-          'accept': 'text/event-stream',
-          if (authToken != null) 'authorization': 'Bearer $authToken',
-        },
+        sendTimeout: const Duration(seconds: 30),
+        receiveTimeout: timeout == null ? null : Duration(seconds: timeout),
+        headers: requestHeaders,
         validateStatus: (status) => true,
       ),
     );
     final status = response.statusCode ?? 0;
     if (status == 401 || status == 403) {
-      _handleUnauthorized(status);
-      throw ApiAuthException(status, response.statusMessage);
+      final reason = await _readErrorStream(response.data);
+      if (handleAuth) {
+        _handleUnauthorized(status, reason);
+        throw ApiAuthException(status, response.statusMessage);
+      }
+      throw ApiHttpException(status, response.statusMessage);
     }
     if (status >= 400) {
       throw ApiHttpException(status, response.statusMessage);
@@ -593,23 +665,76 @@ class ApiClient extends g.GetxController {
     return byteStream.transform(utf8.decoder).transform(const LineSplitter());
   }
 
-  void _handleUnauthorized(int? status) {
-    if (status != 401 && status != 403) return;
-    if (_authRedirecting) return;
-    if (!_hasEnteredMain()) return;
-    _authRedirecting = true;
-    _clearSession();
-    ToastUtil.error('会话已过期，请重新登录');
-    g.Get.offAllNamed('/login');
-    Future.delayed(const Duration(seconds: 1), () {
-      _authRedirecting = false;
-    });
+  /// SSE / 流式 POST，请求 `text/event-stream` 并返回按行解码后的字符串流。
+  Future<Stream<String>> streamPostLines(
+    String path, {
+    Object? data,
+    String? token,
+    int? timeout,
+    Map<String, dynamic>? headers,
+  }) async {
+    await _ensureReady();
+    final authToken = token ?? this.token;
+    _log.info(
+      'API流式POST请求: $path, token: ${authToken != null ? '***' : 'null'}',
+    );
+    final response = await _dio.post<ResponseBody>(
+      path,
+      data: data,
+      options: Options(
+        responseType: ResponseType.stream,
+        sendTimeout: const Duration(seconds: 30),
+        receiveTimeout: timeout == null ? null : Duration(seconds: timeout),
+        headers: {
+          'accept': 'text/event-stream',
+          'content-type': 'application/json',
+          if (authToken != null) 'authorization': 'Bearer $authToken',
+          ...?headers,
+        },
+        validateStatus: (status) => true,
+      ),
+    );
+    final status = response.statusCode ?? 0;
+    if (status == 401 || status == 403) {
+      final reason = await _readErrorStream(response.data);
+      _handleUnauthorized(status, reason);
+      throw ApiAuthException(status, response.statusMessage);
+    }
+    if (status >= 400) {
+      throw ApiHttpException(status, response.statusMessage);
+    }
+    final body = response.data;
+    if (body == null) {
+      return const Stream<String>.empty();
+    }
+    final byteStream = body.stream.map((chunk) => chunk as List<int>);
+    return byteStream.transform(utf8.decoder).transform(const LineSplitter());
   }
 
-  bool _hasEnteredMain() {
-    final route = g.Get.currentRoute;
-    if (route.isEmpty) return false;
-    return route != '/login';
+  void _handleUnauthorized(int? status, [dynamic body]) {
+    _recovery.handle(status, body);
+  }
+
+  /// 读取流式响应的错误体（仅短读，用于取服务端原因）。
+  ///
+  /// 错误响应体很小，但不能无上限地读；限制长度并在读取失败时
+  /// 返回 null，让鉴权处置按状态码兜底。
+  Future<String?> _readErrorStream(ResponseBody? body) async {
+    if (body == null) return null;
+    const maxBytes = 8 * 1024;
+    try {
+      final builder = <int>[];
+      await for (final chunk in body.stream.timeout(
+        const Duration(seconds: 3),
+      )) {
+        builder.addAll(chunk);
+        if (builder.length >= maxBytes) break;
+      }
+      if (builder.isEmpty) return null;
+      return utf8.decode(builder, allowMalformed: true);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _clearSession() async {

@@ -87,20 +87,23 @@ class StorageWidget extends StatelessWidget {
       final usedStorage = storageData['used_storage'] ?? 0.0;
       final progress = totalStorage > 0 ? usedStorage / totalStorage : 0.0;
 
-      return DashboardMetricTile(
-        label: '存储',
-        value: _formatStorageSize(totalStorage),
-        icon: Icons.storage_rounded,
-        accentColor: palette.primary,
-        trailing: Text(
-          '${(progress * 100).toStringAsFixed(0)}%',
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: palette.mutedText,
+      return Skeletonizer(
+        enabled: storageData.isEmpty,
+        child: DashboardMetricTile(
+          label: '存储',
+          value: _formatStorageSize(totalStorage),
+          icon: Icons.storage_rounded,
+          accentColor: palette.primary,
+          trailing: DashboardPercentPill(
+            '${(progress * 100).toStringAsFixed(0)}%',
+            color: palette.primary,
           ),
+          valueWidget: DashboardValueText(
+            _formatStorageSize(totalStorage),
+            fontSize: 29,
+          ),
+          subtitle: '已用 ${_formatStorageSize(usedStorage)}',
         ),
-        subtitle: '已用 ${_formatStorageSize(usedStorage)}',
       );
     });
   }

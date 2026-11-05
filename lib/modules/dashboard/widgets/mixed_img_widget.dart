@@ -2,16 +2,21 @@ import 'package:flutter/cupertino.dart';
 import 'package:moviepilot_mobile/widgets/cached_image.dart';
 
 class MixedImgWidget extends StatelessWidget {
-  const MixedImgWidget({super.key, required this.imageUrls});
+  const MixedImgWidget({
+    super.key,
+    required this.imageUrls,
+    this.borderRadius = const BorderRadius.all(Radius.circular(10)),
+  });
 
   final List<String> imageUrls;
+  final BorderRadius borderRadius;
 
   @override
   Widget build(BuildContext context) {
     if (imageUrls.isEmpty) return const SizedBox();
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: borderRadius,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final crossAxisCount = _getCrossAxisCount(imageUrls.length);

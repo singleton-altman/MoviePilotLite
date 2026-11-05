@@ -5,6 +5,7 @@
 import 'package:hive_ce/hive.dart';
 import 'package:moviepilot_mobile/modules/login/models/login_profile.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/media_detail_cache.dart';
+import 'package:moviepilot_mobile/modules/agent/models/agent_cache_models.dart';
 import 'package:moviepilot_mobile/modules/plugin/models/installed_plugin_model_cache.dart';
 import 'package:moviepilot_mobile/modules/plugin/models/plugin_model_cache.dart';
 import 'package:moviepilot_mobile/modules/plugin/models/plugin_palette_cache_entry.dart';
@@ -21,6 +22,11 @@ extension HiveRegistrar on HiveInterface {
     registerAdapter(PluginModelCacheAdapter());
     registerAdapter(PluginPaletteCacheEntryAdapter());
     registerAdapter(SearchHistoryEntryAdapter());
+    registerAdapter(AgentSessionCacheAdapter());
+    registerAdapter(AgentChatMessageCacheAdapter());
+    registerAdapter(AgentToolEventCacheAdapter());
+    registerAdapter(AgentAttachmentCacheAdapter());
+    registerAdapter(AgentMessagesCacheEntryAdapter());
     registerAdapter(SiteIconCacheAdapter());
     registerAdapter(SiteModelCacheAdapter());
     registerAdapter(SiteUserDataCacheAdapter());
@@ -35,6 +41,11 @@ extension IsolatedHiveRegistrar on IsolatedHiveInterface {
     registerAdapter(PluginModelCacheAdapter());
     registerAdapter(PluginPaletteCacheEntryAdapter());
     registerAdapter(SearchHistoryEntryAdapter());
+    registerAdapter(AgentSessionCacheAdapter());
+    registerAdapter(AgentChatMessageCacheAdapter());
+    registerAdapter(AgentToolEventCacheAdapter());
+    registerAdapter(AgentAttachmentCacheAdapter());
+    registerAdapter(AgentMessagesCacheEntryAdapter());
     registerAdapter(SiteIconCacheAdapter());
     registerAdapter(SiteModelCacheAdapter());
     registerAdapter(SiteUserDataCacheAdapter());

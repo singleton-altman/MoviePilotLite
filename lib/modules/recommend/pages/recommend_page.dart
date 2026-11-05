@@ -12,6 +12,7 @@ import 'package:moviepilot_mobile/modules/recommend/widgets/recommend_item_horiz
 import 'package:moviepilot_mobile/modules/recommend/widgets/recommend_now_playing_card.dart';
 import 'package:moviepilot_mobile/modules/recommend/widgets/recommend_item_rank_card.dart';
 import 'package:moviepilot_mobile/modules/recommend/widgets/recommend_item_simple_card.dart';
+import 'package:moviepilot_mobile/modules/recommend/widgets/recommend_skeletons.dart';
 import 'package:moviepilot_mobile/modules/recommend/widgets/recommond_category_group_edit_pannel.dart';
 import 'package:moviepilot_mobile/theme/app_theme.dart';
 import 'package:moviepilot_mobile/utils/http_path_builder_util.dart';
@@ -164,6 +165,9 @@ class RecommendPage extends GetView<RecommendController> {
     final firstSub = subCategories.first;
     final items = controller.itemsForSubCategory(firstSub).take(5).toList();
     if (items.isEmpty) {
+      if (controller.isAwaitingFirstResult(firstSub)) {
+        return const RecommendBannerSkeleton(height: _bannerHeight);
+      }
       return Container(height: _bannerHeight, color: _backdropThemeColor);
     }
     return Stack(
@@ -266,6 +270,17 @@ class RecommendPage extends GetView<RecommendController> {
     String? title,
     required Color themeColor,
   }) {
+    final subCategory = title ?? '';
+    // 首次加载时 items 还是空的，真实卡片无从构建；用同尺寸骨架先占位，
+    // 避免整页空白到数据回来才一次性展开。
+    if ((items == null || items.isEmpty) &&
+        controller.isAwaitingFirstResult(subCategory)) {
+      return _buildSectionSkeleton(
+        context,
+        layoutType: layoutType,
+        title: subCategory,
+      );
+    }
     switch (layoutType) {
       case _SectionLayoutType.continueStyle:
         return _buildContinueStyleSection(context, title: title, items: items);
@@ -282,6 +297,29 @@ class RecommendPage extends GetView<RecommendController> {
           items: items,
           themeColor: themeColor,
         );
+    }
+  }
+
+  Widget _buildSectionSkeleton(
+    BuildContext context, {
+    required _SectionLayoutType layoutType,
+    required String title,
+  }) {
+    final header = _buildSectionHeader(context, subCategory: title);
+    final isWide = MediaQuery.sizeOf(context).width > 600;
+    switch (layoutType) {
+      case _SectionLayoutType.continueStyle:
+        return title == '正在热映'
+            ? RecommendNowPlayingSkeleton(header: header)
+            : RecommendPosterRailSkeleton(header: header);
+      case _SectionLayoutType.horizontalList:
+        return RecommendPosterRailSkeleton(header: header);
+      case _SectionLayoutType.hotStyle:
+        return RecommendHotSkeleton(header: header, isNarrow: !isWide);
+      case _SectionLayoutType.rankStyle:
+        return RecommendRankSkeleton(header: header, isNarrow: !isWide);
+      case _SectionLayoutType.recommendStyle:
+        return RecommendShowcaseSkeleton(header: header, isWide: isWide);
     }
   }
 

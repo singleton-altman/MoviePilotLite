@@ -277,6 +277,7 @@ class DashboardMetricTile extends StatelessWidget {
     required this.accentColor,
     this.trailing,
     this.subtitle,
+    this.valueWidget,
   });
 
   final String label;
@@ -285,6 +286,9 @@ class DashboardMetricTile extends StatelessWidget {
   final Color accentColor;
   final Widget? trailing;
   final String? subtitle;
+
+  /// 优先于 [value] 渲染，用于「数值 + 单位」的混排排版
+  final Widget? valueWidget;
 
   @override
   Widget build(BuildContext context) {
@@ -320,17 +324,20 @@ class DashboardMetricTile extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 29,
-              fontWeight: FontWeight.w800,
-              height: 0.95,
-              color: palette.titleText,
+          if (valueWidget != null)
+            valueWidget!
+          else
+            Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 29,
+                fontWeight: FontWeight.w800,
+                height: 0.95,
+                color: palette.titleText,
+              ),
             ),
-          ),
           if (subtitle != null) ...[
             const SizedBox(height: 6),
             Text(
@@ -346,6 +353,33 @@ class DashboardMetricTile extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+class DashboardMetricCard extends StatelessWidget {
+  const DashboardMetricCard({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.all(14),
+    this.borderRadius = 18,
+  });
+
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  final double borderRadius;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = DashboardPalette.of(context);
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: palette.tileSurface,
+        borderRadius: BorderRadius.circular(borderRadius),
+        border: Border.all(color: palette.tileBorder),
+      ),
+      child: child,
     );
   }
 }
@@ -492,7 +526,6 @@ class DashboardMiniStat extends StatelessWidget {
     this.valueColor,
     this.crossAxisAlignment = CrossAxisAlignment.start,
   });
-
   final String label;
   final String value;
   final Color? valueColor;
@@ -523,6 +556,102 @@ class DashboardMiniStat extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// 「数值 + 单位」混排：大号粗体数值配小号弱化单位，如 7.3 TB、23%
+class DashboardValueText extends StatelessWidget {
+  const DashboardValueText(
+    this.formatted, {
+    super.key,
+    this.fontSize = 24,
+    this.unitFontSize = 11,
+    this.color,
+  });
+
+  final String formatted;
+  final double fontSize;
+  final double unitFontSize;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = DashboardPalette.of(context);
+    final (number, unit) = splitValueAndUnit(formatted);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        Flexible(
+          child: Text(
+            number,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: fontSize,
+              fontWeight: FontWeight.w800,
+              height: 1,
+              letterSpacing: -0.4,
+              color: color ?? palette.titleText,
+            ),
+          ),
+        ),
+        if (unit.isNotEmpty) ...[
+          const SizedBox(width: 3),
+          Text(
+            unit,
+            style: TextStyle(
+              fontSize: unitFontSize,
+              fontWeight: FontWeight.w700,
+              color: color ?? palette.mutedText,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// 拆出数值与单位：优先按末尾的 %，其次按最后一个空格
+  static (String, String) splitValueAndUnit(String formatted) {
+    final text = formatted.trim();
+    if (text.endsWith('%')) {
+      return (text.substring(0, text.length - 1), '%');
+    }
+    final separator = text.lastIndexOf(' ');
+    if (separator <= 0 || separator == text.length - 1) {
+      return (text, '');
+    }
+    return (text.substring(0, separator), text.substring(separator + 1));
+  }
+}
+
+/// 无边框的浅色百分比胶囊，用于紧凑状态卡的角标
+class DashboardPercentPill extends StatelessWidget {
+  const DashboardPercentPill(this.text, {super.key, this.color});
+
+  final String text;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = DashboardPalette.of(context);
+    final tone = color ?? palette.primary;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: tone.withValues(alpha: palette.isDark ? 0.2 : 0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: tone,
+        ),
+      ),
     );
   }
 }

@@ -15,6 +15,7 @@ import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_media_enums
 import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_models.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
+import 'package:moviepilot_mobile/utils/media_identity_util.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
 
 /// 订阅编辑 Controller
@@ -306,7 +307,7 @@ class SubscribeEditController extends GetxController {
         raw = body['data'] as Map<String, dynamic>? ?? body;
       }
       if (raw != null) {
-        _item = SubscribeItem.fromJson(raw);
+        _item = SubscribeItem.fromJson(normalizeSubscribeJson(raw));
         _initFromItem();
       }
     } catch (e, st) {

@@ -3,6 +3,7 @@ import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 
 import '../modules/login/models/login_profile.dart';
 import '../modules/media_detail/models/media_detail_cache.dart';
+import '../modules/agent/models/agent_cache_models.dart';
 import '../modules/plugin/models/installed_plugin_model_cache.dart';
 import '../modules/plugin/models/plugin_model_cache.dart';
 import '../modules/plugin/models/plugin_palette_cache_entry.dart';
@@ -21,6 +22,9 @@ class HiveService extends GetxService {
   late final Box<SiteModelCache> siteModelCacheBox;
   late final Box<SiteUserDataCache> siteUserDataCacheBox;
   late final Box<SearchHistoryEntry> searchHistoryBox;
+  late final Box<AgentSessionCache> agentSessionCacheBox;
+  late final Box<AgentMessagesCacheEntry> agentMessagesCacheBox;
+  late final Box<String> agentMetaCacheBox;
 
   Future<HiveService> init() async {
     await Hive.initFlutter();
@@ -36,6 +40,11 @@ class HiveService extends GetxService {
       Hive.registerAdapter(SiteModelCacheAdapter());
       Hive.registerAdapter(SiteUserDataCacheAdapter());
       Hive.registerAdapter(SearchHistoryEntryAdapter());
+      Hive.registerAdapter(AgentSessionCacheAdapter());
+      Hive.registerAdapter(AgentChatMessageCacheAdapter());
+      Hive.registerAdapter(AgentToolEventCacheAdapter());
+      Hive.registerAdapter(AgentAttachmentCacheAdapter());
+      Hive.registerAdapter(AgentMessagesCacheEntryAdapter());
     }
 
     // Open boxes
@@ -55,6 +64,12 @@ class HiveService extends GetxService {
         await Hive.openBox<SiteUserDataCache>('siteUserDataCache');
     searchHistoryBox =
         await Hive.openBox<SearchHistoryEntry>('searchHistory');
+    agentSessionCacheBox =
+        await Hive.openBox<AgentSessionCache>('agentSessionCache');
+    agentMessagesCacheBox = await Hive.openBox<AgentMessagesCacheEntry>(
+      'agentMessagesCache',
+    );
+    agentMetaCacheBox = await Hive.openBox<String>('agentMetaCache');
 
     return this;
   }

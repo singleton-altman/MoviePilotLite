@@ -48,7 +48,7 @@ _$CacheItemImpl _$$CacheItemImplFromJson(Map<String, dynamic> json) =>
       pubdate: json['pubdate'] as String?,
       siteName: json['site_name'] as String?,
       mediaName: json['media_name'] as String?,
-      mediaYear: json['media_year'] as String?,
+      mediaYear: _strFromJson(json['media_year']),
       mediaType: json['media_type'] as String?,
       seasonEpisode: json['season_episode'] as String?,
       resourceTerm: json['resource_term'] as String?,

@@ -96,52 +96,61 @@ class RealTimeSpeedWidget extends StatelessWidget {
       final downloadSpeed = downloaderData['download_speed'] ?? 0.0;
       final uploadSpeed = downloaderData['upload_speed'] ?? 0.0;
 
-      return Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: palette.tileSurface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: palette.tileBorder),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  CupertinoIcons.speedometer,
-                  size: 16,
-                  color: palette.mutedText,
-                ),
-                const Spacer(),
-                Text(
-                  '网络',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.2,
-                    color: palette.faintText,
+      return Skeletonizer(
+        enabled: downloaderData.isEmpty,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: palette.tileSurface,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: palette.tileBorder),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    CupertinoIcons.speedometer,
+                    size: 16,
+                    color: palette.mutedText,
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            _buildCompactRow(
-              context: context,
-              value: SizeFormatter.formatSize(uploadSpeed),
-              unit: '/s',
-              icon: CupertinoIcons.arrow_up,
-              color: palette.primary,
-            ),
-            const SizedBox(height: 8),
-            _buildCompactRow(
-              context: context,
-              value: SizeFormatter.formatSize(downloadSpeed),
-              unit: '/s',
-              icon: CupertinoIcons.arrow_down,
-              color: palette.coolAccent,
-            ),
-          ],
+                  const SizedBox(width: 12),
+                  Text(
+                    '网络',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2,
+                      color: palette.faintText,
+                    ),
+                  ),
+                  const Spacer(),
+                  Icon(
+                    CupertinoIcons.chevron_right,
+                    size: 12,
+                    color: palette.mutedText,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              _buildCompactRow(
+                context: context,
+                value: SizeFormatter.formatSize(uploadSpeed),
+                unit: '/s',
+                icon: CupertinoIcons.arrow_up,
+                color: palette.primary,
+              ),
+              const SizedBox(height: 8),
+              _buildCompactRow(
+                context: context,
+                value: SizeFormatter.formatSize(downloadSpeed),
+                unit: '/s',
+                icon: CupertinoIcons.arrow_down,
+                color: palette.coolAccent,
+              ),
+            ],
+          ),
         ),
       );
     });

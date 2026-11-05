@@ -37,13 +37,14 @@ class PluginModelCacheAdapter extends TypeAdapter<PluginModelCache> {
       (fields[17] as num).toInt(),
       (fields[18] as num).toInt(),
       fields[19] as String,
+      (fields[20] as num?)?.toInt() ?? 0,
     );
   }
 
   @override
   void write(BinaryWriter writer, PluginModelCache obj) {
     writer
-      ..writeByte(20)
+      ..writeByte(21)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -83,7 +84,9 @@ class PluginModelCacheAdapter extends TypeAdapter<PluginModelCache> {
       ..writeByte(18)
       ..write(obj.addTime)
       ..writeByte(19)
-      ..write(obj.pluginPublicKey);
+      ..write(obj.pluginPublicKey)
+      ..writeByte(20)
+      ..write(obj.listIndex);
   }
 
   @override

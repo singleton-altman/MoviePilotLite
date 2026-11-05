@@ -522,8 +522,22 @@ class SearchResultTorrentItem extends StatelessWidget {
       ),
     );
     await showModalBottomSheet<void>(
+      isScrollControlled: true,
+      useSafeArea: true,
+      isDismissible: true,
+      showDragHandle: false,
+      backgroundColor: Colors.transparent,
       context: context,
-      builder: (_) => const RecognizePage(),
+      builder: (_) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.92,
+        minChildSize: 0.36,
+        maxChildSize: 1,
+        builder: (context, scrollController) => ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          child: RecognizePage(scrollController: scrollController),
+        ),
+      ),
     );
     if (Get.isRegistered<RecognizeController>()) {
       Get.delete<RecognizeController>();

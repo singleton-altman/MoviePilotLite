@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MoviePilotLite × lanplayer 内嵌播放 — UI 预览 v2</title>
+<style>
+  :root{
+    --primary:#007AFF;          /* MP 默认主题色(示例),实际跟随 App 主题设置 */
+    --primary-soft:rgba(0,122,255,.16);
+    --bg:#0B0C10;
+    --dark-bg:#151821;          /* AppTheme.darkBackgroundColor 真实值 */
+    --card:#1B1E27;
+    --card2:#22252F;
+    --text:#F2F4F8;
+    --muted:#9AA1AD;
+    --faint:#6B7280;
+    --line:#2A2E38;
+    --glass:rgba(20,22,30,.74);
+    --glass-line:rgba(255,255,255,.14);
+    --bell:#FF6B6B;
+    --ok:#81C784;               /* 已入库绿(真实值) */
+    --imdb:#F5C518;             /* 评分黄(真实值) */
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:"PingFang SC","Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+    padding:40px 32px 80px;
+  }
+  h1{font-size:26px;font-weight:800;letter-spacing:.5px}
+  .sub{color:var(--muted);font-size:14px;margin-top:8px;line-height:1.8}
+  .legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);
+    background:var(--card);border:1px solid var(--line);border-radius:999px;padding:5px 12px}
+  .dot{width:10px;height:10px;border-radius:50%}
+  h2{font-size:19px;font-weight:800;margin:56px 0 6px}
+  h2 .no{color:var(--primary);margin-right:8px}
+  .desc{color:var(--muted);font-size:13px;line-height:1.8;margin-bottom:22px;max-width:880px}
+  .row{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start}
+  .frame-wrap{display:flex;flex-direction:column;gap:10px}
+  .caption{font-size:12px;color:var(--faint);line-height:1.7;max-width:390px}
+  .caption b{color:var(--muted)}
+
+  /* ---------- 手机外框 ---------- */
+  .phone{
+    width:390px;background:var(--dark-bg);border:1px solid var(--line);
+    border-radius:26px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.45);
+  }
+  .statusbar{height:34px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 18px;font-size:11px;color:var(--muted);background:rgba(255,255,255,.02)}
+  .screen{position:relative}
+  .wide{
+    width:780px;background:#000;border:1px solid var(--line);border-radius:20px;
+    overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.5);position:relative;
+  }
+
+  /* ---------- 通用操作元素(与现有详情页同规格) ---------- */
+  .pill{
+    height:48px;border-radius:999px;background:var(--primary);color:#fff;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    font-size:15px;font-weight:700;flex:1;white-space:nowrap;overflow:hidden;
+  }
+  .pill .tri{width:0;height:0;border-left:11px solid #fff;
+    border-top:7px solid transparent;border-bottom:7px solid transparent;margin-left:2px;flex:none}
+  .pill.disabled{background:rgba(255,255,255,.12);color:var(--muted)}
+  .pill.disabled .tri{border-left-color:var(--muted)}
+  .circle{
+    width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.14);
+    display:flex;align-items:center;justify-content:center;font-size:17px;color:#fff;flex:none;
+  }
+  .circle.accent{color:var(--bell)}
+  .action-row{display:flex;gap:8px;align-items:center;padding:0 16px}
+  .action-row .gap-l{margin-left:10px}
+  .thin-progress{height:4px;border-radius:999px;background:rgba(255,255,255,.18);overflow:hidden}
+  .thin-progress i{display:block;height:100%;background:var(--primary);border-radius:999px}
+  .side-bar{width:3px;border-radius:2px;background:var(--primary)}
+  .d-note{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--faint)}
+  .src-dot{width:6px;height:6px;border-radius:50%;background:var(--primary);flex:none}
+
+  /* ---------- MP 详情页头部(还原真实结构:全屏大图 backdrop) ---------- */
+  .mp-header{
+    position:relative;height:470px;
+    background:
+      /* 横向边缘压暗(真实代码:左右 18% 黑) */
+      linear-gradient(90deg,rgba(0,0,0,.18),rgba(0,0,0,0) 18%,rgba(0,0,0,0) 82%,rgba(0,0,0,.18)),
+      /* 示例影片画面(示意一张电影剧照) */
+      radial-gradient(90% 60% at 68% 30%,rgba(0,122,255,.34),transparent 60%),
+      radial-gradient(70% 55% at 25% 42%,rgba(255,166,87,.20),transparent 62%),
+      radial-gradient(120% 80% at 50% 0%,#3B465E 0%,#1B2030 62%,#10131C 100%);
+    display:flex;flex-direction:column;justify-content:flex-end;
+    padding:0 16px 22px;
+  }
+  /* 纵向渐变(真实代码:黑 4% → 18% → 页面底色,stops 0/0.58/1) */
+  .mp-header::before{content:"";position:absolute;inset:0;
+    background:linear-gradient(180deg,rgba(0,0,0,.04) 0%,rgba(0,0,0,.18) 58%,var(--dark-bg) 100%)}
+  .mp-header>*{position:relative;z-index:1}
+  .back-fab{
+    position:absolute;top:52px;left:12px;width:44px;height:44px;border-radius:50%;
+    background:rgba(255,255,255,.38);display:flex;align-items:center;justify-content:center;
+    font-size:17px;color:#fff;z-index:3;
+  }
+  .d-title{font-size:28px;font-weight:800;line-height:1.22;color:#fff;text-align:center;
+    text-shadow:0 2px 10px rgba(0,0,0,.45)}
+  .d-sub{font-size:15px;color:rgba(255,255,255,.7);text-align:center;margin-top:5px}
+  .meta-wrap{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px}
+  .mchip{
+    min-height:24px;display:inline-flex;align-items:center;gap:4px;
+    background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.14);border-radius:10px;
+    padding:4px 10px;font-size:12px;font-weight:600;color:#fff;
+  }
+  .mchip.score{background:rgba(245,197,24,.26);border-color:rgba(245,197,24,.28)}
+  .mchip.score .star{color:#FFD66B;font-size:11px}
+  .mchip.inlib{background:rgba(129,199,132,.28);border-color:rgba(129,199,132,.32)}
+  .mchip.inlib .ck{color:var(--ok);font-size:11px}
+  .mp-header .action-row{margin-top:14px;padding:0}
+  /* 续播上下文行:集数与进度不放按钮里,避免窄屏溢出 */
+  .resume-line{margin-top:10px}
+  .resume-line .bar{height:4px;border-radius:999px;background:rgba(255,255,255,.18);overflow:hidden}
+  .resume-line .bar i{display:block;height:100%;width:45%;background:var(--primary);border-radius:999px}
+  .resume-line .txt{display:flex;justify-content:space-between;margin-top:6px;font-size:11.5px}
+  .resume-line .txt .l{color:rgba(255,255,255,.75);font-weight:600}
+  .resume-line .txt .r{color:var(--primary);font-weight:700}
+  .d-body{padding:16px 16px 22px}
+  .d-overview{font-size:13px;color:var(--muted);line-height:1.8;
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+
+  /* ---------- 选集弹层 ---------- */
+  .sheet-dim{position:absolute;inset:0;background:rgba(0,0,0,.55);z-index:5}
+  .sheet{
+    position:absolute;left:0;right:0;bottom:0;z-index:6;
+    background:var(--card);border-radius:20px 20px 0 0;padding:14px 20px 26px;
+    box-shadow:0 -12px 40px rgba(0,0,0,.5);
+  }
+  .grab{width:38px;height:4px;border-radius:2px;background:rgba(255,255,255,.22);margin:0 auto 14px}
+  /* 面板头部:剧集海报在左 + 标题/集数统计 */
+  .sheet-series{display:flex;gap:12px;align-items:center;margin-bottom:14px}
+  .close{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.10);
+    display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted)}
+  .series-poster{width:56px;height:80px;border-radius:8px;flex:none;
+    display:flex;align-items:flex-end;padding:6px;font-size:9px;font-weight:700;
+    color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.12)}
+  .series-title{font-size:15px;font-weight:800}
+  .series-meta{font-size:11.5px;color:var(--muted);margin-top:4px}
+  .sheet-series .close{margin-left:auto;flex:none}
+  .seasons{display:flex;gap:8px;margin-bottom:14px}
+  .season{padding:7px 14px;border-radius:999px;font-size:12px;font-weight:700;
+    background:rgba(255,255,255,.07);color:var(--muted);border:1.5px solid transparent}
+  .season.on{background:var(--primary-soft);color:#fff;border-color:var(--primary)}
+  .ep{display:flex;align-items:center;gap:12px;padding:10px 10px;border-radius:12px}
+  .ep+.ep{border-top:1px solid rgba(255,255,255,.05)}
+  .ep.current{background:var(--primary-soft);border:1.5px solid var(--primary)}
+  /* 选集面板行内缩略封面(16:9 剧照) */
+  .ep-thumb{width:72px;height:40px;border-radius:8px;flex:none;position:relative;overflow:hidden}
+  .ep-thumb .bar{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.25)}
+  .ep-thumb .bar i{display:block;height:100%;background:var(--primary)}
+  .ep-no{font-size:19px;font-weight:800;width:30px;text-align:center;color:var(--text);flex:none}
+  .ep.current .ep-no{color:var(--primary)}
+  .ep-info{flex:1;min-width:0}
+  .ep-title{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ep-dur{font-size:11px;color:var(--faint);margin:4px 0 6px}
+  .ep-check{width:18px;height:18px;border-radius:50%;flex:none;
+    display:flex;align-items:center;justify-content:center;font-size:10px}
+  .ep-check.done{background:var(--ok);color:#04250F}
+  .ep-check.none{border:1.5px solid rgba(255,255,255,.2)}
+
+  /* ---------- 播放页 ---------- */
+  .video{
+    position:relative;width:780px;height:440px;
+    background:
+      radial-gradient(90% 120% at 50% 30%,#2C3446 0%,#141821 55%,#07080C 100%);
+  }
+  .video .stage{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;overflow:hidden}
+  .silhouette{
+    width:420px;height:300px;border-radius:210px 210px 0 0;
+    background:linear-gradient(180deg,rgba(0,122,255,.20),rgba(0,0,0,0) 75%);
+    filter:blur(2px);
+  }
+  .danmaku{position:absolute;top:78px;left:0;right:0;display:flex;flex-direction:column;gap:16px;padding:0 24px;pointer-events:none}
+  .danmaku span{font-size:14px;font-weight:700;color:rgba(255,255,255,.85);
+    text-shadow:0 1px 3px rgba(0,0,0,.8);white-space:nowrap}
+  .danmaku span.dm2{color:#FFD166}
+  .danmaku span.dm3{color:#7BD88F}
+  .top-bar{
+    position:absolute;top:0;left:0;right:0;height:64px;z-index:8;
+    background:linear-gradient(180deg,rgba(0,0,0,.72),rgba(0,0,0,0));
+    display:flex;align-items:center;gap:14px;padding:0 20px;color:#fff;
+  }
+  .top-title{font-size:14.5px;font-weight:800}
+  .top-ep{font-size:11.5px;color:rgba(255,255,255,.65);margin-top:3px}
+  .lock{margin-left:auto;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.16);
+    display:flex;align-items:center;justify-content:center;font-size:14px}
+  .bottom-bar{
+    position:absolute;left:0;right:0;bottom:0;z-index:8;padding:10px 20px 16px;
+    background:linear-gradient(0deg,rgba(0,0,0,.82),rgba(0,0,0,0));
+    display:flex;flex-direction:column;gap:10px;color:#fff;
+  }
+  .ctrl-row{display:flex;align-items:center;gap:14px}
+  .time{font-size:11.5px;color:rgba(255,255,255,.85);font-variant-numeric:tabular-nums}
+  .progress{flex:1;height:5px;border-radius:999px;background:rgba(255,255,255,.32);position:relative}
+  .progress .buffered{position:absolute;left:0;top:0;bottom:0;width:58%;background:rgba(255,255,255,.14);border-radius:999px}
+  .progress .played{position:absolute;left:0;top:0;bottom:0;width:31%;background:var(--primary);border-radius:999px;box-shadow:0 0 6px rgba(0,122,255,.6)}
+  .progress .knob{position:absolute;left:31%;top:50%;transform:translate(-50%,-50%);
+    width:13px;height:13px;border-radius:50%;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.5)}
+  .speed{font-size:12px;font-weight:800;background:rgba(255,255,255,.16);border-radius:8px;padding:5px 9px}
+  .skip{
+    position:absolute;right:20px;bottom:96px;z-index:8;
+    background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);color:#fff;
+    font-size:12.5px;font-weight:700;border-radius:10px;padding:9px 14px;backdrop-filter:blur(6px);
+  }
+  .panel{
+    position:absolute;top:0;right:0;bottom:0;width:300px;z-index:10;
+    background:var(--glass);backdrop-filter:blur(14px);border-left:1px solid var(--glass-line);
+    padding:18px 16px;display:flex;flex-direction:column;gap:14px;color:#fff;
+  }
+  .p-sec-title{font-size:11px;font-weight:800;letter-spacing:1px;color:rgba(255,255,255,.5)}
+  .opt{display:flex;align-items:center;justify-content:space-between;
+    padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.07);font-size:13px;font-weight:600}
+  .opt.on{background:var(--primary-soft);border:1px solid var(--primary);color:#fff}
+  .opt .tag{font-size:10.5px;color:rgba(255,255,255,.55);font-weight:600}
+  .opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .toggle{width:38px;height:22px;border-radius:999px;background:var(--primary);position:relative;flex:none}
+  .toggle::after{content:"";position:absolute;right:2.5px;top:2.5px;width:17px;height:17px;border-radius:50%;background:#fff}
+
+  /* ---------- 播放页(lanplayer 真实布局) ---------- */
+  .top-pill{margin:0 auto;height:26px;display:flex;align-items:center;padding:0 14px;
+    border-radius:999px;border:1px solid rgba(0,122,255,.55);color:#BEE0FF;
+    font-size:11px;font-weight:600;background:rgba(0,20,40,.35);white-space:nowrap}
+  .dm-btn{width:34px;height:34px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+    font-size:13px;font-weight:800;color:#fff;border:1.5px solid rgba(0,122,255,.7);background:rgba(0,122,255,.18)}
+  .lock-gold{position:absolute;right:8px;top:50%;transform:translateY(-50%);z-index:9;width:42px;height:42px;border-radius:50%;
+    background:rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center}
+  .lock-gold span{font-size:15px;filter:grayscale(1) brightness(2.2)}
+  .speed-stack{position:absolute;right:60px;top:50%;transform:translateY(-50%);z-index:9;width:46px;border-radius:22px;
+    background:rgba(0,0,0,.30);display:flex;flex-direction:column;
+    align-items:center;padding:8px 0;gap:6px}
+  .speed-stack span{font-size:15px;color:rgba(255,255,255,.9)}
+  .speed-stack b{font-size:12px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums}
+  .center-cluster{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:30px;z-index:7}
+  .big-play{width:56px;height:56px;display:flex;align-items:center;justify-content:center;font-size:40px;color:#fff;
+    text-shadow:0 2px 10px rgba(0,0,0,.8)}
+  .seek-flat{font-size:26px;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.8);display:flex;align-items:center;gap:2px}
+  .seek-flat i{font-style:normal;font-size:11px;opacity:.9;align-self:flex-end;padding-bottom:4px}
+  .more-btn{width:38px;height:38px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,.28);border:1.2px solid rgba(255,255,255,.85);color:#fff;font-size:15px}
+  .progress-row{display:flex;align-items:center;gap:10px}
+  .progress-row .time{flex:none}
+  .chapter-tick{position:absolute;top:-2px;width:2px;height:9px;border-radius:1px;background:rgba(255,255,255,.65)}
+  .preview-thumb{position:absolute;bottom:16px;width:160px;height:90px;border-radius:8px;overflow:hidden;
+    border:1.5px solid rgba(255,255,255,.85);box-shadow:0 6px 20px rgba(0,0,0,.5);
+    display:flex;align-items:flex-end;justify-content:center;font-size:10px;color:rgba(255,255,255,.85);padding-bottom:4px}
+  .info-line{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;color:rgba(255,255,255,.75)}
+  .info-line .sub-ok{color:#7BD88F}
+  .seg{position:absolute;top:0;bottom:0;border-radius:2px}
+  .seg.intro{background:rgba(245,166,35,.75)}
+  .seg.outro{background:rgba(255,107,107,.75)}
+  .ibtn{display:flex;flex-direction:column;align-items:center;gap:3px;color:#fff;min-width:34px}
+  .ibtn b{font-size:14px;font-weight:700}
+  .ibtn i{font-style:normal;font-size:9px;color:rgba(255,255,255,.65)}
+  .dm-toast{position:absolute;left:50%;transform:translateX(-50%);bottom:118px;z-index:7;
+    border:1px solid rgba(0,122,255,.5);background:rgba(0,10,25,.45);color:#BEE0FF;
+    font-size:12px;font-weight:700;border-radius:8px;padding:6px 12px;white-space:nowrap}
+  .tile-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .tile{border-radius:10px;background:rgba(255,255,255,.07);padding:12px 4px;display:flex;flex-direction:column;
+    align-items:center;gap:5px;font-size:10.5px;font-weight:600;color:#fff}
+  .tile b{font-size:15px;font-weight:700}
+  .tile .sub{font-size:9px;color:rgba(255,255,255,.5)}
+  .tile.dashed{border:1.5px dashed rgba(255,255,255,.25);background:transparent;color:rgba(255,255,255,.4);justify-content:center}
+
+  .form-field{background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:10px;
+    padding:9px 12px;font-size:10px;color:var(--faint);font-weight:600}
+  .form-field .val{display:block;margin-top:4px;font-size:12.5px;color:var(--text);font-weight:700}
+  .form-field .val.hint{color:var(--faint);font-weight:500}
+  .pill-btn{height:40px;border-radius:999px;display:flex;align-items:center;justify-content:center;gap:6px;
+    font-size:13px;font-weight:700;flex:1}
+  .pill-btn.primary{background:var(--primary);color:#fff}
+  .pill-btn.ghost{border:1.5px solid var(--primary);color:var(--primary)}
+  .status-dot{width:7px;height:7px;border-radius:50%;flex:none}
+  .new-badge{font-size:9px;font-weight:800;color:#fff;background:var(--primary);border-radius:6px;padding:2px 6px}
+
+  /* ---------- 浏览流 ---------- */
+  .page{background:var(--dark-bg);min-height:640px;padding-bottom:24px}
+  .page-top{display:flex;align-items:center;gap:12px;padding:14px 20px 6px}
+  .page-title{font-size:19px;font-weight:800}
+  .lib-card{
+    display:flex;align-items:center;gap:14px;background:var(--card);
+    border:1px solid var(--line);border-radius:14px;padding:16px;margin:0 20px 12px;
+  }
+  .lib-icon{width:44px;height:44px;border-radius:12px;background:var(--primary-soft);
+    display:flex;align-items:center;justify-content:center;font-size:19px;color:var(--primary)}
+  .lib-name{font-size:15.5px;font-weight:800}
+  .lib-count{font-size:12px;color:var(--muted);margin-top:4px}
+  .lib-chev{margin-left:auto;color:var(--faint);font-size:16px}
+  .sort-row{display:flex;gap:8px;padding:10px 20px 4px}
+  .sort{padding:6px 13px;border-radius:999px;font-size:11.5px;font-weight:700;
+    background:rgba(255,255,255,.06);color:var(--muted)}
+  .sort.on{background:var(--primary);color:#fff}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:12px 20px}
+  .p-card{display:flex;flex-direction:column;gap:7px}
+  .p-poster{aspect-ratio:2/3;border-radius:10px;position:relative;overflow:hidden;
+    display:flex;align-items:flex-end;padding:8px;font-size:10.5px;font-weight:700;color:rgba(255,255,255,.9)}
+  .g1{background:linear-gradient(160deg,#33415C,#10131B)}
+  .g2{background:linear-gradient(160deg,#5C3341,#1B1013)}
+  .g3{background:linear-gradient(160deg,#2E5245,#0F1A16)}
+  .g4{background:linear-gradient(160deg,#55462E,#1A150E)}
+  .g5{background:linear-gradient(160deg,#3D3560,#141021)}
+  .g6{background:linear-gradient(160deg,#2F4A57,#0E171B)}
+  .p-card .thin-progress{height:3px}
+  .ep-h{display:flex;gap:10px;overflow:hidden;padding:4px 20px}
+  /* lanplayer 分集卡:横滑卡片 + 16:9 分集剧照封面 + 播放浮层 + 进度条 */
+  .epx-card{flex:none;width:152px;background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:6px}
+  .epx-card.cur{border-color:var(--primary);background:var(--primary-soft)}
+  .epx-cover{position:relative;aspect-ratio:16/9;border-radius:8px;overflow:hidden}
+  .epx-play{position:absolute;inset:0;margin:auto;width:30px;height:30px;border-radius:50%;
+    background:rgba(0,0,0,.5);border:1.5px solid rgba(255,255,255,.7);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:10px}
+  .epx-badge{position:absolute;top:5px;right:5px;width:16px;height:16px;border-radius:50%;
+    background:var(--ok);color:#04250F;font-size:9px;display:flex;align-items:center;justify-content:center}
+  .epx-bar{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.25)}
+  .epx-bar i{display:block;height:100%;background:var(--primary)}
+  .epx-t{font-size:12px;font-weight:700;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .epx-d{font-size:10px;color:var(--faint);margin-top:3px}
+  .cast{display:flex;gap:14px;padding:16px 20px 8px;overflow:hidden}
+  .cast .c{display:flex;flex-direction:column;align-items:center;gap:6px;width:56px;flex:none}
+  .cast .av{width:52px;height:52px;border-radius:50%;
+    background:linear-gradient(150deg,#39415A,#171A24);border:1px solid rgba(255,255,255,.12)}
+  .cast .n{font-size:10px;color:var(--muted);text-align:center}
+
+  .footer{margin-top:64px;color:var(--faint);font-size:12px;line-height:2;border-top:1px solid var(--line);padding-top:20px}
+</style>
+</head>
+<body>
+
+<h1>MoviePilotLite × lanplayer 内嵌播放 · UI 预览 v2</h1>
+<p class="sub">v2 修订:① 详情页头部还原现有 MP 真实结构——全屏媒体大图 backdrop + 渐变压暗 + 居中标题/胶囊,不再是小卡片;② 继续观看按钮文案收窄为「继续播放」,集数与进度移到操作行下方的续播进度行,任何屏宽都不会溢出。</p>
+<div class="legend">
+  <span class="chip"><span class="dot" style="background:var(--primary)"></span>主题色 #007AFF(示例)</span>
+  <span class="chip"><span class="dot" style="background:var(--imdb)"></span>评分 #F5C518</span>
+  <span class="chip"><span class="dot" style="background:var(--ok)"></span>已入库 / 看完 #81C784</span>
+  <span class="chip"><span class="dot" style="background:var(--bell)"></span>订阅提醒 #FF6B6B</span>
+  <span class="chip">页面底色 #151821(AppTheme 真实值)</span>
+</div>
+
+<!-- ================= 1 详情页播放区 ================= -->
+<h2><span class="no">01</span>MP 媒体详情页 · 播放入口(还原真实头部)</h2>
+<p class="desc">头部为现有结构:SliverAppBar 全屏 backdrop 大图(上下渐变 + 左右压暗)、左上 44px 圆形返回钮、底部居中 28px 大标题 + 副标题 + meta 胶囊排(年份/类型/评分/已入库),操作行紧随其下。播放按钮复用现有「搜索资源」同款主题色胶囊(48 高、圆角 999),置于操作行第一顺位;原「搜索资源」降为圆形次级按钮。命中媒体服务器条目才显示,未收录为灰色禁用态;非管理员不显示。</p>
+<div class="row">
+
+  <div class="frame-wrap">
+    <div class="phone"><div class="screen">
+      <div class="mp-header">
+        <div class="back-fab">‹</div>
+        <div class="d-title">沙丘 2</div>
+        <div class="d-sub">Dune: Part Two</div>
+        <div class="meta-wrap">
+          <span class="mchip">2024</span>
+          <span class="mchip">科幻</span>
+          <span class="mchip score"><span class="star">★</span>8.3</span>
+          <span class="mchip inlib"><span class="ck">✓</span>已入库</span>
+        </div>
+        <div class="action-row">
+          <div class="pill"><span class="tri"></span>立即播放</div>
+          <div class="circle gap-l">⌕</div>
+          <div class="circle accent">🔔</div>
+          <div class="circle">💬</div>
+        </div>
+        <div class="d-note" style="margin-top:12px;justify-content:center"><span class="src-dot"></span>Emby · 主 NAS · 原画直连,播不动自动转码</div>
+      </div>
+      <div class="d-body">
+        <p class="d-overview">保罗·厄崔迪携手契妮和弗雷曼人,对毁灭他家族的阴谋者展开报复。面对一生挚爱与已知宇宙命运的两难抉择,他必须竭力阻止只有他才能预见的惨烈未来……</p>
+      </div>
+    </div></div>
+    <div class="caption"><b>电影</b> — 「已入库」绿胶囊为现有控件(开启媒体库状态显示时出现),播放入口在其下操作行首位。</div>
+  </div>
+
+  <div class="frame-wrap">
+    <div class="phone"><div class="screen">
+      <div class="mp-header">
+        <div class="back-fab">‹</div>
+        <div class="d-title">三体 第二季</div>
+        <div class="d-sub">Three-Body Ⅱ</div>
+        <div class="meta-wrap">
+          <span class="mchip">2026</span>
+          <span class="mchip">科幻 / 剧情</span>
+          <span class="mchip score"><span class="star">★</span>8.8</span>
+          <span class="mchip inlib"><span class="ck">✓</span>已入库</span>
+        </div>
+        <div class="action-row">
+          <div class="pill"><span class="tri"></span>播放</div>
+          <div class="circle gap-l">☰</div>
+          <div class="circle">⌕</div>
+          <div class="circle accent">🔔</div>
+          <div class="circle">💬</div>
+        </div>
+        <div class="d-note" style="margin-top:12px;justify-content:center"><span class="src-dot"></span>「播放」默认播下一集未看完的;「☰」弹出选集面板</div>
+      </div>
+      <div class="d-body">
+        <p class="d-overview">面壁计划正式启动,罗辑在混沌中参悟宇宙社会学;黑暗森林的法则第一次展露獠牙,人类文明进入倒计时……</p>
+      </div>
+    </div></div>
+    <div class="caption"><b>剧集</b> — 新增「☰」圆形选集按钮(与现有圆形次级按钮同族)。</div>
+  </div>
+
+  <div class="frame-wrap">
+    <div class="phone"><div class="screen">
+      <div class="mp-header">
+        <div class="back-fab">‹</div>
+        <div class="d-title">三体 第二季</div>
+        <div class="d-sub">Three-Body Ⅱ</div>
+        <div class="meta-wrap">
+          <span class="mchip">2026</span>
+          <span class="mchip">科幻 / 剧情</span>
+          <span class="mchip inlib"><span class="ck">✓</span>已入库</span>
+        </div>
+        <div class="action-row">
+          <div class="pill"><span class="tri"></span>继续播放</div>
+          <div class="circle gap-l">☰</div>
+          <div class="circle">⌕</div>
+          <div class="circle accent">🔔</div>
+          <div class="circle">💬</div>
+        </div>
+        <div class="resume-line">
+          <div class="bar"><i></i></div>
+          <div class="txt">
+            <span class="l">S02E02 · 罪夜奔袭 · 已看 45%</span>
+            <span class="r">从头看</span>
+          </div>
+        </div>
+      </div>
+      <div class="d-body">
+        <p class="d-overview">从首页「继续观看」卡片进入时携带进度上下文:按钮只写「继续播放」(任何屏宽都不溢出),集数、片名、进度放在按钮下方的续播进度行里,「从头看」为右侧文字按钮。</p>
+      </div>
+    </div></div>
+    <div class="caption"><b>继续观看上下文</b> — 溢出修正:胶囊文案固定为「继续播放」;最窄 360dp 屏也不会溢出。</div>
+  </div>
+
+  <div class="frame-wrap">
+    <div class="phone"><div class="screen">
+      <div class="mp-header">
+        <div class="back-fab">‹</div>
+        <div class="d-title">沙丘 3</div>
+        <div class="d-sub">Dune: Part Three</div>
+        <div class="meta-wrap">
+          <span class="mchip">2027</span>
+          <span class="mchip">科幻</span>
+        </div>
+        <div class="action-row">
+          <div class="pill disabled"><span class="tri"></span>媒体库未收录</div>
+          <div class="circle gap-l">⌕</div>
+          <div class="circle accent">🔔</div>
+          <div class="circle">💬</div>
+        </div>
+        <div class="d-note" style="margin-top:12px;justify-content:center"><span class="src-dot" style="background:var(--faint)"></span>管理员可见禁用态;订阅入库后自动点亮</div>
+      </div>
+      <div class="d-body">
+        <p class="d-overview">媒体服务器中未找到该影片(按 tmdbid / 标题 / 年份映射)。非管理员不显示播放按钮,走网页播放回退。</p>
+      </div>
+    </div></div>
+    <div class="caption"><b>未收录</b> — 同款按钮灰色禁用态。</div>
+  </div>
+</div>
+
+<!-- ================= 2 选集弹层 ================= -->
+<h2><span class="no">02</span>选集弹层 · MP 实色底部面板</h2>
+<p class="desc">与订阅文件统计等现有弹层同风格:实色圆角面板 + 抓手条,盖在详情页大图头上。面板头部左侧为剧集海报,右侧标题与集数统计(第2季 · 共 12 集 · 已看 5);其下季横向胶囊(当前季主题色描边);集行 = 16:9 缩略封面(媒体服务器分集剧照,无剧照回退剧集海报占位)/ 大字集数 / 标题 / 时长 / 看完勾;续播集默认高亮并滚动到位,点击任一集立即起播。</p>
+<div class="row">
+  <div class="frame-wrap">
+    <div class="phone" style="height:720px"><div class="screen" style="height:100%;background:var(--dark-bg)">
+      <div class="mp-header" style="height:300px">
+        <div class="back-fab">‹</div>
+        <div class="d-title">三体 第二季</div>
+        <div class="d-sub">Three-Body Ⅱ</div>
+        <div class="meta-wrap">
+          <span class="mchip">2026</span>
+          <span class="mchip score"><span class="star">★</span>8.8</span>
+        </div>
+      </div>
+      <div class="sheet-dim"></div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <div class="sheet-series">
+          <div class="series-poster g5">三体 II</div>
+          <div>
+            <div class="series-title">三体 第二季</div>
+            <div class="series-meta">第2季 · 共 12 集 · 已看 5</div>
+            <div class="series-meta">★ 8.8 · Emby · 主 NAS</div>
+          </div>
+          <div class="close">✕</div>
+        </div>
+        <div class="seasons">
+          <div class="season">第1季</div>
+          <div class="season on">第2季</div>
+          <div class="season">第3季</div>
+        </div>
+        <div class="ep current">
+          <div class="ep-thumb g3"><div class="bar"><i style="width:45%"></i></div></div>
+          <div class="ep-no">02</div>
+          <div class="ep-info">
+            <div class="ep-title">罪夜奔袭</div>
+            <div class="ep-dur">42:13 · 观看至 45%</div>
+          </div>
+          <div class="ep-check none"></div>
+        </div>
+        <div class="ep">
+          <div class="ep-thumb g4"></div>
+          <div class="ep-no">03</div>
+          <div class="ep-info">
+            <div class="ep-title">长夜将尽</div>
+            <div class="ep-dur">38:55</div>
+          </div>
+          <div class="ep-check none"></div>
+        </div>
+        <div class="ep">
+          <div class="ep-thumb g1"><div class="bar"><i style="width:100%"></i></div></div>
+          <div class="ep-no">01</div>
+          <div class="ep-info">
+            <div class="ep-title">黑暗森林</div>
+            <div class="ep-dur">45:02 · 已看完</div>
+          </div>
+          <div class="ep-check done">✓</div>
+        </div>
+      </div>
+    </div></div>
+    <div class="caption"><b>选集面板</b> — 每行带分集缩略剧照;当前续播集主题色高亮;无剧照的分集回退显示剧集海报/占位图。</div>
+  </div>
+</div>
+
+<!-- ================= 3 播放页 ================= -->
+<h2><span class="no">03</span>播放页 · 按 lanplayer 原型 1:1 还原,强调色 = MP 主题色</h2>
+<p class="desc">点击播放自动转横屏全屏,退出恢复竖屏。单击呼出/隐藏控制层;双击左右 ±10s(涟漪)、双击中间播放暂停;左半屏上下滑亮度、右半屏音量(与系统联动)。布局与 lanplayer 现有原型一致:顶栏 = 返回 + 标题(集数内联)+ 中央自适应模式胶囊 + 弹幕开关/更多;右缘悬浮锁定钮与 +/1.0x/− 倍速步进;底部 = 媒体信息行、带片头/片尾跳过段色块的进度条、⏮⏭ 与 音轨/字幕/音量/选集 图标行。</p>
+<div class="row">
+
+  <div class="frame-wrap">
+    <div class="wide"><div class="video">
+      <div class="stage"><div class="silhouette"></div></div>
+      <div class="danmaku" style="top:130px">
+        <span style="margin-left:28%">名场面预定!!</span>
+        <span class="dm3" style="margin-left:64%">前方高能</span>
+      </div>
+      <div class="top-bar" style="height:56px">
+        <span style="font-size:20px">←</span>
+        <span class="top-title" style="margin-left:4px">三体 第二季 <span style="color:rgba(255,255,255,.85);font-size:12px;font-weight:600;margin-left:8px">S02·E02</span></span>
+        <div class="dm-btn" style="margin-left:auto">弹</div>
+        <div class="more-btn" style="margin-left:8px">⋮</div>
+      </div>
+      <div class="lock-gold"><span>🔓</span></div>
+      <div class="speed-stack"><span>+</span><b>1.0x</b><span>−</span></div>
+      <div class="center-cluster">
+        <div class="seek-flat">⟲<i>10</i></div>
+        <div class="big-play">▶</div>
+        <div class="seek-flat">⟳<i>10</i></div>
+      </div>
+      <div class="dm-toast">名场面!这段配乐绝了</div>
+      <div class="skip" style="right:32px;bottom:118px">跳过片头 »</div>
+      <div class="bottom-bar">
+        <div class="info-line">
+          <span>1080p · H.265 · 8.5 Mbps · 23.976 fps</span>
+        </div>
+        <div class="progress-row">
+          <span class="time">12:34</span>
+          <div class="progress">
+            <div class="buffered"></div>
+            <div class="seg intro" style="left:0;width:7%"></div>
+            <div class="seg outro" style="left:88%;width:6%"></div>
+            <div class="played" style="width:31%"></div>
+            <div class="chapter-tick" style="left:22%"></div>
+            <div class="chapter-tick" style="left:47%"></div>
+            <div class="chapter-tick" style="left:71%"></div>
+            <div class="knob" style="left:31%"></div>
+            <div class="preview-thumb g2" style="left:31%;transform:translateX(-50%)">拖动缩略预览</div>
+          </div>
+          <span class="time">42:13</span>
+        </div>
+        <div class="ctrl-row">
+          <span style="font-size:14px">⏮</span>
+          <span style="font-size:14px;margin-left:12px">⏭</span>
+          <div style="flex:1"></div>
+          <div class="ibtn"><b>≡</b><i>音轨</i></div>
+          <div class="ibtn"><b>CC</b><i>字幕</i></div>
+          <div class="ibtn"><b>⛶</b><i>画幅</i></div>
+          <div class="ibtn"><b>☰</b><i>选集</i></div>
+        </div>
+      </div>
+    </div></div>
+    <div class="caption" style="max-width:780px"><b>控制层</b>(按源码还原)— 顶栏:扁平返回键 + 标题内联「S02·E02」徽章 + 「弹」徽章钮(点开弹幕面板/长按开关)+「⋮」更多钮,全宽渐变压暗贴顶;右缘垂直居中:锁定钮(锁定时变主题色描边)+ 46px 竖排倍速步进;中央扁平传输簇 ⟲10 ▶ ⟳10(播放键带扩散光晕);底栏:元数据行在进度条上方,进度条左当前/右总时长、含章节刻度与缓冲层、拖动浮出 160×90 trickplay 缩略预览(还有弹幕热力图叠加);底行右侧 音轨/字幕/画幅/选集(音量亮度走手势 HUD,不占底栏);进度条上方 16:9 预览即拖动效果。</div>
+  </div>
+
+  <div class="frame-wrap">
+    <div class="wide" style="width:520px"><div class="video" style="width:520px;height:300px">
+      <div class="stage"><div class="silhouette" style="width:280px;height:200px"></div></div>
+      <div class="panel" style="width:230px">
+        <div class="p-sec-title" style="color:#fff;font-size:13px;letter-spacing:0">音频</div>
+        <div class="opt"><span>关闭</span></div>
+        <div class="opt on"><span>国语 5.1 <span class="tag" style="margin-left:6px">中文 #1</span></span><span class="tag">当前</span></div>
+        <div class="opt"><span>英语 原声 <span class="tag" style="margin-left:6px">English #1</span></span></div>
+        <div class="opt"><span>评论音轨 <span class="tag" style="margin-left:6px">中文 #2</span></span></div>
+        <div style="flex:1"></div>
+        <div class="p-sec-title" style="line-height:1.8">轨道面板按类型分开:点底栏「音轨」滑入本面板,「字幕」为同构的字幕轨面板(含 关闭/内嵌轨/外挂轨),选中项主题色描边。</div>
+      </div>
+    </div></div>
+    <div class="caption" style="max-width:520px"><b>音频轨道面板</b> — 底栏「音轨」唤起;230px 窄版右滑面板,同语言多轨标注「中文 #1/#2」防重名;「字幕」面板同构(关闭/内嵌轨/外挂轨);遮罩不盖顶栏,「弹」「⋮」仍可点。</div>
+  </div>
+
+  <div class="frame-wrap">
+    <div class="wide" style="width:520px"><div class="video" style="width:520px;height:300px">
+      <div class="stage"><div class="silhouette" style="width:280px;height:200px"></div></div>
+      <div class="panel" style="width:230px">
+        <div class="tile-grid">
+          <div class="tile"><b>⚙</b>画质<span class="sub">原画</span></div>
+          <div class="tile"><b>⇄</b>切换内核<span class="sub">Exo</span></div>
+          <div class="tile"><b>字</b>字幕样式<span class="sub">&nbsp;</span></div>
+          <div class="tile"><b>⤓</b>外挂字幕<span class="sub">&nbsp;</span></div>
+          <div class="tile"><b>搜</b>在线搜索<span class="sub">&nbsp;</span></div>
+          <div class="tile dashed">＋</div>
+        </div>
+        <div style="flex:1"></div>
+        <div class="p-sec-title" style="line-height:1.8">更多 = 3×2 宫格;点「画质 / 切换内核」进入二级列表(带 ‹ 返回),内核瓦片实时显示当前值(Exo / MPV / 自动)。</div>
+      </div>
+    </div></div>
+    <div class="caption" style="max-width:520px"><b>更多宫格面板</b> — 与 lanplayer more_right_panel 同构:画质、切换内核、字幕样式、外挂字幕、在线搜索 + 虚线扩展位;高度自适应、点外部关闭。</div>
+  </div>
+</div>
+
+<!-- ================= 4 浏览流 ================= -->
+<h2><span class="no">04</span>媒体库浏览流 · MP 内直接看库</h2>
+<p class="desc">首页「我的媒体库」卡片改为进入 MP 内浏览(替换网页跳转):库列表 → 内容海报网格 → 条目详情(移植 lanplayer,头部同样对齐 MP 大图风格)→ 播放。非管理员隐藏入口并提示(原生浏览需要媒体服务器凭据)。</p>
+<div class="row">
+
+  <div class="frame-wrap">
+    <div class="phone" style="height:640px"><div class="page">
+      <div class="page-top">
+        <span style="font-size:18px">‹</span>
+        <div class="page-title">我的媒体库</div>
+      </div>
+      <div style="height:12px"></div>
+      <div class="lib-card"><div class="side-bar" style="height:44px"></div>
+        <div class="lib-icon">🎬</div>
+        <div><div class="lib-name">电影</div><div class="lib-count">1,284 部 · Emby</div></div>
+        <div class="lib-chev">›</div>
+      </div>
+      <div class="lib-card"><div class="side-bar" style="height:44px"></div>
+        <div class="lib-icon">📺</div>
+        <div><div class="lib-name">电视剧</div><div class="lib-count">326 部 · Emby</div></div>
+        <div class="lib-chev">›</div>
+      </div>
+      <div class="lib-card"><div class="side-bar" style="height:44px"></div>
+        <div class="lib-icon">🎞️</div>
+        <div><div class="lib-name">纪录片</div><div class="lib-count">58 部 · Jellyfin</div></div>
+        <div class="lib-chev">›</div>
+      </div>
+      <div class="lib-card"><div class="side-bar" style="height:44px"></div>
+        <div class="lib-icon">🎤</div>
+        <div><div class="lib-name">演唱会</div><div class="lib-count">23 部 · Emby</div></div>
+        <div class="lib-chev">›</div>
+      </div>
+    </div></div>
+    <div class="caption"><b>库列表</b> — MP 风格列表卡:侧强调条 + 类型图标 + 数量;单库时跳过此页直达内容网格。</div>
+  </div>
+
+  <div class="frame-wrap">
+    <div class="phone" style="height:640px"><div class="page">
+      <div class="page-top">
+        <span style="font-size:18px">‹</span>
+        <div class="page-title">电影</div>
+        <span style="margin-left:auto;color:var(--muted);font-size:15px">⌕</span>
+      </div>
+      <div class="sort-row">
+        <div class="sort on">最近添加</div><div class="sort">名称</div><div class="sort">评分</div><div class="sort">年份</div>
+      </div>
+      <div class="grid">
+        <div class="p-card"><div class="p-poster g1">沙丘 2</div><div class="thin-progress"><i style="width:45%"></i></div></div>
+        <div class="p-card"><div class="p-poster g2">奥本海默</div></div>
+        <div class="p-card"><div class="p-poster g3">星际穿越</div></div>
+        <div class="p-card"><div class="p-poster g4">头号玩家</div></div>
+        <div class="p-card"><div class="p-poster g5">银翼杀手 2049</div></div>
+        <div class="p-card"><div class="p-poster g6">降临</div></div>
+      </div>
+      <div class="sort-row" style="padding-top:16px">
+        <div style="display:flex;gap:6px;align-items:center;width:100%">
+          <div style="flex:1;height:86px;border-radius:10px;background:linear-gradient(160deg,#20242F,#191C25)"></div>
+          <div style="flex:1;height:86px;border-radius:10px;background:linear-gradient(160deg,#20242F,#191C25)"></div>
+          <div style="flex:1;height:86px;border-radius:10px;background:linear-gradient(160deg,#20242F,#191C25)"></div>
+        </div>
+      </div>
+    </div></div>
+    <div class="caption"><b>内容网格</b> — 三列海报墙、排序胶囊、上滑分页;有进度的条目海报下带主题色细进度条(加载中为骨架占位)。</div>
+  </div>
+
+  <div class="frame-wrap">
+    <div class="phone" style="height:660px"><div class="page">
+      <div class="mp-header" style="height:380px">
+        <div class="back-fab">‹</div>
+        <div class="d-title">三体 第二季</div>
+        <div class="d-sub">Three-Body Ⅱ · 科幻 / 12 集</div>
+        <div class="meta-wrap">
+          <span class="mchip">2026</span>
+          <span class="mchip score"><span class="star">★</span>8.8</span>
+          <span class="mchip inlib"><span class="ck">✓</span>已入库</span>
+        </div>
+        <div class="action-row">
+          <div class="pill"><span class="tri"></span>继续播放</div>
+          <div class="circle gap-l">☰</div>
+        </div>
+        <div class="resume-line">
+          <div class="bar"><i></i></div>
+          <div class="txt">
+            <span class="l">S02E02 · 罪夜奔袭 · 已看 45%</span>
+            <span class="r">从头看</span>
+          </div>
+        </div>
+      </div>
+      <div class="p-sec-title" style="padding:16px 20px 8px;color:var(--muted)">分集 <span style="font-size:10px;font-weight:600;color:var(--faint)">· 横滑卡片,封面为媒体服务器分集剧照</span></div>
+      <div class="ep-h">
+        <div class="epx-card">
+          <div class="epx-cover g1"><div class="epx-play">▶</div><div class="epx-badge">✓</div><div class="epx-bar"><i style="width:100%"></i></div></div>
+          <div class="epx-t">EP01 黑暗森林</div>
+          <div class="epx-d">45:02 · 已看完</div>
+        </div>
+        <div class="epx-card cur">
+          <div class="epx-cover g3"><div class="epx-play">▶</div><div class="epx-bar"><i style="width:45%"></i></div></div>
+          <div class="epx-t">EP02 罪夜奔袭</div>
+          <div class="epx-d">42:13 · 至 45%</div>
+        </div>
+        <div class="epx-card">
+          <div class="epx-cover g4"><div class="epx-play">▶</div></div>
+          <div class="epx-t">EP03 长夜将尽</div>
+          <div class="epx-d">38:55</div>
+        </div>
+        <div class="epx-card">
+          <div class="epx-cover g6"><div class="epx-play">▶</div></div>
+          <div class="epx-t">EP04 面壁者</div>
+          <div class="epx-d">40:18</div>
+        </div>
+      </div>
+      <div class="p-sec-title" style="padding:18px 20px 8px;color:var(--muted)">演职员</div>
+      <div class="cast">
+        <div class="c"><div class="av"></div><div class="n">张鲁一</div></div>
+        <div class="c"><div class="av"></div><div class="n">于和伟</div></div>
+        <div class="c"><div class="av"></div><div class="n">陈瑾</div></div>
+        <div class="c"><div class="av"></div><div class="n">王子文</div></div>
+        <div class="c"><div class="av"></div><div class="n">林永健</div></div>
+      </div>
+      <p class="d-overview" style="padding:10px 20px">面壁计划正式启动,罗辑在混沌中参悟宇宙社会学;黑暗森林的法则第一次展露獠牙,人类文明进入倒计时……</p>
+    </div></div>
+    <div class="caption"><b>条目详情(浏览流)</b> — 移植 lanplayer 详情页,头部对齐 MP 大图+居中标题风格;分集为横滑封面卡(lanplayer EpisodeCard 同款:剧照封面 + 播放浮层 + 卡内进度条,当前集主题色描边),播放走同一套直连链路。</div>
+  </div>
+</div>
+
+<!-- ================= 5 弹幕设置 ================= -->
+<h2><span class="no">05</span>设置 · 系统设置分栏新增「弹幕设置」</h2>
+<p class="desc">在现有 系统设置(基础 / 高级设置 / 下载器 / 媒体服务器)分栏下追加「弹幕设置」入口,管理内嵌播放器的弹幕源服务器:支持添加多台 dandanplay 兼容 API 服务器(地址 + 可选 API 密钥),带连接测试;配置写入本地,内嵌播放器的弹幕自动匹配直接读取该列表。系统设置为管理员分区,弹幕服务器配置跟随此权限。</p>
+<div class="row">
+
+  <div class="frame-wrap">
+    <div class="phone" style="height:600px"><div class="page">
+      <div class="page-top">
+        <span style="font-size:18px">‹</span>
+        <div class="page-title">系统设置</div>
+      </div>
+      <div style="height:10px"></div>
+      <div class="lib-card"><div class="lib-icon">⚙</div>
+        <div><div class="lib-name">基础</div><div class="lib-count">服务器信息与基础参数</div></div>
+        <div class="lib-chev">›</div>
+      </div>
+      <div class="lib-card"><div class="lib-icon">🛠</div>
+        <div><div class="lib-name">高级设置</div><div class="lib-count">进阶参数与实验功能</div></div>
+        <div class="lib-chev">›</div>
+      </div>
+      <div class="lib-card"><div class="lib-icon">⬇</div>
+        <div><div class="lib-name">下载器</div><div class="lib-count">下载器连接与管理</div></div>
+        <div class="lib-chev">›</div>
+      </div>
+      <div class="lib-card"><div class="lib-icon">🖥</div>
+        <div><div class="lib-name">媒体服务器</div><div class="lib-count">Emby / Jellyfin 连接配置</div></div>
+        <div class="lib-chev">›</div>
+      </div>
+      <div class="lib-card" style="border-color:var(--primary)"><div class="lib-icon">💬</div>
+        <div><div class="lib-name" style="display:flex;align-items:center;gap:8px">弹幕设置 <span class="new-badge">新增</span></div><div class="lib-count">弹幕源服务器与匹配设置</div></div>
+        <div class="lib-chev">›</div>
+      </div>
+    </div></div>
+    <div class="caption"><b>设置入口</b> — 系统设置分栏追加「弹幕设置」,排在媒体服务器之后;整页为 MP 现有设置子列表样式。</div>
+  </div>
+
+  <div class="frame-wrap">
+    <div class="phone" style="height:600px"><div class="page">
+      <div class="page-top">
+        <span style="font-size:18px">‹</span>
+        <div class="page-title">弹幕设置</div>
+      </div>
+      <div style="height:8px"></div>
+      <p class="d-overview" style="padding:0 20px 12px">播放时按文件名 / 哈希自动匹配弹幕库,支持 dandanplay 兼容 API;可配置多台服务器,匹配按列表顺序依次尝试。</p>
+      <div class="lib-card"><div class="side-bar" style="height:40px"></div>
+        <div class="lib-icon">💬</div>
+        <div style="flex:1">
+          <div class="lib-name" style="display:flex;align-items:center;gap:8px">弹幕开放 API <span class="mchip" style="min-height:20px;padding:2px 8px;font-size:10px">内置 · 默认</span></div>
+          <div class="lib-count" style="display:flex;align-items:center;gap:6px"><span class="status-dot" style="background:var(--ok)"></span>api.dandanplay.net · 已连接</div>
+        </div>
+        <div class="lib-chev">✎</div>
+      </div>
+      <div class="lib-card"><div class="side-bar" style="height:40px;background:var(--faint)"></div>
+        <div class="lib-icon" style="color:var(--muted)">💬</div>
+        <div style="flex:1">
+          <div class="lib-name">自建弹幕服务器</div>
+          <div class="lib-count" style="display:flex;align-items:center;gap:6px"><span class="status-dot" style="background:var(--faint)"></span>danmu.example.com · 密钥已配置</div>
+        </div>
+        <div class="lib-chev">✎</div>
+      </div>
+      <div style="padding:6px 20px 0">
+        <div class="pill-btn primary">＋ 添加弹幕服务器</div>
+      </div>
+      <p class="d-overview" style="padding:14px 20px 0;font-size:11px">长按服务器可设为默认 / 删除;「内置」源不可删除。</p>
+    </div></div>
+    <div class="caption"><b>弹幕设置页</b> — 服务器列表卡:状态点(绿=已连接 / 灰=未测试)、地址与密钥状态;「内置」默认源不可删,自建源可编辑/删除/设默认。</div>
+  </div>
+
+  <div class="frame-wrap">
+    <div class="phone" style="height:600px;background:var(--dark-bg)"><div class="screen" style="height:100%;background:var(--dark-bg)">
+      <div style="height:52px"></div>
+      <div class="sheet-dim" style="background:rgba(0,0,0,.45)"></div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <div class="sheet-series" style="margin-bottom:12px">
+          <div>
+            <div class="series-title">添加弹幕服务器</div>
+            <div class="series-meta">dandanplay 兼容 API</div>
+          </div>
+          <div class="close" style="margin-left:auto">✕</div>
+        </div>
+        <div class="form-field" style="margin-bottom:8px">名称<span class="val">我的弹幕源</span></div>
+        <div class="form-field" style="margin-bottom:8px">服务器地址<span class="val">https://danmu.example.com</span></div>
+        <div class="form-field" style="margin-bottom:14px">API 密钥<span class="val hint">可选,未留空</span></div>
+        <div style="display:flex;gap:10px">
+          <div class="pill-btn ghost">测试连接</div>
+          <div class="pill-btn primary">保存</div>
+        </div>
+        <div class="d-note" style="margin-top:12px;justify-content:center"><span class="src-dot"></span>测试通过显示 ✓ 已连接(延迟 xx ms),失败给出原因</div>
+      </div>
+    </div></div>
+    <div class="caption"><b>添加/编辑弹层</b> — MP 实色底部面板(与选集面板同风格):名称、地址、可选密钥,「测试连接」先验证再保存。</div>
+  </div>
+</div>
+
+<div class="footer">
+  说明:本页为静态 UI 预览,数据均为示例;影片画面以渐变色块示意,实际为媒体服务器 backdrop 大图。详情页头部结构与现有 MP 代码一致(全屏 backdrop、上下渐变 stops 0/0.58/1、左右压暗、居中 28px 标题、白 20% 底 meta 胶囊、#151821 页面底色、16px 页边距)。主题色以 #007AFF 示例,实现中跟随 App「主题设置」实时变化。看完请在对话里提出修改意见,定稿后开始正式实施。
+</div>
+
+</body>
+</html>

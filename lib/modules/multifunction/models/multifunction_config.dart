@@ -20,6 +20,13 @@ const List<MultifunctionSection> multifunctionSections = [
         route: '/subscribe-tv',
       ),
       MultifunctionItem(
+        title: '音乐订阅',
+        icon: Icons.music_note_outlined,
+        accent: Color(0xFF8B5CF6),
+        style: MultifunctionCardStyle.tall,
+        route: '/subscribe-music',
+      ),
+      MultifunctionItem(
         title: '工作流',
         route: '/workflow',
         icon: Icons.account_tree_outlined,
@@ -61,6 +68,19 @@ const List<MultifunctionSection> multifunctionSections = [
         accent: Color(0xFF6D5DF6),
         style: MultifunctionCardStyle.wide,
         route: '/file-manager',
+      ),
+    ],
+  ),
+  MultifunctionSection(
+    title: '媒体',
+    items: [
+      MultifunctionItem(
+        title: '音乐库',
+        subtitle: '专辑与艺术家浏览',
+        icon: Icons.library_music_outlined,
+        accent: Color(0xFFE84393),
+        style: MultifunctionCardStyle.wide,
+        route: '/music',
       ),
     ],
   ),

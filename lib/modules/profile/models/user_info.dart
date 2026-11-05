@@ -1,5 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+// ignore_for_file: invalid_annotation_target
+
 part 'user_info.freezed.dart';
 part 'user_info.g.dart';
 
@@ -33,6 +35,19 @@ extension UserInfoSettingsX on UserInfo {
   /// 昵称：优先使用顶层 nickname，其次 settings.nickname
   String? get nicknameOrSetting =>
       nickname ?? (settings['nickname'] as String?);
+
+  /// 账号名：服务端用户列表可能使用 name 或 username 表示登录账号
+  String get usernameLabel {
+    final value = name.trim();
+    return value.isEmpty ? '未知用户' : value;
+  }
+
+  /// 展示名：昵称只作为视觉标题，账号名始终可单独展示
+  String get displayTitle {
+    final nick = nicknameOrSetting?.trim();
+    if (nick != null && nick.isNotEmpty) return nick;
+    return usernameLabel;
+  }
 
   String? get wechatUserId => settings['wechat_userid'] as String?;
   String? get telegramUserId => settings['telegram_userid'] as String?;

@@ -87,16 +87,24 @@ class PluginListController extends GetxController {
     return _displayedLimit < all.length;
   }
 
-  Future<Map<String, dynamic>> loadInstallCount() async {
+  Future<Map<String, int>> loadInstallCount() async {
     if (!_canAccessPlugins) {
       return {};
     }
-    final response = await _apiClient.get<dynamic>('/api/v1/plugin/statistic');
-    final status = response.statusCode ?? 0;
-    if (status >= 400) {
+    try {
+      final response = await _apiClient.get<dynamic>('/api/v1/plugin/statistic');
+      final status = response.statusCode ?? 0;
+      if (status >= 400) {
+        _log.info('插件安装统计请求失败: HTTP $status');
+        return {};
+      }
+      final parsed = parsePluginInstallCountMap(response.data);
+      _log.info('插件安装统计已加载: ${parsed.length} 条');
+      return parsed;
+    } catch (e, st) {
+      _log.handle(e, stackTrace: st, message: '获取插件安装统计失败');
       return {};
     }
-    return response.data ?? {};
   }
 
   Future<void> _refreshUserCookie() async {
@@ -138,8 +146,8 @@ class PluginListController extends GetxController {
       await loadFromCache();
     }
 
-    final installCount = await loadInstallCount();
     try {
+      final installCount = await loadInstallCount();
       final response = await _apiClient.get<dynamic>(
         '/api/v1/plugin/',
         queryParameters: {'state': 'market', 'force': 'false'},
@@ -150,20 +158,19 @@ class PluginListController extends GetxController {
         items.clear();
         return;
       }
-      final raw = response.data;
-      final list = raw is List ? raw : <dynamic>[];
+      final list = unwrapPluginList(response.data);
       final parsed = <PluginItem>[];
       for (final item in list) {
-        if (item is Map<String, dynamic>) {
-          try {
-            parsed.add(
-              PluginItem.fromJson(
-                item,
-              ).copyWith(installCount: installCount[item['id']] ?? 0),
-            );
-          } catch (e, st) {
-            _log.handle(e, stackTrace: st, message: '解析插件失败');
-          }
+        if (item is! Map) continue;
+        try {
+          final map = Map<String, dynamic>.from(item);
+          parsed.add(
+            PluginItem.fromJson(map).copyWith(
+              installCount: lookupPluginInstallCount(installCount, map['id']),
+            ),
+          );
+        } catch (e, st) {
+          _log.handle(e, stackTrace: st, message: '解析插件失败');
         }
       }
       items.assignAll(parsed);
@@ -196,10 +203,18 @@ class PluginListController extends GetxController {
       _invalidateComputedCache();
       return;
     }
-    final cache = _pluginBox.values.toList();
-    if (cache.isEmpty) return;
-    final locals = cache
+    final cache = _pluginBox.values
         .where((e) => matchesPluginMarketScope(e.id, scopeKey))
+        .toList();
+    if (cache.isEmpty) return;
+    final hasOrderedIndex = cache.any((e) => e.listIndex > 0);
+    if (hasOrderedIndex) {
+      cache.sort((a, b) => a.listIndex.compareTo(b.listIndex));
+    } else {
+      // 旧缓存无序：用安装量近似稳定排序，避免完全随机
+      cache.sort((a, b) => b.installCount.compareTo(a.installCount));
+    }
+    final locals = cache
         .map(
           (e) => PluginItem(
             id: extractPluginMarketPluginId(e.id),
@@ -234,7 +249,8 @@ class PluginListController extends GetxController {
     final scopeKey = _appService.pluginCacheScopeKey;
     if (scopeKey.isEmpty) return;
     late final List<PluginModelCache> list = [];
-    for (final item in items) {
+    for (var i = 0; i < items.length; i++) {
+      final item = items[i];
       final cache = PluginModelCache(
         buildPluginMarketCacheId(scopeKey, item.id),
         item.pluginName,
@@ -256,6 +272,7 @@ class PluginListController extends GetxController {
         item.installCount,
         item.addTime,
         item.pluginPublicKey ?? '',
+        i,
       );
       list.add(cache);
     }

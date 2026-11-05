@@ -1,17 +1,20 @@
-import 'dart:ui';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:moviepilot_mobile/modules/dashboard/widgets/dashboard_widget_styles.dart';
 import 'package:moviepilot_mobile/modules/plugin/controllers/plugin_controller.dart';
 import 'package:moviepilot_mobile/modules/plugin/models/plugin_models.dart';
+import 'package:moviepilot_mobile/modules/plugin/pages/plugin_backup_restore_sheet.dart';
 import 'package:moviepilot_mobile/modules/plugin/pages/plugin_info_sheet.dart';
+import 'package:moviepilot_mobile/modules/plugin/pages/plugin_manage_sheet.dart';
+import 'package:moviepilot_mobile/modules/plugin/pages/plugin_market_sheet.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/modules/plugin/widgets/plugin_item_card.dart';
-import 'package:moviepilot_mobile/modules/plugin/widgets/plugin_center_widgets.dart';
 import 'package:moviepilot_mobile/utils/image_util.dart';
 import 'package:moviepilot_mobile/utils/open_url.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
+import 'package:moviepilot_mobile/widgets/app_loading.dart';
+import 'package:moviepilot_mobile/widgets/glass_search_floating_bar.dart';
 
 class PluginPage extends GetView<PluginController> {
   const PluginPage({super.key});
@@ -20,10 +23,11 @@ class PluginPage extends GetView<PluginController> {
   static const double _itemWidth = 250;
   static const double _horizontalPadding = 16;
   static const double _gridSpacing = 12;
-  static const double _floatingBarHeight = 52;
 
   double _bottomInset(BuildContext context) {
-    return _floatingBarHeight + 24 + MediaQuery.paddingOf(context).bottom;
+    return GlassSearchFloatingBar.height +
+        24 +
+        MediaQuery.paddingOf(context).bottom;
   }
 
   @override
@@ -39,65 +43,59 @@ class PluginPage extends GetView<PluginController> {
         ),
       );
     }
-    final theme = Theme.of(context);
+    final palette = DashboardPalette.of(context);
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: theme.scaffoldBackgroundColor,
         surfaceTintColor: Colors.transparent,
-        title: Text(
-          '已安装插件',
-          style: theme.textTheme.titleLarge?.copyWith(
-            color: theme.colorScheme.onSurface,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+        title: const Text('已安装插件'),
         centerTitle: false,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add_box_outlined),
+          _buildAppBarActionButton(
+            context,
+            icon: Icons.folder_copy_outlined,
+            tooltip: '分组与组件',
+            accent: palette.primary,
+            onPressed: () => showPluginMarketSheet(context),
+          ),
+          _buildAppBarActionButton(
+            context,
+            icon: Icons.add_rounded,
             tooltip: '指定仓库安装',
+            accent: palette.primary,
             onPressed: () => _openRepoInstallSheet(context),
           ),
-          IconButton(
-            icon: const Icon(Icons.store_outlined),
-            tooltip: '插件列表',
+          _buildAppBarActionButton(
+            context,
+            icon: Icons.settings_backup_restore_rounded,
+            tooltip: '备份中心',
+            accent: palette.coolAccent,
+            onPressed: () => showPluginBackupCenterSheet(context),
+          ),
+          _buildAppBarActionButton(
+            context,
+            icon: Icons.storefront_rounded,
+            tooltip: '插件市场',
+            accent: palette.warmAccent,
             onPressed: () => Get.toNamed('/plugin-list'),
           ),
-          Obx(() {
-            if (!controller.isLoading.value) return const SizedBox.shrink();
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Center(
-                child: SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-              ),
-            );
-          }),
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: _buildFloatingBar(context),
+      floatingActionButton: Obx(
+        () => GlassSearchFloatingBar(
+          keyword: controller.keyword.value,
+          onKeywordSubmitted: controller.updateKeyword,
+          searchPlaceholder: '搜索已安装插件名称、描述、作者…',
+        ),
+      ),
       body: RefreshIndicator(
         onRefresh: controller.load,
-        child: Stack(
-          children: [
-            const Positioned.fill(child: PluginCenterBackdrop()),
-            CustomScrollView(
-              cacheExtent: 200,
-              slivers: [
-                SliverToBoxAdapter(child: _buildOverviewHeader(context)),
-                _buildSliverContent(context),
-                SliverToBoxAdapter(
-                  child: SizedBox(height: _bottomInset(context)),
-                ),
-              ],
+        child: CustomScrollView(
+          cacheExtent: 200,
+          slivers: [
+            _buildSliverContent(context),
+            SliverToBoxAdapter(
+              child: SizedBox(height: _bottomInset(context)),
             ),
           ],
         ),
@@ -105,143 +103,62 @@ class PluginPage extends GetView<PluginController> {
     );
   }
 
-  Widget _buildOverviewHeader(BuildContext context) {
-    return Obx(() {
-      final items = controller.items;
-      final active = items.where((item) => item.state).length;
-      return PluginOverviewHeader(
-        title: '你的插件空间',
-        count: items.length,
-        secondaryCount: active,
-        secondaryLabel: '运行中',
-        icon: Icons.extension_rounded,
-      );
-    });
-  }
-
-  Widget _buildFloatingBar(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+  Widget _buildAppBarActionButton(
+    BuildContext context, {
+    required IconData icon,
+    required String tooltip,
+    required Color accent,
+    required VoidCallback? onPressed,
+  }) {
+    final palette = DashboardPalette.of(context);
+    final enabled = onPressed != null;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: cs.outline.withValues(alpha: 0.1),
-            width: 0.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 20,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(999),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 90, sigmaY: 90),
-            child: Container(
-              height: _floatingBarHeight,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              color: cs.surface.withValues(alpha: 0.55),
-              alignment: Alignment.center,
-              child: _buildFakeSearchBar(context),
+      padding: const EdgeInsets.only(right: 8),
+      child: Tooltip(
+        message: tooltip,
+        child: Material(
+          color: accent.withValues(alpha: palette.isDark ? 0.18 : 0.12),
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: onPressed,
+            child: SizedBox(
+              width: 38,
+              height: 38,
+              child: Icon(
+                icon,
+                size: 20,
+                color: accent.withValues(alpha: enabled ? 1 : 0.38),
+              ),
             ),
           ),
         ),
       ),
     );
-  }
-
-  Widget _buildFakeSearchBar(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return GestureDetector(
-      onTap: () => _openKeywordSheet(context),
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        height: 36,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(999),
-          color: cs.onSurface.withValues(alpha: 0.06),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              CupertinoIcons.search,
-              size: 18,
-              color: cs.onSurface.withValues(alpha: 0.55),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Obx(
-                () => Text(
-                  controller.keyword.value.isEmpty
-                      ? '搜索已安装插件名称、描述、作者…'
-                      : controller.keyword.value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: controller.keyword.value.isEmpty
-                        ? cs.onSurface.withValues(alpha: 0.45)
-                        : cs.onSurface.withValues(alpha: 0.88),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _openKeywordSheet(BuildContext context) async {
-    final textController = TextEditingController(
-      text: controller.keyword.value,
-    );
-    final submitted = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        final bottom = MediaQuery.viewInsetsOf(ctx).bottom;
-        return Padding(
-          padding: EdgeInsets.only(bottom: bottom),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-            decoration: BoxDecoration(
-              color: CupertinoDynamicColor.resolve(
-                CupertinoColors.systemBackground,
-                ctx,
-              ),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(18),
-              ),
-            ),
-            child: CupertinoSearchTextField(
-              controller: textController,
-              autofocus: true,
-              placeholder: '搜索已安装插件名称、描述、作者…',
-              onSubmitted: (v) => Navigator.of(ctx).pop(v),
-            ),
-          ),
-        );
-      },
-    );
-    textController.dispose();
-    if (submitted == null) return;
-    controller.updateKeyword(submitted);
   }
 
   Future<void> _openRepoInstallSheet(BuildContext context) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
+      isDismissible: true,
+      showDragHandle: false,
       backgroundColor: Colors.transparent,
-      builder: (_) => const SpecifiedPluginInstallSheet(),
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.92,
+        minChildSize: 0.36,
+        maxChildSize: 1,
+        expand: false,
+        builder: (context, scrollController) {
+          return ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            child: SpecifiedPluginInstallSheet(
+              scrollController: scrollController,
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -250,15 +167,14 @@ class PluginPage extends GetView<PluginController> {
       final loading = controller.isLoading.value;
       final error = controller.errorText.value;
       final items = controller.visibleItems;
+      final unavailableCount = controller.unavailableItems.length;
+      final cleaning = controller.isCleaningUnavailable.value;
+      controller.availabilityById.length;
 
       if (loading && items.isEmpty) {
-        return SliverFillRemaining(
+        return const SliverFillRemaining(
           hasScrollBody: false,
-          child: Center(
-            child: CircularProgressIndicator(
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
+          child: AppLoadingCenter(message: '正在加载已安装插件…'),
         );
       }
       if (error != null && items.isEmpty) {
@@ -301,60 +217,151 @@ class PluginPage extends GetView<PluginController> {
 
       final width = MediaQuery.sizeOf(context).width;
       final useGrid = width > _wideBreakpoint;
+      final listSliver = useGrid
+          ? SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                _horizontalPadding,
+                8,
+                _horizontalPadding,
+                0,
+              ),
+              sliver: SliverGrid(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: ((width - _horizontalPadding * 2) /
+                          (_itemWidth + _gridSpacing))
+                      .floor()
+                      .clamp(1, 10),
+                  mainAxisSpacing: _gridSpacing,
+                  crossAxisSpacing: _gridSpacing,
+                  mainAxisExtent: 160,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) => _buildCard(context, items[index]),
+                  childCount: items.length,
+                  addAutomaticKeepAlives: true,
+                  addRepaintBoundaries: true,
+                ),
+              ),
+            )
+          : SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                _horizontalPadding,
+                8,
+                _horizontalPadding,
+                0,
+              ),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) => Padding(
+                    padding: const EdgeInsets.only(bottom: _gridSpacing),
+                    child: _buildCard(context, items[index]),
+                  ),
+                  childCount: items.length,
+                  addAutomaticKeepAlives: true,
+                  addRepaintBoundaries: true,
+                ),
+              ),
+            );
 
-      if (useGrid) {
-        final availableWidth = width - _horizontalPadding * 2;
-        final crossAxisCount = (availableWidth / (_itemWidth + _gridSpacing))
-            .floor()
-            .clamp(1, 10);
-
-        return SliverPadding(
-          padding: const EdgeInsets.fromLTRB(
-            _horizontalPadding,
-            8,
-            _horizontalPadding,
-            0,
-          ),
-          sliver: SliverGrid(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossAxisCount,
-              mainAxisSpacing: _gridSpacing,
-              crossAxisSpacing: _gridSpacing,
-              mainAxisExtent: 148,
+      return SliverMainAxisGroup(
+        slivers: [
+          if (unavailableCount > 2)
+            SliverToBoxAdapter(
+              child: _buildUnavailableCleanupBar(
+                context,
+                unavailableCount,
+                cleaning,
+              ),
             ),
-            delegate: SliverChildBuilderDelegate(
-              (context, index) => _buildCard(context, items[index]),
-              childCount: items.length,
-              addAutomaticKeepAlives: true,
-              addRepaintBoundaries: true,
-            ),
-          ),
-        );
-      }
-
-      return SliverPadding(
-        padding: const EdgeInsets.fromLTRB(
-          _horizontalPadding,
-          8,
-          _horizontalPadding,
-          0,
-        ),
-        sliver: SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) => Padding(
-              padding: const EdgeInsets.only(bottom: _gridSpacing),
-              child: _buildCard(context, items[index]),
-            ),
-            childCount: items.length,
-            addAutomaticKeepAlives: true,
-            addRepaintBoundaries: true,
-          ),
-        ),
+          listSliver,
+        ],
       );
     });
   }
 
+  Widget _buildUnavailableCleanupBar(
+    BuildContext context,
+    int count,
+    bool cleaning,
+  ) {
+    final palette = DashboardPalette.of(context);
+    final accent = palette.warningAccent;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        _horizontalPadding,
+        8,
+        _horizontalPadding,
+        0,
+      ),
+      child: Material(
+        color: accent.withValues(alpha: palette.isDark ? 0.16 : 0.10),
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
+          child: Row(
+            children: [
+              Icon(
+                CupertinoIcons.exclamationmark_triangle_fill,
+                size: 18,
+                color: accent,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '发现 $count 个不可用插件',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: palette.titleText,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: cleaning ? null : () => _cleanUnavailable(count),
+                child: cleaning
+                    ? SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: accent,
+                        ),
+                      )
+                    : Text(
+                        '一键清理',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: accent,
+                        ),
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _cleanUnavailable(int count) {
+    ToastUtil.warning(
+      '将卸载 $count 个不可用插件，此操作不可撤销。',
+      title: '一键清理',
+      onConfirm: () {
+        controller.uninstallUnavailablePlugins().then((result) {
+          if (result.fail == 0) {
+            ToastUtil.success('已清理 ${result.ok} 个不可用插件');
+          } else {
+            ToastUtil.error('清理完成：成功 ${result.ok}，失败 ${result.fail}');
+          }
+        }).catchError((error) {
+          ToastUtil.error('清理失败: $error');
+        });
+      },
+    );
+  }
+
   Widget _buildCard(BuildContext context, PluginItem item) {
+    final availability = controller.availabilityOf(item.id);
     final iconUrl = item.pluginIcon != null && item.pluginIcon!.isNotEmpty
         ? ImageUtil.convertPluginIconUrl(item.pluginIcon!)
         : '';
@@ -374,6 +381,8 @@ class PluginPage extends GetView<PluginController> {
         }
       },
       child: PluginItemCard(
+        unavailable: availability.unavailable,
+        unavailableLabel: availability.label,
         onHandleTap: (type) {
           switch (type) {
             case PluginHandleType.web:
@@ -398,6 +407,9 @@ class PluginPage extends GetView<PluginController> {
               break;
             case PluginHandleType.uninstall:
               _uninstallPlugin(item);
+              break;
+            case PluginHandleType.manage:
+              showPluginManageSheet(context, item);
               break;
           }
         },

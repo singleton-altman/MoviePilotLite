@@ -21,6 +21,12 @@ bool? _boolFromJson(dynamic v) {
   };
 }
 
+String? _stringFromJson(dynamic v) {
+  if (v == null) return null;
+  if (v is String) return v;
+  return v.toString();
+}
+
 double? _doubleFromJson(dynamic v) {
   if (v == null) return null;
   if (v is num) return v.toDouble();
@@ -164,7 +170,8 @@ class SystemEnvData with _$SystemEnvData {
     @JsonKey(name: 'U115_APP_ID') String? u115AppId,
     @JsonKey(name: 'U115_AUTH_SERVER') String? u115AuthServer,
     @JsonKey(name: 'ALIPAN_APP_ID') String? alipanAppId,
-    @JsonKey(name: 'MOVIEPILOT_AUTO_UPDATE') String? moviepilotAutoUpdate,
+    @JsonKey(name: 'MOVIEPILOT_AUTO_UPDATE', fromJson: _stringFromJson)
+    String? moviepilotAutoUpdate,
     @JsonKey(name: 'AUTO_UPDATE_RESOURCE', fromJson: _boolFromJson)
     bool? autoUpdateResource,
     @JsonKey(name: 'RMT_MEDIAEXT', fromJson: _stringListFromJson)

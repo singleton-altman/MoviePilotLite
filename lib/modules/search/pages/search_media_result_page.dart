@@ -46,10 +46,9 @@ class SearchMediaResultPage extends GetView<SearchMediaController> {
         return const SizedBox.shrink();
       }
 
+      final color = _getProgressColor(controller.progressStatus.value);
       return Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          // 线性进度条
           TweenAnimationBuilder<double>(
             tween: Tween<double>(
               begin: 0,
@@ -61,76 +60,51 @@ class SearchMediaResultPage extends GetView<SearchMediaController> {
               return LinearProgressIndicator(
                 value: value > 0 ? value : null,
                 backgroundColor: Colors.grey.withValues(alpha: 0.2),
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  _getProgressColor(controller.progressStatus.value),
-                ),
+                valueColor: AlwaysStoppedAnimation<Color>(color),
                 minHeight: 3,
               );
             },
           ),
-          // 进度信息卡片
-          if (controller.progressMessage.value.isNotEmpty)
-            _buildProgressInfoCard(context),
-        ],
-      );
-    });
-  }
-
-  /// 构建进度信息卡片
-  Widget _buildProgressInfoCard(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 16,
-            height: 16,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                _getProgressColor(controller.progressStatus.value),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Expanded(
+            child: Row(
               children: [
-                Text(
-                  controller.progressMessage.value,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(color),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
-                if (controller.progressSource.value.isNotEmpty)
-                  Text(
-                    controller.progressSource.value,
-                    style: TextStyle(fontSize: 11),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    controller.progressMessage.value,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  controller.formattedProgress,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          Text(
-            controller.formattedProgress,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
         ],
-      ),
-    );
+      );
+    });
   }
 
   /// 根据状态获取进度条颜色
@@ -155,8 +129,15 @@ class SearchMediaResultPage extends GetView<SearchMediaController> {
       final errorText = controller.errorText.value;
 
       final showSkeleton = isLoading && controller.items.isEmpty;
+      final showEmpty = errorText == null &&
+          !isLoading &&
+          !controller.isProgressActive.value &&
+          controller.visibleItems.isEmpty;
       return CustomScrollView(
         slivers: [
+          CupertinoSliverRefreshControl(
+            onRefresh: controller.performSearch,
+          ),
           if (immersive)
             _buildImmersiveHeader(context)
           else
@@ -175,6 +156,11 @@ class SearchMediaResultPage extends GetView<SearchMediaController> {
           if (errorText != null)
             SliverToBoxAdapter(
               child: _buildErrorState(context, errorText, immersive: immersive),
+            )
+          else if (showEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: _buildEmptyState(context, immersive: immersive),
             )
           else
             SliverPadding(
@@ -195,13 +181,14 @@ class SearchMediaResultPage extends GetView<SearchMediaController> {
               ),
             ),
 
-          SliverToBoxAdapter(
-            child: SizedBox(
-              height: immersive
-                  ? _floatingBarHeight + 32
-                  : _bottomSpacer(context),
+          if (!showEmpty)
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: immersive
+                    ? _floatingBarHeight + 32
+                    : _bottomSpacer(context),
+              ),
             ),
-          ),
         ],
       );
     });
@@ -646,12 +633,47 @@ class SearchMediaResultPage extends GetView<SearchMediaController> {
   }
 
   Widget _buildEmptyState(BuildContext context, {required bool immersive}) {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Text(
-        '暂无搜索结果',
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: immersive ? Colors.white70 : null,
+    final filteredOut = controller.items.isNotEmpty;
+    final textColor =
+        immersive ? Colors.white70 : Theme.of(context).colorScheme.onSurface;
+    final subColor = immersive
+        ? Colors.white54
+        : Theme.of(context).colorScheme.onSurfaceVariant;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              filteredOut
+                  ? Icons.filter_alt_off_outlined
+                  : Icons.search_off_rounded,
+              size: 40,
+              color: subColor.withOpacity(0.6),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              filteredOut ? '筛选后没有匹配的资源' : '没有搜索到相关资源',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: textColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              filteredOut ? '试试放宽或清空筛选条件' : '换个关键词,或调整站点范围后重新搜索',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: subColor,
+              ),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: controller.performSearch,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('重新搜索'),
+            ),
+          ],
         ),
       ),
     );

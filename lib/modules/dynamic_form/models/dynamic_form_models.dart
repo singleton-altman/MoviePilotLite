@@ -23,11 +23,16 @@ String _stringFromJson(Object? value) {
   return value.toString();
 }
 
+/// 宽容解析:部分插件不按 List[dict] 约定返回,单个 dict 视为单节点包成列表,
+/// 列表里的非 Map 条目跳过而不是让整个表单清空。
 List<FormNode> _contentFromJson(Object? value) {
-  if (value == null || value is! List) return const [];
+  if (value is Map) {
+    return [FormNode.fromJson(Map<String, dynamic>.from(value))];
+  }
+  if (value is! List) return const [];
   return value
-      .whereType<Map<String, dynamic>>()
-      .map(FormNode.fromJson)
+      .whereType<Map>()
+      .map((entry) => FormNode.fromJson(Map<String, dynamic>.from(entry)))
       .toList();
 }
 

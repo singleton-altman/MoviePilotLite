@@ -8,6 +8,7 @@ import 'package:moviepilot_mobile/modules/mediaserver/models/latest_media_model.
 import 'package:moviepilot_mobile/modules/mediaserver/models/library_model.dart';
 import 'package:moviepilot_mobile/modules/mediaserver/models/mediaserver_model.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
+import 'package:moviepilot_mobile/services/api_auth_failure.dart';
 
 /// 媒体服务器控制器
 class MediaServerController extends GetxController {
@@ -139,9 +140,11 @@ class MediaServerController extends GetxController {
         } else {
           talker.warning('媒体服务器数据加载失败: ${data['message']}');
         }
-      } else if (response.statusCode == 401) {
-        talker.error('媒体服务器数据加载失败: 未授权，请重新登录');
-        // 这里可以添加重定向到登录页面的逻辑
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
+        talker.error(
+          '媒体服务器数据加载失败: '
+          '${ApiAuthFailure.from(response.statusCode, response.data).message}',
+        );
       } else {
         talker.warning('媒体服务器数据加载失败，状态码: ${response.statusCode}');
       }
@@ -286,8 +289,11 @@ class MediaServerController extends GetxController {
           talker.warning('媒体服务器最新入库数据格式异常: ${data.runtimeType}');
           return null;
         }
-      } else if (response.statusCode == 401) {
-        talker.error('媒体服务器最新入库数据加载失败: 未授权，请重新登录');
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
+        talker.error(
+          '媒体服务器最新入库数据加载失败: '
+          '${ApiAuthFailure.from(response.statusCode, response.data).message}',
+        );
         return null;
       } else {
         talker.warning('媒体服务器最新入库数据加载失败，状态码: ${response.statusCode}');
@@ -393,6 +399,22 @@ class MediaServerController extends GetxController {
       return;
     }
     await loadLatestMediaList(enabledServers.first.name);
+  }
+
+  /// 刷新正在播放的媒体
+  Future<void> refreshPlayingMedia() async {
+    final enabledServers = mediaServers.value.where((server) => server.enabled);
+    if (mediaServers.value.isEmpty) {
+      talker.warning('没有可用的媒体服务器');
+      playingMedia.value = null;
+      return;
+    }
+    if (enabledServers.isEmpty) {
+      talker.warning('没有启用的媒体服务器');
+      playingMedia.value = null;
+      return;
+    }
+    await loadPlayingMedia(enabledServers.first.name);
   }
 
   /// 加载正在播放的媒体

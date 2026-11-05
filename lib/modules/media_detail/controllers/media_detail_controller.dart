@@ -16,6 +16,8 @@ import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_models.dart
 import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/hive_service.dart';
+import 'package:moviepilot_mobile/services/server_api_version_service.dart';
+import 'package:moviepilot_mobile/utils/media_identity_util.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
 
 class MediaDetailController extends GetxController {
@@ -29,6 +31,8 @@ class MediaDetailController extends GetxController {
   final _hiveService = Get.find<HiveService>();
   final _mediaDetailService = Get.find<MediaDetailService>();
   final _subscribeService = Get.put(SubscribeService());
+  ServerApiVersionService get _serverApiVersionService =>
+      Get.find<ServerApiVersionService>();
   final subscribeLoadingState = false.obs;
   final isLoading = false.obs;
   final mediaDetail = Rxn<MediaDetail>();
@@ -152,7 +156,7 @@ class MediaDetailController extends GetxController {
       final decoded = jsonDecode(cache.payload);
       if (decoded is Map) {
         mediaDetail.value = MediaDetail.fromJson(
-          Map<String, dynamic>.from(decoded),
+          normalizeMediaJson(Map<String, dynamic>.from(decoded)),
         );
       }
     } catch (e, st) {
@@ -165,7 +169,7 @@ class MediaDetailController extends GetxController {
     final cacheKey = _cacheKey(_args);
     if (cacheKey.isEmpty) return;
     try {
-      final payload = jsonEncode(detail.toJson());
+      final payload = jsonEncode(normalizeMediaJson(detail.toJson()));
       final server = (_appService.baseUrl ?? _apiClient.baseUrl ?? '').trim();
       final cache = MediaDetailCache(
         cacheKey,
@@ -222,13 +226,26 @@ class MediaDetailController extends GetxController {
     statusCode.value = null;
 
     try {
-      final path = _buildPath(_args);
-      final query = _buildQuery(_args);
-      final response = await _apiClient.get<dynamic>(
-        path,
-        queryParameters: query,
+      final identity = MediaIdentity.parse(_normalizePath(_args.path));
+      var useV3 = identity != null && await _serverApiVersionService.isV3();
+      final requestBaseUrl = _apiClient.baseUrl;
+      var response = await _apiClient.get<dynamic>(
+        _buildPath(_args, useV3: useV3),
+        queryParameters: _buildQuery(_args, useV3: useV3),
         timeout: 120,
       );
+      if (response.statusCode == 422 && identity != null) {
+        useV3 = !useV3;
+        response = await _apiClient.get<dynamic>(
+          _buildPath(_args, useV3: useV3),
+          queryParameters: _buildQuery(_args, useV3: useV3),
+          timeout: 120,
+        );
+        final retryStatus = response.statusCode ?? 0;
+        if (retryStatus >= 200 && retryStatus < 300) {
+          _serverApiVersionService.markV3(requestBaseUrl, useV3);
+        }
+      }
 
       statusCode.value = response.statusCode ?? 0;
       final detail = _parseResponse(response.data);
@@ -267,19 +284,34 @@ class MediaDetailController extends GetxController {
 
   Future<void> refreshDetail() => fetchDetail();
 
-  String _buildPath(MediaDetailArgs args) {
+  String _buildPath(MediaDetailArgs args, {bool useV3 = false}) {
     final path = _normalizePath(args.path);
     if (path.isEmpty) return '/api/v1/media/';
+    if (useV3) {
+      final identity = MediaIdentity.parse(path);
+      if (identity != null) return '/api/v1/media/${identity.id}';
+    }
     return '/api/v1/media/$path';
   }
 
-  Map<String, dynamic> _buildQuery(MediaDetailArgs args) {
+  Map<String, dynamic> _buildQuery(
+    MediaDetailArgs args, {
+    bool useV3 = false,
+  }) {
     final query = <String, dynamic>{};
     if (args.title.trim().isNotEmpty) {
       query['title'] = args.title.trim();
     }
     if (args.year?.trim().isNotEmpty == true) {
       query['year'] = args.year!.trim();
+    }
+    if (useV3) {
+      final identity = MediaIdentity.parse(_normalizePath(args.path));
+      if (identity != null) query['media_source'] = identity.source;
+      query['type_name'] = args.typeName?.trim().isNotEmpty == true
+          ? args.typeName!.trim()
+          : '未知';
+      return query;
     }
     if (args.typeName?.trim().isNotEmpty == true) {
       query['type_name'] = args.typeName!.trim();
@@ -324,7 +356,9 @@ class MediaDetailController extends GetxController {
     try {
       if (data is Map) {
         try {
-          final detail = MediaDetail.fromJson(Map<String, dynamic>.from(data));
+          final detail = MediaDetail.fromJson(
+            normalizeMediaJson(Map<String, dynamic>.from(data)),
+          );
           return detail;
         } catch (error) {
           _log.handle(error, message: '解析媒体详情失败');
@@ -336,7 +370,9 @@ class MediaDetailController extends GetxController {
         if (!_looksLikeJson(trimmed)) return null;
         final decoded = jsonDecode(trimmed);
         if (decoded is Map) {
-          return MediaDetail.fromJson(Map<String, dynamic>.from(decoded));
+          return MediaDetail.fromJson(
+            normalizeMediaJson(Map<String, dynamic>.from(decoded)),
+          );
         }
       }
     } catch (_) {
@@ -361,7 +397,9 @@ class MediaDetailController extends GetxController {
       return;
     }
     try {
-      final payload = detail.toJson();
+      final payload = await _serverApiVersionService.isV3()
+          ? sanitizeMediaIdentityPayload(detail.toJson())
+          : detail.toJson();
       final list = await _mediaDetailService.getMediaNotExists(payload);
       mediaNotExists.assignAll(list);
     } catch (e) {
@@ -540,7 +578,9 @@ class MediaDetailController extends GetxController {
     return list
         .whereType<Map>()
         .map(
-          (item) => RecommendApiItem.fromJson(Map<String, dynamic>.from(item)),
+          (item) => RecommendApiItem.fromJson(
+            normalizeMediaJson(Map<String, dynamic>.from(item)),
+          ),
         )
         .toList();
   }
@@ -765,6 +805,13 @@ class MediaDetailController extends GetxController {
         final inferred = _mediaTypeName(detail);
         if (inferred.isNotEmpty) query['mtype'] = inferred;
       }
+      if (await _serverApiVersionService.isV3()) {
+        final identity = _identityForDetail(detail);
+        if (identity != null) {
+          query['media_source'] = identity.source;
+          query['media_id'] = identity.id;
+        }
+      }
       final response = await _apiClient.get<dynamic>(
         _mediaserverExistsPath,
         token: token,
@@ -781,6 +828,16 @@ class MediaDetailController extends GetxController {
       _log.handle(e, stackTrace: st, message: '媒体入库状态查询失败');
       mediaserverInLibrary.value = false;
     }
+  }
+
+  MediaIdentity? _identityForDetail(MediaDetail detail) {
+    final source = normalizeMediaSource(detail.source);
+    final mediaId = detail.media_id?.trim();
+    if (source != null && mediaId != null && mediaId.isNotEmpty) {
+      final identity = MediaIdentity.parse('$source:$mediaId');
+      if (identity != null) return identity;
+    }
+    return MediaIdentity.parse(_args.path);
   }
 
   String _existsTitleForDetail(MediaDetail detail) {

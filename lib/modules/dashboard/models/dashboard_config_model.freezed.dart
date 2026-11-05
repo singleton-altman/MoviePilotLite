@@ -420,6 +420,10 @@ mixin _$DashboardConfigValue {
   bool get library => throw _privateConstructorUsedError;
   bool get playing => throw _privateConstructorUsedError;
   bool get latest => throw _privateConstructorUsedError;
+  bool get mediaRecommend => throw _privateConstructorUsedError;
+  bool get recentImports => throw _privateConstructorUsedError;
+  bool get quickActions => throw _privateConstructorUsedError;
+  bool get systemInfo => throw _privateConstructorUsedError;
 
   /// Serializes this DashboardConfigValue to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -450,6 +454,10 @@ abstract class $DashboardConfigValueCopyWith<$Res> {
     bool library,
     bool playing,
     bool latest,
+    bool mediaRecommend,
+    bool recentImports,
+    bool quickActions,
+    bool systemInfo,
   });
 }
 
@@ -482,6 +490,10 @@ class _$DashboardConfigValueCopyWithImpl<
     Object? library = null,
     Object? playing = null,
     Object? latest = null,
+    Object? mediaRecommend = null,
+    Object? recentImports = null,
+    Object? quickActions = null,
+    Object? systemInfo = null,
   }) {
     return _then(
       _value.copyWith(
@@ -529,6 +541,22 @@ class _$DashboardConfigValueCopyWithImpl<
                 ? _value.latest
                 : latest // ignore: cast_nullable_to_non_nullable
                       as bool,
+            mediaRecommend: null == mediaRecommend
+                ? _value.mediaRecommend
+                : mediaRecommend // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            recentImports: null == recentImports
+                ? _value.recentImports
+                : recentImports // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            quickActions: null == quickActions
+                ? _value.quickActions
+                : quickActions // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            systemInfo: null == systemInfo
+                ? _value.systemInfo
+                : systemInfo // ignore: cast_nullable_to_non_nullable
+                      as bool,
           )
           as $Val,
     );
@@ -556,6 +584,10 @@ abstract class _$$DashboardConfigValueImplCopyWith<$Res>
     bool library,
     bool playing,
     bool latest,
+    bool mediaRecommend,
+    bool recentImports,
+    bool quickActions,
+    bool systemInfo,
   });
 }
 
@@ -584,6 +616,10 @@ class __$$DashboardConfigValueImplCopyWithImpl<$Res>
     Object? library = null,
     Object? playing = null,
     Object? latest = null,
+    Object? mediaRecommend = null,
+    Object? recentImports = null,
+    Object? quickActions = null,
+    Object? systemInfo = null,
   }) {
     return _then(
       _$DashboardConfigValueImpl(
@@ -631,6 +667,22 @@ class __$$DashboardConfigValueImplCopyWithImpl<$Res>
             ? _value.latest
             : latest // ignore: cast_nullable_to_non_nullable
                   as bool,
+        mediaRecommend: null == mediaRecommend
+            ? _value.mediaRecommend
+            : mediaRecommend // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        recentImports: null == recentImports
+            ? _value.recentImports
+            : recentImports // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        quickActions: null == quickActions
+            ? _value.quickActions
+            : quickActions // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        systemInfo: null == systemInfo
+            ? _value.systemInfo
+            : systemInfo // ignore: cast_nullable_to_non_nullable
+                  as bool,
       ),
     );
   }
@@ -651,6 +703,10 @@ class _$DashboardConfigValueImpl implements _DashboardConfigValue {
     required this.library,
     required this.playing,
     required this.latest,
+    this.mediaRecommend = true,
+    this.recentImports = true,
+    this.quickActions = true,
+    this.systemInfo = true,
   });
 
   factory _$DashboardConfigValueImpl.fromJson(Map<String, dynamic> json) =>
@@ -678,10 +734,22 @@ class _$DashboardConfigValueImpl implements _DashboardConfigValue {
   final bool playing;
   @override
   final bool latest;
+  @override
+  @JsonKey()
+  final bool mediaRecommend;
+  @override
+  @JsonKey()
+  final bool recentImports;
+  @override
+  @JsonKey()
+  final bool quickActions;
+  @override
+  @JsonKey()
+  final bool systemInfo;
 
   @override
   String toString() {
-    return 'DashboardConfigValue(mediaStatistic: $mediaStatistic, scheduler: $scheduler, speed: $speed, storage: $storage, weeklyOverview: $weeklyOverview, cpu: $cpu, memory: $memory, network: $network, library: $library, playing: $playing, latest: $latest)';
+    return 'DashboardConfigValue(mediaStatistic: $mediaStatistic, scheduler: $scheduler, speed: $speed, storage: $storage, weeklyOverview: $weeklyOverview, cpu: $cpu, memory: $memory, network: $network, library: $library, playing: $playing, latest: $latest, mediaRecommend: $mediaRecommend, recentImports: $recentImports, quickActions: $quickActions, systemInfo: $systemInfo)';
   }
 
   @override
@@ -702,7 +770,15 @@ class _$DashboardConfigValueImpl implements _DashboardConfigValue {
             (identical(other.network, network) || other.network == network) &&
             (identical(other.library, library) || other.library == library) &&
             (identical(other.playing, playing) || other.playing == playing) &&
-            (identical(other.latest, latest) || other.latest == latest));
+            (identical(other.latest, latest) || other.latest == latest) &&
+            (identical(other.mediaRecommend, mediaRecommend) ||
+                other.mediaRecommend == mediaRecommend) &&
+            (identical(other.recentImports, recentImports) ||
+                other.recentImports == recentImports) &&
+            (identical(other.quickActions, quickActions) ||
+                other.quickActions == quickActions) &&
+            (identical(other.systemInfo, systemInfo) ||
+                other.systemInfo == systemInfo));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -720,6 +796,10 @@ class _$DashboardConfigValueImpl implements _DashboardConfigValue {
     library,
     playing,
     latest,
+    mediaRecommend,
+    recentImports,
+    quickActions,
+    systemInfo,
   );
 
   /// Create a copy of DashboardConfigValue
@@ -753,6 +833,10 @@ abstract class _DashboardConfigValue implements DashboardConfigValue {
     required final bool library,
     required final bool playing,
     required final bool latest,
+    final bool mediaRecommend,
+    final bool recentImports,
+    final bool quickActions,
+    final bool systemInfo,
   }) = _$DashboardConfigValueImpl;
 
   factory _DashboardConfigValue.fromJson(Map<String, dynamic> json) =
@@ -780,6 +864,14 @@ abstract class _DashboardConfigValue implements DashboardConfigValue {
   bool get playing;
   @override
   bool get latest;
+  @override
+  bool get mediaRecommend;
+  @override
+  bool get recentImports;
+  @override
+  bool get quickActions;
+  @override
+  bool get systemInfo;
 
   /// Create a copy of DashboardConfigValue
   /// with the given fields replaced by the non-null parameter values.

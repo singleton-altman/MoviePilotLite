@@ -2,6 +2,7 @@ enum SearchSuggestionCategory {
   mediaTitle,
   mediaCollection,
   actor,
+  music,
   share,
   history,
   subscription,

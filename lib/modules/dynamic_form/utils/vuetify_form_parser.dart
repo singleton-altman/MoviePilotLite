@@ -106,8 +106,24 @@ class VuetifyFormParser {
     return model[key] ?? fallback;
   }
 
-  static String? fieldName(FormNode node) =>
-      node.props?['model']?.toString() ?? node.props?['name']?.toString();
+  /// 字段绑定键:官方 FormRender 兼容 model / v-model / modelvalue(任意大小写)
+  /// 三种主值绑定写法,生态插件均有使用,这里保持同等兼容面。
+  static String? fieldName(FormNode node) {
+    final props = node.props;
+    if (props == null) return null;
+    String? pick(Object? raw) {
+      final value = raw?.toString().trim();
+      return (value == null || value.isEmpty) ? null : value;
+    }
+
+    final model = pick(props['model']);
+    if (model != null) return model;
+    final modelValue = pick(
+      props['modelvalue'] ?? props['modelValue'] ?? props['v-model'],
+    );
+    if (modelValue != null) return modelValue;
+    return pick(props['name']);
+  }
 
   static String fieldLabel(FormNode node) =>
       node.props?['label']?.toString().trim() ?? '';
@@ -218,13 +234,23 @@ class VuetifyFormParser {
     if (itemsRaw is! List) return null;
     final items = <VuetifySelectOptionSpec>[];
     for (final item in itemsRaw) {
-      if (item is Map<String, dynamic>) {
-        final title = item['title']?.toString() ?? '';
-        if (title.isNotEmpty) {
-          items.add(
-            VuetifySelectOptionSpec(title: title, value: item['value']),
-          );
+      if (item is Map) {
+        final map = Map<String, dynamic>.from(item);
+        final value = map['value'] ?? map['type'] ?? map['title'];
+        final title =
+            (map['title'] ?? map['text'] ?? value)?.toString().trim() ?? '';
+        if (title.isEmpty &&
+            (value == null || value.toString().trim().isEmpty)) {
+          continue;
         }
+        items.add(
+          VuetifySelectOptionSpec(
+            title: title.isNotEmpty ? title : value.toString(),
+            value: value ?? title,
+          ),
+        );
+      } else if (item is String && item.trim().isNotEmpty) {
+        items.add(VuetifySelectOptionSpec(title: item, value: item));
       }
     }
     if (items.isEmpty) return null;

@@ -31,7 +31,30 @@ class PluginItem with _$PluginItem {
   }) = _PluginItem;
 
   factory PluginItem.fromJson(Map<String, dynamic> json) =>
-      _$PluginItemFromJson(json);
+      _$PluginItemFromJson(_normalizePluginJson(json));
+}
+
+Map<String, dynamic> _normalizePluginJson(Map<String, dynamic> json) {
+  final id = json['id']?.toString() ?? '';
+  final name = json['plugin_name']?.toString().trim();
+  final history = json['history'];
+  return {
+    ...json,
+    'id': id,
+    'plugin_name': (name == null || name.isEmpty) ? id : name,
+    'history': history is Map
+        ? Map<String, dynamic>.from(history)
+        : <String, dynamic>{},
+  };
+}
+
+List<dynamic> unwrapPluginList(dynamic raw) {
+  if (raw is List) return raw;
+  if (raw is Map) {
+    final data = raw['data'];
+    if (data is List) return data;
+  }
+  return const [];
 }
 
 int _intFromJson(Object? value) {
@@ -40,4 +63,63 @@ int _intFromJson(Object? value) {
   if (value is num) return value.toInt();
   if (value is String) return int.tryParse(value) ?? 0;
   return 0;
+}
+
+Map<String, int> parsePluginInstallCountMap(dynamic data) {
+  if (data is! Map) return {};
+  final result = <String, int>{};
+  for (final entry in data.entries) {
+    final key = entry.key?.toString().trim() ?? '';
+    if (key.isEmpty) continue;
+    result[key] = _intFromJson(entry.value);
+  }
+  return result;
+}
+
+int lookupPluginInstallCount(Map<String, int> counts, Object? id) {
+  final key = id?.toString().trim() ?? '';
+  if (key.isEmpty) return 0;
+  final direct = counts[key];
+  if (direct != null) return direct;
+  final lower = key.toLowerCase();
+  for (final entry in counts.entries) {
+    if (entry.key.toLowerCase() == lower) return entry.value;
+  }
+  return 0;
+}
+
+class PluginAvailability {
+  const PluginAvailability({
+    this.unavailable = false,
+    this.label = '不可用',
+  });
+
+  final bool unavailable;
+  final String label;
+}
+
+PluginAvailability pluginAvailabilityFromJson(Map<String, dynamic> json) {
+  final compatible = json['system_version_compatible'] != false;
+  if (!compatible) {
+    final message = json['system_version_message']?.toString().trim();
+    return PluginAvailability(
+      unavailable: true,
+      label: (message != null && message.isNotEmpty) ? message : '不兼容',
+    );
+  }
+  final binding = json['source_binding_status']?.toString();
+  switch (binding) {
+    case 'binding_required':
+    case 'unbound':
+    case 'missing':
+      return const PluginAvailability(unavailable: true, label: '不可用');
+  }
+  final runtime = json['runtime_status']?.toString();
+  switch (runtime) {
+    case 'error':
+    case 'failed':
+    case 'crashed':
+      return const PluginAvailability(unavailable: true, label: '异常');
+  }
+  return const PluginAvailability();
 }

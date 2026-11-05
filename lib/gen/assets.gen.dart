@@ -63,6 +63,10 @@ class $AssetsImagesLogosGen {
   AssetGenImage get americanBank =>
       const AssetGenImage('assets/images/logos/american-bank.png');
 
+  /// File path: assets/images/logos/anilist.svg
+  SvgGenImage get anilist =>
+      const SvgGenImage('assets/images/logos/anilist.svg');
+
   /// File path: assets/images/logos/aviato.png
   AssetGenImage get aviato =>
       const AssetGenImage('assets/images/logos/aviato.png');
@@ -226,6 +230,7 @@ class $AssetsImagesLogosGen {
   /// List of all assets
   List<dynamic> get values => [
     americanBank,
+    anilist,
     aviato,
     aws,
     bangumi,

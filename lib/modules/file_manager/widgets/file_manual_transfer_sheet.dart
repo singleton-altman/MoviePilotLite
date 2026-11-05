@@ -7,6 +7,8 @@ import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:moviepilot_mobile/modules/file_manager/controllers/file_manager_browser_controller.dart';
 import 'package:moviepilot_mobile/modules/directory/controllers/directory_list_controller.dart';
 import 'package:moviepilot_mobile/modules/media_organize/models/media_organize_models.dart';
+import 'package:moviepilot_mobile/modules/media_organize/services/transfer_assist_service.dart';
+import 'package:moviepilot_mobile/services/app_service.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/sse_client.dart';
 import 'package:moviepilot_mobile/theme/section.dart';
@@ -93,7 +95,6 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
   static const _progressEndpoint = '/api/v1/system/progress/filetransfer';
   static const double _fieldHeight = 48;
   static const double _fieldRadius = 12;
-  static const double _segmentHeight = 40;
 
   final _apiClient = Get.find<ApiClient>();
   final _log = Get.find<AppLog>();
@@ -116,12 +117,33 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
   bool _scrape = true;
   bool _libraryTypeFolder = true;
   bool _libraryCategoryFolder = true;
+  bool _showAdvancedOptions = false;
   bool _isSubmitting = false;
   double _progress = 0;
   String _progressMessage = '准备整理...';
   int _progressCurrent = 0;
   int _progressTotal = 0;
   String _progressSource = '';
+
+  late final TransferAssistService _assist =
+      Get.isRegistered<TransferAssistService>()
+      ? Get.find<TransferAssistService>()
+      : TransferAssistService();
+  bool get _canManage =>
+      Get.isRegistered<AppService>() && Get.find<AppService>().canManage;
+  Map<String, dynamic> get _sourcePayload => widget.file.toJson();
+  Map<String, dynamic>? _targetSuggestion;
+  Map<String, dynamic>? _episodeRecommendation;
+  bool _matchingTarget = false;
+  bool _recommendingEpisode = false;
+  bool _loadingHistory = false;
+  bool _confirmingTransfer = false;
+  int? _historyCount;
+  bool _hasSuccessfulHistory = false;
+  String? _targetError;
+  String? _episodeError;
+  String? _historyError;
+  int _targetRequest = 0;
 
   SseClient? _sseClient;
   StreamSubscription<SseEvent>? _progressSubscription;
@@ -134,7 +156,7 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
         !_directoryController.isLoading.value) {
       _directoryController.loadDirectories();
     }
-    _syncTargetPathWithSuggestions();
+    if (_canManage) unawaited(_loadManualHistory());
   }
 
   DirectoryListController _resolveDirectoryController() {
@@ -202,28 +224,146 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
         )
         .map((dir) => dir.libraryPath.trim())
         .toList();
-    if (exactMatches.isNotEmpty) {
-      return exactMatches.toSet().toList();
-    }
-    return directories
-        .map((dir) => dir.libraryPath.trim())
-        .where((path) => path.isNotEmpty)
-        .toSet()
-        .toList();
+    return exactMatches.toSet().toList();
   }
 
-  void _syncTargetPathWithSuggestions() {
-    final options = _targetPathOptions;
-    if (options.isEmpty) {
+  Future<void> _loadManualHistory() async {
+    if (_loadingHistory || !_canManage) return;
+    setState(() {
+      _loadingHistory = true;
+      _historyError = null;
+    });
+    final result = await _assist.fetchManualHistory(_sourcePayload);
+    if (!mounted) return;
+    setState(() {
+      _loadingHistory = false;
+      _historyCount = result.historyCount;
+      _hasSuccessfulHistory = result.reorganize;
+      _historyError = result.message;
+    });
+  }
+
+  Future<void> _matchTarget() async {
+    if (_matchingTarget || !_canManage) return;
+    final request = ++_targetRequest;
+    final storage = _targetStorage;
+    setState(() {
+      _matchingTarget = true;
+      _targetError = null;
+      _targetSuggestion = null;
+    });
+    final result = await _assist.matchTargetPath(
+      fileitem: _sourcePayload,
+      targetStorage: storage,
+    );
+    if (!mounted || request != _targetRequest || storage != _targetStorage) {
       return;
     }
-    final current = _targetPathController.text.trim();
-    if (current.isEmpty || !options.contains(current)) {
-      _targetPathController.text = options.first;
+    setState(() {
+      _matchingTarget = false;
+      _targetSuggestion = result.target;
+      _targetError =
+          result.ok &&
+              (result.target?['target_path'] as String? ?? '').trim().isEmpty
+          ? '没有匹配的目标目录，请手动选择或输入'
+          : result.message;
+    });
+  }
+
+  Future<void> _recommendEpisode() async {
+    if (_recommendingEpisode || !_canManage) return;
+    setState(() {
+      _recommendingEpisode = true;
+      _episodeError = null;
+      _episodeRecommendation = null;
+    });
+    final result = await _assist.recommendEpisodeFormat(_sourcePayload);
+    if (!mounted) return;
+    setState(() {
+      _recommendingEpisode = false;
+      _episodeRecommendation = result.recommendation;
+      _episodeError = result.message;
+    });
+  }
+
+  Future<bool> _confirmReplacement(String description) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('采用建议'),
+            content: Text(description),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('采用'),
+              ),
+            ],
+          ),
+        ) ==
+        true;
+  }
+
+  Future<void> _applyTargetSuggestion() async {
+    final suggestion = _targetSuggestion;
+    if (suggestion == null || _isSubmitting) return;
+    final storage = suggestion['target_storage'] as String?;
+    final path = suggestion['target_path'] as String?;
+    if (storage == null || path == null || path.trim().isEmpty) return;
+    if (widget.availableStorages.isNotEmpty &&
+        !widget.availableStorages.any((item) => item.type == storage)) {
+      setState(() => _targetError = '建议的存储不可用，请手动选择目标');
+      return;
     }
+    final request = _targetRequest;
+    final confirmed = await _confirmReplacement(
+      '将替换目标存储、路径、整理方式及分类/刮削开关。其他输入保持不变。\n\n$storage · $path',
+    );
+    if (!confirmed || !mounted || _isSubmitting || request != _targetRequest) {
+      return;
+    }
+    setState(() {
+      _targetStorage = storage;
+      _targetPathController.text = path;
+      final type = suggestion['transfer_type'];
+      if (type == null || type == '') {
+        _transferType = 'auto';
+      } else if (['auto', 'copy', 'move', 'softlink', 'link'].contains(type)) {
+        _transferType = type as String;
+      }
+      _scrape = suggestion['scrape'] as bool? ?? _scrape;
+      _libraryTypeFolder =
+          suggestion['library_type_folder'] as bool? ?? _libraryTypeFolder;
+      _libraryCategoryFolder =
+          suggestion['library_category_folder'] as bool? ??
+          _libraryCategoryFolder;
+      _targetSuggestion = null;
+    });
+  }
+
+  Future<void> _applyEpisodeRecommendation() async {
+    final format = _episodeRecommendation?['episode_format'] as String?;
+    if (format == null || _isSubmitting) return;
+    if (_episodeFormatController.text.isNotEmpty &&
+        !await _confirmReplacement('将替换当前集数定位模板；季、剧集组和偏移保持不变。')) {
+      return;
+    }
+    if (!mounted || _isSubmitting) return;
+    setState(() {
+      _episodeFormatController.text = format;
+      _episodeRecommendation = null;
+    });
   }
 
   Future<void> _submit() async {
+    if (_isSubmitting || _confirmingTransfer) return;
+    if (!_canManage) {
+      ToastUtil.error('当前帐号无文件整理权限');
+      return;
+    }
     if (_targetStorage.trim().isEmpty) {
       ToastUtil.info('请选择目标存储');
       return;
@@ -233,37 +373,74 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
       return;
     }
 
-    setState(() => _isSubmitting = true);
-    await _startProgressTracking();
-    final result = await widget.submitTransfer(
-      mode: _modeKey,
-      targetStorage: _targetStorage,
-      transferType: _transferType,
-      targetPath: _targetPathController.text,
-      scrape: _scrape,
-      libraryTypeFolder: _libraryTypeFolder,
-      libraryCategoryFolder: _libraryCategoryFolder,
-      tmdbId: _tmdbIdController.text,
-      part: _partController.text,
-      minFileSize: _minFileSizeController.text,
-      episodeGroup: _episodeGroupController.text,
-      season: _seasonController.text,
-      episodeFormat: _episodeFormatController.text,
-      episodeOffset: _episodeOffsetController.text,
+    setState(() => _confirmingTransfer = true);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('确认文件整理'),
+        content: Text(
+          '这将执行真实文件整理，不是预览。根据整理方式，可能复制、移动或重命名文件。\n\n'
+          '源：${widget.file.path ?? widget.file.name ?? '未记录'}\n'
+          '目标：$_targetStorage · ${_targetPathController.text}\n\n'
+          '${_hasSuccessfulHistory
+              ? '已命中 ${_historyCount ?? 0} 条成功历史；本操作不会自动启用强制重新整理。'
+              : _historyCount == null
+              ? '成功历史尚未确认，无法排除重复整理。'
+              : '请核对目标和整理方式后继续。'}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('确认整理'),
+          ),
+        ],
+      ),
     );
-    await _stopProgressTracking();
     if (!mounted) return;
-    setState(() => _isSubmitting = false);
-    final message = result.message.trim();
-    if (result.success) {
-      ToastUtil.success(message.isNotEmpty ? message : '整理任务已提交');
-      Navigator.of(context).pop();
-    } else {
-      if (message.isNotEmpty) {
-        ToastUtil.error(message);
-      } else {
-        ToastUtil.error('整理失败');
+    setState(() => _confirmingTransfer = false);
+    if (confirmed != true || !_canManage) return;
+    setState(() => _isSubmitting = true);
+    try {
+      try {
+        await _startProgressTracking();
+      } catch (e, st) {
+        _log.handle(e, stackTrace: st, message: '连接整理进度失败');
       }
+      if (!mounted) return;
+      final result = await widget.submitTransfer(
+        mode: _modeKey,
+        targetStorage: _targetStorage,
+        transferType: _transferType,
+        targetPath: _targetPathController.text,
+        scrape: _scrape,
+        libraryTypeFolder: _libraryTypeFolder,
+        libraryCategoryFolder: _libraryCategoryFolder,
+        tmdbId: _tmdbIdController.text,
+        part: _partController.text,
+        minFileSize: _minFileSizeController.text,
+        episodeGroup: _episodeGroupController.text,
+        season: _seasonController.text,
+        episodeFormat: _episodeFormatController.text,
+        episodeOffset: _episodeOffsetController.text,
+      );
+      if (!mounted) return;
+      final message = result.message.trim();
+      if (result.success) {
+        ToastUtil.success(message.isNotEmpty ? message : '整理任务已提交');
+        Navigator.of(context).pop();
+      } else {
+        ToastUtil.error(message.isNotEmpty ? message : '整理失败');
+      }
+    } catch (e, st) {
+      _log.handle(e, stackTrace: st, message: '提交文件整理失败');
+      if (mounted) ToastUtil.error('提交失败，请检查服务端任务状态后再重试');
+    } finally {
+      await _stopProgressTracking();
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -281,7 +458,14 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
         ),
         child: Column(
           children: [
-            _buildCompactForm(context),
+            AbsorbPointer(
+              absorbing: _isSubmitting || _confirmingTransfer,
+              child: _buildCompactForm(context),
+            ),
+            if (_canManage) ...[
+              const SizedBox(height: 16),
+              _buildHistorySection(),
+            ],
             const SizedBox(height: 16),
             _buildActionSection(context),
           ],
@@ -291,6 +475,8 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
   }
 
   Widget _buildCompactForm(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final displayName = widget.file.name?.trim().isNotEmpty == true
         ? widget.file.name!.trim()
         : (widget.file.basename ?? '未命名文件');
@@ -298,168 +484,377 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            displayName,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: scheme.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  CupertinoIcons.doc_text,
+                  size: 18,
+                  color: scheme.primary,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      displayName,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: scheme.onSurface,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '确认类型、目标位置和整理方式',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            '统一填写目标信息后即可发起整理',
-            style: TextStyle(
-              fontSize: 12,
-              color: CupertinoColors.secondaryLabel.resolveFrom(context),
-            ),
-          ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 18),
           _buildFieldLabel('媒体类型'),
           const SizedBox(height: 8),
           _buildSegmentContainer(
+            context: context,
             child: CupertinoSlidingSegmentedControl<FileManualTransferMode>(
               groupValue: _mode,
               onValueChanged: _onModeChanged,
-              children: const {
-                FileManualTransferMode.auto: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  child: Text('自动'),
+              backgroundColor: Colors.transparent,
+              thumbColor: _segmentThumbColor(context),
+              children: {
+                FileManualTransferMode.auto: _buildSegmentText(
+                  context,
+                  '自动',
+                  _mode == FileManualTransferMode.auto,
                 ),
-                FileManualTransferMode.movie: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  child: Text('电影'),
+                FileManualTransferMode.movie: _buildSegmentText(
+                  context,
+                  '电影',
+                  _mode == FileManualTransferMode.movie,
                 ),
-                FileManualTransferMode.tv: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  child: Text('电视剧'),
+                FileManualTransferMode.tv: _buildSegmentText(
+                  context,
+                  '电视剧',
+                  _mode == FileManualTransferMode.tv,
                 ),
               },
             ),
           ),
+          const SizedBox(height: 16),
+          _buildStorageField(context),
           const SizedBox(height: 14),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(flex: 4, child: _buildStorageField(context)),
-              const SizedBox(width: 10),
-              Expanded(flex: 6, child: _buildTargetPathField(context)),
-            ],
-          ),
-          const SizedBox(height: 14),
+          _buildTargetPathField(context),
           _buildTargetPathStatus(),
+          if (_canManage) _buildTargetAssistance(),
           _buildFieldLabel('整理方式'),
           const SizedBox(height: 8),
           _buildSegmentContainer(
+            context: context,
             child: CupertinoSlidingSegmentedControl<String>(
               groupValue: _transferType,
+              backgroundColor: Colors.transparent,
+              thumbColor: _segmentThumbColor(context),
               onValueChanged: (value) {
                 if (value == null) return;
                 setState(() => _transferType = value);
               },
-              children: const {
-                'auto': Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  child: Text('自动'),
+              children: {
+                'auto': _buildSegmentText(
+                  context,
+                  '自动',
+                  _transferType == 'auto',
                 ),
-                'copy': Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  child: Text('复制'),
+                'copy': _buildSegmentText(
+                  context,
+                  '复制',
+                  _transferType == 'copy',
                 ),
-                'move': Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  child: Text('移动'),
+                'move': _buildSegmentText(
+                  context,
+                  '移动',
+                  _transferType == 'move',
                 ),
-                'softlink': Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  child: Text('软链'),
+                'softlink': _buildSegmentText(
+                  context,
+                  '软链',
+                  _transferType == 'softlink',
                 ),
-                'hardlink': Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  child: Text('硬链'),
+                'link': _buildSegmentText(
+                  context,
+                  '硬链',
+                  _transferType == 'link',
                 ),
               },
             ),
           ),
-          const SizedBox(height: 14),
-          Row(
+          const SizedBox(height: 16),
+          _buildCompactToggles(context),
+          const SizedBox(height: 16),
+          _buildAdvancedToggle(context),
+          if (_showAdvancedOptions) ...[
+            const SizedBox(height: 14),
+            _buildAdvancedFields(context),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAdvancedToggle(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(_fieldRadius),
+        onTap: () {
+          setState(() => _showAdvancedOptions = !_showAdvancedOptions);
+        },
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+          decoration: BoxDecoration(
+            color: _controlSurface(context),
+            borderRadius: BorderRadius.circular(_fieldRadius),
+            border: Border.all(color: _outlineColor(context)),
+          ),
+          child: Row(
             children: [
-              Expanded(
-                child: _buildTextField(
-                  label: 'TheMovieDB',
-                  controller: _tmdbIdController,
-                  placeholder: 'TMDB ID',
-                  keyboardType: TextInputType.number,
-                ),
+              Icon(
+                CupertinoIcons.slider_horizontal_3,
+                size: 18,
+                color: scheme.onSurfaceVariant,
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _buildTextField(
-                  label: '指定 Part',
-                  controller: _partController,
-                  placeholder: '可选',
+                child: Text(
+                  '高级参数',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
+              ),
+              Text(
+                _showAdvancedOptions ? '收起' : '可选',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Icon(
+                _showAdvancedOptions
+                    ? CupertinoIcons.chevron_up
+                    : CupertinoIcons.chevron_down,
+                size: 15,
+                color: scheme.onSurfaceVariant,
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdvancedFields(BuildContext context) {
+    return Column(
+      children: [
+        _buildResponsivePair(
+          context,
+          first: _buildTextField(
+            label: 'TheMovieDB',
+            controller: _tmdbIdController,
+            placeholder: 'TMDB ID',
+            keyboardType: TextInputType.number,
+          ),
+          second: _buildTextField(
+            label: '指定 Part',
+            controller: _partController,
+            placeholder: '可选',
+          ),
+        ),
+        const SizedBox(height: 14),
+        _buildResponsivePair(
+          context,
+          first: _buildTextField(
+            label: '最小文件尺寸(MB)',
+            controller: _minFileSizeController,
+            placeholder: '0',
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          ),
+          second: _isTvMode
+              ? _buildTextField(
+                  label: 'Season',
+                  controller: _seasonController,
+                  placeholder: '季',
+                  keyboardType: TextInputType.number,
+                )
+              : null,
+        ),
+        if (_isTvMode) ...[
           const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _buildTextField(
-                  label: '最小文件尺寸(MB)',
-                  controller: _minFileSizeController,
-                  placeholder: '0',
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                ),
-              ),
-              if (_isTvMode) ...[
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _buildTextField(
-                    label: 'Season',
-                    controller: _seasonController,
-                    placeholder: '季',
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-              ] else
-                const Expanded(child: SizedBox()),
-            ],
-          ),
-          if (_isTvMode) ...[
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildTextField(
-                    label: '指定剧集组',
-                    controller: _episodeGroupController,
-                    placeholder: '可选',
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _buildTextField(
-                    label: '集数定位',
-                    controller: _episodeFormatController,
-                    placeholder: '可选',
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            _buildTextField(
-              label: '集数偏移',
-              controller: _episodeOffsetController,
+          _buildResponsivePair(
+            context,
+            first: _buildTextField(
+              label: '指定剧集组',
+              controller: _episodeGroupController,
               placeholder: '可选',
-              keyboardType: const TextInputType.numberWithOptions(signed: true),
+            ),
+            second: _buildTextField(
+              label: '集数定位',
+              controller: _episodeFormatController,
+              placeholder: '可选',
+            ),
+          ),
+          if (_canManage) _buildEpisodeAssistance(),
+          const SizedBox(height: 14),
+          _buildTextField(
+            label: '集数偏移',
+            controller: _episodeOffsetController,
+            placeholder: '可选',
+            keyboardType: const TextInputType.numberWithOptions(signed: true),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildTargetAssistance() {
+    final suggestion = _targetSuggestion;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextButton.icon(
+            onPressed: _matchingTarget ? null : _matchTarget,
+            icon: _matchingTarget
+                ? const CupertinoActivityIndicator()
+                : const Icon(Icons.auto_fix_high, size: 18),
+            label: Text(_matchingTarget ? '正在匹配目标...' : '匹配目标路径建议'),
+          ),
+          if (_targetError != null)
+            Text(
+              _targetError!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          if (suggestion != null &&
+              (suggestion['target_path'] as String? ?? '').isNotEmpty) ...[
+            Text(
+              '建议：${suggestion['target_storage']} · ${suggestion['target_path']}',
+            ),
+            TextButton(
+              onPressed: _applyTargetSuggestion,
+              child: const Text('采用目标配置'),
             ),
           ],
-          const SizedBox(height: 14),
-          _buildCompactToggles(),
         ],
       ),
+    );
+  }
+
+  Widget _buildEpisodeAssistance() {
+    final recommendation = _episodeRecommendation;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextButton.icon(
+          onPressed: _recommendingEpisode ? null : _recommendEpisode,
+          icon: _recommendingEpisode
+              ? const CupertinoActivityIndicator()
+              : const Icon(Icons.auto_fix_high, size: 18),
+          label: Text(_recommendingEpisode ? '正在推荐模板...' : '推荐集数定位模板'),
+        ),
+        if (_episodeError != null)
+          Text(
+            _episodeError!,
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
+        if (recommendation != null) ...[
+          Text(
+            '规则：${recommendation['rule_name']}\n'
+            '模板：${recommendation['episode_format']}\n'
+            '样本：${recommendation['sample_file']}',
+          ),
+          if (recommendation['message'] is String)
+            Text(recommendation['message'] as String),
+          TextButton(
+            onPressed: _applyEpisodeRecommendation,
+            child: const Text('采用集数模板'),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildHistorySection() {
+    return Section(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('成功整理历史'),
+          const SizedBox(height: 8),
+          if (_loadingHistory)
+            const CupertinoActivityIndicator()
+          else if (_historyError != null)
+            Text(
+              _historyError!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            )
+          else if (_historyCount != null)
+            Text(
+              _hasSuccessfulHistory
+                  ? '已命中 $_historyCount 条成功记录。请避免重复整理；不会自动强制重新整理。'
+                  : '未命中成功整理记录',
+            ),
+          TextButton(
+            onPressed: _loadingHistory || _isSubmitting
+                ? null
+                : _loadManualHistory,
+            child: Text(_historyError != null ? '重试历史查询' : '刷新历史摘要'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResponsivePair(
+    BuildContext context, {
+    required Widget first,
+    Widget? second,
+  }) {
+    if (second == null) {
+      return first;
+    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 380) {
+          return Column(children: [first, const SizedBox(height: 14), second]);
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: first),
+            const SizedBox(width: 10),
+            Expanded(child: second),
+          ],
+        );
+      },
     );
   }
 
@@ -543,12 +938,13 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
     return int.tryParse(value?.toString() ?? '');
   }
 
-  Widget _buildCompactToggles() {
+  Widget _buildCompactToggles(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey6,
+        color: _controlSurface(context),
         borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _outlineColor(context)),
       ),
       child: Column(
         children: [
@@ -576,6 +972,8 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
   }
 
   Widget _buildActionSection(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final percent = (_progress * 100).clamp(0, 100).toStringAsFixed(0);
     final footerParts = <String>[
       if (_progressTotal > 0) '$_progressCurrent/$_progressTotal',
@@ -589,8 +987,8 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
             children: [
               Text(
                 _isSubmitting ? '整理进度' : '开始整理',
-                style: const TextStyle(
-                  fontSize: 15,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: scheme.onSurface,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -598,9 +996,8 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
               if (_isSubmitting)
                 Text(
                   '$percent%',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Theme.of(context).colorScheme.primary,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: scheme.primary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -610,7 +1007,10 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
           if (_isSubmitting) ...[
             Text(
               _progressMessage,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: 10),
             ClipRRect(
@@ -618,16 +1018,16 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
               child: LinearProgressIndicator(
                 value: _progress.clamp(0.0, 1.0),
                 minHeight: 8,
-                backgroundColor: CupertinoColors.systemGrey5,
+                backgroundColor: _controlSurface(context),
+                color: scheme.primary,
               ),
             ),
             if (footerParts.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
                 footerParts.join(' · '),
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: CupertinoColors.systemGrey,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -635,9 +1035,8 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
           ] else ...[
             Text(
               '确认目标信息后发起整理任务',
-              style: TextStyle(
-                fontSize: 12,
-                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 14),
@@ -649,7 +1048,9 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
                   text: _isSubmitting ? '整理中...' : '开始整理',
                   icon: CupertinoIcons.arrow_2_circlepath_circle,
                   isLoading: _isSubmitting,
-                  onPressed: _isSubmitting ? null : _submit,
+                  onPressed: _isSubmitting || _confirmingTransfer || !_canManage
+                      ? null
+                      : _submit,
                 ),
               ),
             ],
@@ -671,6 +1072,8 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
   }
 
   Widget _buildStorageSelector(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final storages = widget.availableStorages.isEmpty
         ? [StorageSetting(type: _targetStorage, name: _targetStorage)]
         : widget.availableStorages;
@@ -685,7 +1088,10 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
         onSelected: (value) {
           setState(() {
             _targetStorage = value;
-            _syncTargetPathWithSuggestions();
+            _targetRequest++;
+            _matchingTarget = false;
+            _targetSuggestion = null;
+            _targetError = null;
           });
         },
         itemBuilder: (_) => [
@@ -706,8 +1112,8 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
                   Expanded(
                     child: Text(
                       storage.name,
-                      style: const TextStyle(
-                        fontSize: 15,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurface,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -740,16 +1146,15 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 14,
                     fontWeight: FontWeight.w500,
-                  ),
+                  ).copyWith(color: scheme.onSurface),
                 ),
               ),
               const SizedBox(width: 6),
-              const Icon(
+              Icon(
                 CupertinoIcons.chevron_up_chevron_down,
                 size: 15,
-                color: CupertinoColors.systemGrey,
+                color: scheme.onSurfaceVariant,
               ),
             ],
           ),
@@ -760,22 +1165,20 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
 
   Widget _buildTargetPathField(BuildContext context) {
     return Obx(() {
+      final theme = Theme.of(context);
+      final scheme = theme.colorScheme;
       final options = _targetPathOptions;
       final current = _targetPathController.text.trim();
-      final resolvedValue = options.contains(current)
-          ? current
-          : (options.isNotEmpty ? options.first : '');
-      if (resolvedValue.isNotEmpty && resolvedValue != current) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          _targetPathController.text = resolvedValue;
-        });
-      }
+      final resolvedValue = current;
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildFieldLabel('目标目录'),
+          _buildTextField(
+            label: '目标目录',
+            controller: _targetPathController,
+            placeholder: '输入目标路径或从配置中选择',
+          ),
           const SizedBox(height: 8),
           Material(
             color: Colors.transparent,
@@ -791,10 +1194,10 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
                     value: path,
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           CupertinoIcons.folder,
                           size: 18,
-                          color: CupertinoColors.systemGrey,
+                          color: scheme.onSurfaceVariant,
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -802,8 +1205,8 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
                             path,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 14,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: scheme.onSurface,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -821,23 +1224,23 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
               child: _buildFieldSurface(
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       CupertinoIcons.folder,
                       size: 18,
-                      color: CupertinoColors.systemGrey,
+                      color: scheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        resolvedValue.isNotEmpty ? resolvedValue : '暂无可用目录',
+                        options.isNotEmpty ? '从当前存储的配置目录选择' : '当前存储暂无配置目录',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                           color: options.isNotEmpty
-                              ? CupertinoColors.label.resolveFrom(context)
-                              : CupertinoColors.systemGrey,
+                              ? scheme.onSurface
+                              : scheme.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -847,7 +1250,7 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
                           ? CupertinoIcons.chevron_up_chevron_down
                           : CupertinoIcons.exclamationmark_circle,
                       size: 15,
-                      color: CupertinoColors.systemGrey,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ],
                 ),
@@ -861,6 +1264,8 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
 
   Widget _buildTargetPathStatus() {
     return Obx(() {
+      final theme = Theme.of(context);
+      final scheme = theme.colorScheme;
       final error = _directoryController.errorText.value?.trim() ?? '';
       final isLoading = _directoryController.isLoading.value;
       final hasOptions = _targetPathOptions.isNotEmpty;
@@ -869,19 +1274,18 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
           padding: const EdgeInsets.only(bottom: 10),
           child: Text(
             error,
-            style: const TextStyle(
-              fontSize: 12,
-              color: CupertinoColors.systemRed,
-            ),
+            style: theme.textTheme.bodySmall?.copyWith(color: scheme.error),
           ),
         );
       }
       if (isLoading && !hasOptions) {
-        return const Padding(
-          padding: EdgeInsets.only(bottom: 10),
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
           child: Text(
             '目录加载中...',
-            style: TextStyle(fontSize: 12, color: CupertinoColors.systemGrey),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
           ),
         );
       }
@@ -895,6 +1299,8 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
     String? placeholder,
     TextInputType? keyboardType,
   }) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -903,14 +1309,22 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
         SizedBox(
           height: _fieldHeight,
           child: CupertinoTextField(
+            key: ValueKey('manual-transfer-$label'),
             controller: controller,
             placeholder: placeholder,
             keyboardType: keyboardType,
+            cursorColor: scheme.primary,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurface,
+            ),
+            placeholderStyle: theme.textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
-              color: CupertinoColors.systemGrey6,
+              color: _controlSurface(context),
               borderRadius: BorderRadius.circular(_fieldRadius),
-              border: Border.all(color: CupertinoColors.systemGrey5),
+              border: Border.all(color: _outlineColor(context)),
             ),
           ),
         ),
@@ -919,13 +1333,12 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
   }
 
   Widget _buildFieldLabel(String text) {
+    final theme = Theme.of(context);
     return Text(
       text,
-      style: const TextStyle(
-        fontSize: 12,
+      style: theme.textTheme.labelMedium?.copyWith(
         fontWeight: FontWeight.w700,
-        color: CupertinoColors.systemGrey,
-        letterSpacing: 0.2,
+        color: theme.colorScheme.onSurfaceVariant,
       ),
     );
   }
@@ -935,23 +1348,45 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
       height: _fieldHeight,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey6,
+        color: _controlSurface(context),
         borderRadius: BorderRadius.circular(_fieldRadius),
-        border: Border.all(color: CupertinoColors.systemGrey5),
+        border: Border.all(color: _outlineColor(context)),
       ),
-      child: child,
+      child: SizedBox(width: double.infinity, child: child),
     );
   }
 
-  Widget _buildSegmentContainer({required Widget child}) {
+  Widget _buildSegmentContainer({
+    required BuildContext context,
+    required Widget child,
+  }) {
     return Container(
-      height: _segmentHeight,
+      width: double.infinity,
+      constraints: const BoxConstraints(minHeight: 44),
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey6,
+        color: _controlSurface(context),
         borderRadius: BorderRadius.circular(_fieldRadius),
+        border: Border.all(color: _outlineColor(context)),
       ),
-      child: child,
+      child: SizedBox(width: double.infinity, child: child),
+    );
+  }
+
+  Widget _buildSegmentText(BuildContext context, String text, bool isSelected) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      child: Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.labelLarge?.copyWith(
+          color: isSelected ? scheme.primary : scheme.onSurfaceVariant,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 
@@ -960,11 +1395,43 @@ class _FileManualTransferSheetState extends State<FileManualTransferSheet> {
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Row(
       children: [
-        Expanded(child: Text(title, style: const TextStyle(fontSize: 14))),
-        CupertinoSwitch(value: value, onChanged: onChanged),
+        Expanded(
+          child: Text(
+            title,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurface,
+            ),
+          ),
+        ),
+        CupertinoSwitch(
+          value: value,
+          activeTrackColor: scheme.primary,
+          onChanged: onChanged,
+        ),
       ],
     );
+  }
+
+  Color _controlSurface(BuildContext context) {
+    final theme = Theme.of(context);
+    return theme.colorScheme.surfaceContainerHighest.withValues(
+      alpha: theme.brightness == Brightness.dark ? 0.72 : 0.64,
+    );
+  }
+
+  Color _segmentThumbColor(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return theme.brightness == Brightness.dark
+        ? scheme.surfaceContainerHigh
+        : scheme.surface;
+  }
+
+  Color _outlineColor(BuildContext context) {
+    return Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.72);
   }
 }

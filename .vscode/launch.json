@@ -21,6 +21,16 @@
             ]
         },
         {
+            "name": "上映日历 Hook（测试数据）",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "debug",
+            "program": "lib/main.dart",
+            "args": [
+                "--dart-define=DEBUG_CALENDAR_MOCK=true"
+            ]
+        },
+        {
             "name": "moviepilot_mobile (profile mode)",
             "request": "launch",
             "type": "dart",

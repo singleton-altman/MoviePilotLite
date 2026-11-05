@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:moviepilot_mobile/gen/assets.gen.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
+import 'package:moviepilot_mobile/services/api_auth_failure.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
 
 enum NetworkTestStatus { idle, testing, ok, error }
@@ -98,7 +99,7 @@ class NetworkTestController extends GetxController {
       final token =
           _apiClient.token ?? _appService.latestLoginProfileAccessToken;
       if (token == null || token.isEmpty) {
-        _failItem(item, '缺少 Token，请重新登录');
+        _failItem(item, ApiAuthFailure.notLoggedInMessage);
         return;
       }
 

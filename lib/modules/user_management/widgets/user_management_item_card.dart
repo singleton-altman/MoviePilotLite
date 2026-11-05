@@ -3,10 +3,11 @@ import 'dart:typed_data';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:moviepilot_mobile/gen/assets.gen.dart';
 import 'package:moviepilot_mobile/modules/profile/models/user_info.dart';
 import 'package:moviepilot_mobile/modules/user_management/controllers/user_management_controller.dart';
 import 'package:moviepilot_mobile/theme/app_theme.dart';
-import 'package:moviepilot_mobile/theme/section.dart';
+import 'package:moviepilot_mobile/widgets/app_glass_card.dart';
 
 class UserManagementItemCard extends StatelessWidget {
   const UserManagementItemCard({
@@ -25,9 +26,14 @@ class UserManagementItemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
+    final title = user.displayTitle;
+    final username = user.usernameLabel;
+    final hasNickname = title != username;
 
-    return Section(
-      padding: const EdgeInsets.all(12),
+    return AppGlassCard(
+      padding: const EdgeInsets.all(14),
+      borderRadius: 22,
+      accentColor: primary,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -40,15 +46,7 @@ class UserManagementItemCard extends StatelessWidget {
                 children: [
                   _buildAvatar(user.avatar),
                   if (user.isSuperuser)
-                    Positioned(
-                      top: -4,
-                      left: -4,
-                      child: Icon(
-                        CupertinoIcons.star_fill,
-                        size: 18,
-                        color: const Color(0xFFFFD700),
-                      ),
-                    ),
+                    Positioned(top: -4, left: -4, child: _buildAdminBadge()),
                 ],
               ),
               const SizedBox(width: 12),
@@ -58,24 +56,26 @@ class UserManagementItemCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Expanded(
-                          child: Text(
-                            user.nicknameOrSetting ?? user.name,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFFFF9500),
-                            ),
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: theme.colorScheme.onSurface,
                           ),
                         ),
-                        if (onEdit != null)
-                          GestureDetector(
-                            onTap: onEdit,
-                            child: Icon(
-                              CupertinoIcons.pencil,
-                              size: 18,
-                              color: const Color(0xFFFF9500),
+                        if (hasNickname)
+                          Text(
+                            '@$username',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
+                        Spacer(),
                         if (onDelete != null && !user.isSuperuser)
                           GestureDetector(
                             onTap: onDelete,
@@ -87,45 +87,58 @@ class UserManagementItemCard extends StatelessWidget {
                           ),
                       ],
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 10),
                     Wrap(
                       spacing: 6,
                       runSpacing: 4,
                       children: [
                         if (user.isSuperuser)
-                          _buildChip('管理员', AppTheme.errorColor)
+                          _buildAdminChip()
                         else
                           _buildChip('普通用户', CupertinoColors.systemGrey),
                         if (user.isActive)
                           _buildChip('激活', AppTheme.successColor)
                         else
                           _buildChip('已停用', CupertinoColors.systemGrey),
+                        if (user.isOtp)
+                          _buildChip('2FA', CupertinoColors.activeBlue),
                       ],
                     ),
                     if (stats != null) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(CupertinoIcons.film, size: 16, color: primary),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${stats!.movieCount}',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: primary,
-                              fontWeight: FontWeight.w500,
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(CupertinoIcons.film, size: 15, color: primary),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${stats!.movieCount}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: primary,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Icon(CupertinoIcons.tv, size: 16, color: primary),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${stats!.tvCount}',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: primary,
-                              fontWeight: FontWeight.w500,
+                            const SizedBox(width: 12),
+                            Icon(CupertinoIcons.tv, size: 15, color: primary),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${stats!.tvCount}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: primary,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ],
@@ -160,7 +173,7 @@ class UserManagementItemCard extends StatelessWidget {
 
   Widget _buildAvatar(String? avatar) {
     if (avatar == null || avatar.isEmpty) {
-      return const CircleAvatar(radius: 28, child: Icon(CupertinoIcons.person));
+      return _buildDefaultAvatar();
     }
     try {
       String base64String = avatar;
@@ -172,33 +185,112 @@ class UserManagementItemCard extends StatelessWidget {
       }
       final bytes = base64Decode(base64String);
       if (bytes.isEmpty) {
-        return const CircleAvatar(
-          radius: 28,
-          child: Icon(CupertinoIcons.person),
-        );
+        return _buildDefaultAvatar();
       }
       return CircleAvatar(
         radius: 28,
         backgroundImage: MemoryImage(Uint8List.fromList(bytes)),
       );
     } catch (_) {
-      return const CircleAvatar(radius: 28, child: Icon(CupertinoIcons.person));
+      return _buildDefaultAvatar();
     }
+  }
+
+  Widget _buildDefaultAvatar() {
+    return ClipOval(
+      child: Assets.images.avatars.avatar1.image(
+        width: 56,
+        height: 56,
+        fit: BoxFit.cover,
+      ),
+    );
+  }
+
+  Widget _buildAdminBadge() {
+    const gold = Color(0xFFFFB020);
+    return Container(
+      width: 22,
+      height: 22,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFF1B8), Color(0xFFFFB020)],
+        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.82)),
+        boxShadow: [
+          BoxShadow(
+            color: gold.withValues(alpha: 0.32),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: const Icon(
+        CupertinoIcons.star_fill,
+        size: 12,
+        color: Color(0xFF6B3A00),
+      ),
+    );
+  }
+
+  Widget _buildAdminChip() {
+    const gold = Color(0xFFFFB020);
+    const ink = Color(0xFF7A4300);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFFFFE8A3).withValues(alpha: 0.38),
+            gold.withValues(alpha: 0.16),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: gold.withValues(alpha: 0.34), width: 0.7),
+        boxShadow: [
+          BoxShadow(
+            color: gold.withValues(alpha: 0.10),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: const [
+          Icon(CupertinoIcons.star_fill, size: 11, color: ink),
+          SizedBox(width: 4),
+          Text(
+            '管理员',
+            style: TextStyle(
+              fontSize: 12,
+              color: ink,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildChip(String label, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(4),
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.22), width: 0.5),
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
-          color: Colors.white,
-          fontWeight: FontWeight.w500,
+          color: color,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );

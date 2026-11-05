@@ -466,7 +466,7 @@ mixin _$CacheItem {
   String? get siteName => throw _privateConstructorUsedError;
   @JsonKey(name: 'media_name')
   String? get mediaName => throw _privateConstructorUsedError;
-  @JsonKey(name: 'media_year')
+  @JsonKey(name: 'media_year', fromJson: _strFromJson)
   String? get mediaYear => throw _privateConstructorUsedError;
   @JsonKey(name: 'media_type')
   String? get mediaType => throw _privateConstructorUsedError;
@@ -506,7 +506,7 @@ abstract class $CacheItemCopyWith<$Res> {
     String? pubdate,
     @JsonKey(name: 'site_name') String? siteName,
     @JsonKey(name: 'media_name') String? mediaName,
-    @JsonKey(name: 'media_year') String? mediaYear,
+    @JsonKey(name: 'media_year', fromJson: _strFromJson) String? mediaYear,
     @JsonKey(name: 'media_type') String? mediaType,
     @JsonKey(name: 'season_episode') String? seasonEpisode,
     @JsonKey(name: 'resource_term') String? resourceTerm,
@@ -639,7 +639,7 @@ abstract class _$$CacheItemImplCopyWith<$Res>
     String? pubdate,
     @JsonKey(name: 'site_name') String? siteName,
     @JsonKey(name: 'media_name') String? mediaName,
-    @JsonKey(name: 'media_year') String? mediaYear,
+    @JsonKey(name: 'media_year', fromJson: _strFromJson) String? mediaYear,
     @JsonKey(name: 'media_type') String? mediaType,
     @JsonKey(name: 'season_episode') String? seasonEpisode,
     @JsonKey(name: 'resource_term') String? resourceTerm,
@@ -764,7 +764,7 @@ class _$CacheItemImpl implements _CacheItem {
     this.pubdate,
     @JsonKey(name: 'site_name') this.siteName,
     @JsonKey(name: 'media_name') this.mediaName,
-    @JsonKey(name: 'media_year') this.mediaYear,
+    @JsonKey(name: 'media_year', fromJson: _strFromJson) this.mediaYear,
     @JsonKey(name: 'media_type') this.mediaType,
     @JsonKey(name: 'season_episode') this.seasonEpisode,
     @JsonKey(name: 'resource_term') this.resourceTerm,
@@ -797,7 +797,7 @@ class _$CacheItemImpl implements _CacheItem {
   @JsonKey(name: 'media_name')
   final String? mediaName;
   @override
-  @JsonKey(name: 'media_year')
+  @JsonKey(name: 'media_year', fromJson: _strFromJson)
   final String? mediaYear;
   @override
   @JsonKey(name: 'media_type')
@@ -904,7 +904,8 @@ abstract class _CacheItem implements CacheItem {
     final String? pubdate,
     @JsonKey(name: 'site_name') final String? siteName,
     @JsonKey(name: 'media_name') final String? mediaName,
-    @JsonKey(name: 'media_year') final String? mediaYear,
+    @JsonKey(name: 'media_year', fromJson: _strFromJson)
+    final String? mediaYear,
     @JsonKey(name: 'media_type') final String? mediaType,
     @JsonKey(name: 'season_episode') final String? seasonEpisode,
     @JsonKey(name: 'resource_term') final String? resourceTerm,
@@ -937,7 +938,7 @@ abstract class _CacheItem implements CacheItem {
   @JsonKey(name: 'media_name')
   String? get mediaName;
   @override
-  @JsonKey(name: 'media_year')
+  @JsonKey(name: 'media_year', fromJson: _strFromJson)
   String? get mediaYear;
   @override
   @JsonKey(name: 'media_type')

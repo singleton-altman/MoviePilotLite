@@ -7,6 +7,7 @@ import 'package:moviepilot_mobile/modules/subscribe/controllers/subscribe_contro
 import 'package:moviepilot_mobile/modules/subscribe/defines/subscribe_popular_filter_defines.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
+import 'package:moviepilot_mobile/utils/media_identity_util.dart';
 
 class SubscribePopularController extends GetxController {
   final _apiClient = Get.find<ApiClient>();
@@ -118,7 +119,7 @@ class SubscribePopularController extends GetxController {
       for (final raw in list) {
         if (raw is Map<String, dynamic>) {
           try {
-            final item = RecommendApiItem.fromJson(raw);
+            final item = RecommendApiItem.fromJson(normalizeMediaJson(raw));
             parsed.add(item);
           } catch (e, st) {
             _log.handle(e, stackTrace: st, message: '解析热门订阅失败');
@@ -163,7 +164,7 @@ class SubscribePopularController extends GetxController {
       for (final raw in list) {
         if (raw is Map<String, dynamic>) {
           try {
-            final item = RecommendApiItem.fromJson(raw);
+            final item = RecommendApiItem.fromJson(normalizeMediaJson(raw));
             parsed.add(item);
           } catch (e, st) {
             _log.handle(e, stackTrace: st, message: '解析热门订阅失败');
@@ -298,7 +299,7 @@ class SubscribePopularController extends GetxController {
     for (final raw in list) {
       if (raw is Map<String, dynamic>) {
         try {
-          parsed.add(RecommendApiItem.fromJson(raw));
+          parsed.add(RecommendApiItem.fromJson(normalizeMediaJson(raw)));
         } catch (e, st) {
           log.handle(e, stackTrace: st, message: '解析热门订阅失败');
         }

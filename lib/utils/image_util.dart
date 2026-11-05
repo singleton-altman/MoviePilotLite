@@ -2,8 +2,19 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/modules/settings/models/system_env_model.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
+import 'package:moviepilot_mobile/utils/image_request_headers.dart';
 import 'package:moviepilot_mobile/utils/prefs_keys.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+/// 音乐元数据的图片固定托管在境外源站，客户端直连在境内网络基本不可达，
+/// 与豆瓣一样始终经服务端 /api/v1/system/cache/image 代理加载。
+bool isOverseasMusicImageUrl(String imageUrl) {
+  if (imageUrl.isEmpty) return false;
+  return imageUrl.contains('coverartarchive.org') ||
+      imageUrl.contains('archive.org') ||
+      imageUrl.contains('theaudiodb.com') ||
+      imageUrl.contains('commons.wikimedia.org');
+}
 
 /// 图片工具类
 class ImageUtil extends GetxService {
@@ -80,15 +91,22 @@ class ImageUtil extends GetxService {
     if (kIsWeb) {
       return imageUrl;
     }
-    // 已经是缓存代理地址：直接返回，避免重复包一层代理。
-    if (imageUrl.contains('/api/v1/system/cache/image')) return imageUrl;
+    // 已经是 MoviePilot 图片代理地址（system/img/0、system/img/1、cache/image）：
+    // 直接返回。二次包裹会丢掉 imgurl 上的 use_cookies（如飞牛等需要
+    // Cookies 的媒体服务器），且外层 cache/image 只按 SECURITY_IMAGE_DOMAINS
+    // 校验、不含媒体服务器地址，必然被服务端拦截成 404。
+    if (isMoviePilotResourceProxyImageUrl(imageUrl)) return imageUrl;
 
     final imageUtil = Get.find<ImageUtil>();
     final globalCachedEnabled = imageUtil.globalCachedEnabled.value;
-    final isDouban = imageUrl.contains('douban');
+    // 音乐封面固定托管在境外（coverartarchive/archive.org/wikimedia/TheAudioDB），
+    // 客户端直连在境内网络基本不可达；与豆瓣一样视为「必须代理」域名，
+    // 不依赖全局图片缓存开关。
+    final mustProxy =
+        imageUrl.contains('douban') || isOverseasMusicImageUrl(imageUrl);
 
-    // 关闭全局缓存时：非 douban 且为 http 链接，直接跳过代理。
-    if (!isDouban && !globalCachedEnabled && imageUrl.startsWith('http')) {
+    // 关闭全局缓存时：非必须代理域名且为 http 链接，直接跳过代理。
+    if (!mustProxy && !globalCachedEnabled && imageUrl.startsWith('http')) {
       return imageUrl;
     }
 
@@ -106,7 +124,7 @@ class ImageUtil extends GetxService {
         : 'https://image.tmdb.org/t/p/w200/$imageUrl';
 
     // 关闭全局缓存时：相对路径解析后直接返回解析结果，不走缓存代理。
-    if (!isDouban && !globalCachedEnabled) return resolvedUrl;
+    if (!mustProxy && !globalCachedEnabled) return resolvedUrl;
 
     final encodedImageUrl = Uri.encodeComponent(resolvedUrl);
     return '$sanitizedBase/api/v1/system/cache/image?url=$encodedImageUrl';

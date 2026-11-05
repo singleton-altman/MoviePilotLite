@@ -49,5 +49,13 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+    # 新版 Xcode 最低支持 15.0;file_picker 的传递依赖(DKPhotoGallery/SwiftyGif
+    # 等)仍声明 9.0,统一抬升到与 Podfile platform 一致。
+    target.build_configurations.each do |config|
+      current = config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'].to_f
+      if current > 0 && current < 15.0
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+      end
+    end
   end
 end

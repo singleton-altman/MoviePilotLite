@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:altman_totp/page/totp_manage_page.dart';
@@ -41,6 +42,10 @@ class LoginPage extends GetView<LoginController> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          if (controller.connectFailed.value) ...[
+                            _buildConnectFailedCard(context),
+                            const SizedBox(height: 24),
+                          ],
                           if (stepValue == 2) _buildBackButton(context),
                           const SizedBox(height: 24),
                           _buildHeader(context),
@@ -73,6 +78,65 @@ class LoginPage extends GetView<LoginController> {
           ],
         );
       }),
+    );
+  }
+
+  /// 自动登录时连接服务器失败的提示卡片（含重试）
+  Widget _buildConnectFailedCard(BuildContext context) {
+    final server = controller.serverController.text.trim();
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: CupertinoColors.black.withOpacity(0.35),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: CupertinoColors.systemRed.withOpacity(0.6),
+        ),
+      ),
+      child: Column(
+        children: [
+          const Icon(
+            CupertinoIcons.wifi_exclamationmark,
+            color: CupertinoColors.systemRed,
+            size: 32,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '无法连接服务器',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: CupertinoColors.white,
+            ),
+          ),
+          if (server.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              server,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: CupertinoColors.white.withOpacity(0.8),
+              ),
+            ),
+          ],
+          const SizedBox(height: 4),
+          Text(
+            '请检查网络或服务器状态后重试',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: CupertinoColors.white.withOpacity(0.75),
+            ),
+          ),
+          const SizedBox(height: 12),
+          CupertinoButton.filled(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            onPressed: () => controller.retryBootstrap(),
+            child: Text('重试连接'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -161,6 +225,7 @@ class LoginPage extends GetView<LoginController> {
     void Function(String)? onSubmitted,
     TextInputAction? textInputAction,
     Widget? suffix,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     final hasWallpapers = controller.wallpapers.isNotEmpty;
     final textColor = hasWallpapers ? CupertinoColors.white : null;
@@ -188,6 +253,7 @@ class LoginPage extends GetView<LoginController> {
       enableSuggestions: enableSuggestions,
       textInputAction: textInputAction,
       onSubmitted: onSubmitted,
+      inputFormatters: inputFormatters,
       prefix: prefix != null
           ? Padding(
               padding: const EdgeInsets.only(left: 12),
@@ -322,6 +388,7 @@ class LoginPage extends GetView<LoginController> {
             autocorrect: false,
             enableSuggestions: false,
             textInputAction: TextInputAction.done,
+            inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'\s'))],
             onSubmitted: (_) => controller.goToNextStep(),
           ),
           const SizedBox(height: 16),
@@ -359,7 +426,9 @@ class LoginPage extends GetView<LoginController> {
           const SizedBox(height: 10),
           _buildTextField(
             controller.otpController,
-            '二步验证码（如未启用可留空）',
+            controller.mfaRequired.value
+                ? '请输入两步验证码完成登录'
+                : '二步验证码（如未启用可留空）',
             keyboardType: TextInputType.number,
             prefix: const Icon(CupertinoIcons.number),
             suffix: CupertinoButton(

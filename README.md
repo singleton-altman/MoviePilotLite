@@ -1,106 +1,140 @@
 # MoviePilot Mobile
 
-基于 [MoviePilot](https://github.com/jxxghp/MoviePilot) 项目的 Flutter 移动端客户端。
+基于 [MoviePilot](https://github.com/jxxghp/MoviePilot) 的 Flutter 跨端客户端，对接 MoviePilot v2 API，在手机上完成订阅、搜索、下载、整理与系统运维等常用操作。
 
-## 功能预览（Web）
+**当前版本**：1.1.8 · **API 文档**：[api.movie-pilot.org](https://api.movie-pilot.org)
 
-在线体验：[https://web-brown-kappa-21.vercel.app](https://web-brown-kappa-21.vercel.app)
+---
 
-## HarmonyOS（OHOS）
+## 平台支持
 
-- OHOS 适配在独立分支 `ohos`
-- HAP 需要使用自己的证书进行自签后安装
+| 平台 | 说明 |
+|------|------|
+| Android | 正式支持；设置页可检查 Release 并热更新 APK |
+| iOS | 正式支持；TestFlight / 自签；订阅日历 Widget |
+| macOS | 桌面端构建 |
+| Web | 功能预览（非主维护目标）→ [在线体验](https://web-brown-kappa-21.vercel.app) |
+| HarmonyOS | 独立分支 `ohos`，HAP 需自签证书安装 |
+
+---
+
+## 快速开始（开发）
+
+### 环境
+
+- Flutter 3.38+ / Dart 3.8+
+- Android SDK / Xcode（按目标平台准备）
+- 可连接的 MoviePilot 服务端
+
+### 常用命令
+
+```bash
+flutter pub get
+flutter analyze
+flutter test
+flutter run
+
+# 代码生成（Freezed / JSON / Hive 等）
+dart run build_runner build --delete-conflicting-outputs
+
+# 构建
+flutter build apk --release --dart-define=FLUTTER_APP_ENV=release
+flutter build ios
+flutter build macos
+```
+
+### 依赖说明
+
+- `altman_downloader_control` 为 Git 依赖，CI 会在 `flutter pub get` 前执行 `flutter pub upgrade altman_downloader_control`，避免 lockfile 中的旧 commit。
+- 本地若需同步该库最新代码，可手动执行上述 upgrade 后再 `flutter pub get`。
+- 已提交的 `form_block_models.freezed.dart` 存在已知生成问题，**勿随意全量 regenerate**，除非已修复源模型。
+
+---
+
+## App 推送
+
+推送依赖 [MoviePilot-Plugins](https://github.com/singleton-altman/MoviePilot-Plugins) 中的 **APPLitePush** 插件，由作者提供转发服务，**无需自建推送平台**。
+
+### 使用前准备
+
+1. 前往 [http://106.14.89.6/apply](http://106.14.89.6/apply) 申请 **App Push Token**
+2. 加入 [Telegram 群](https://t.me/+MLbOpDDD1mdlOTM1)，申请完成后 **@ 管理员** 确认
+3. 在 MoviePilot 中安装 **APPLitePush** 插件
+4. 在系统 / App 设置中 **开启推送通知权限**
+
+### iOS（TestFlight / 自签）
+
+- 安装包 **Bundle ID 必须为 `com.altman.moviepilot`**，否则无法完成推送绑定
+- TestFlight 与自签用户使用同一套配置流程，均走作者转发服务，无需自行部署 JPush / APNs 转发
+
+**插件绑定步骤：**
+
+1. 在插件配置中填写 **Push Key**（Telegram 群获取）与 **App Push Token**（步骤 1 申请）
+2. 点击 **保存**
+3. 点击 **应用**（App 内完成 alias 绑定）
+4. 点击 **发送测试消息** — 正常情况下应收到一条推送
+
+> 建议使用 **Release** 包安装；Debug 包可能无法正常收到推送。
+
+### Android
+
+流程与 iOS 相同：申请 Token → Telegram @ 管理员 → 安装插件 → 按上述步骤填写 Push Key / App Push Token → 保存 → 应用 → 发送测试。当前未配置厂商通道，到达率不保证。
+
+### 限制与说明
+
+- 推送走作者阿里云转发服务器，**单 IP 每分钟最多 10 条**
+- 服务可能因成本原因调整；TestFlight 名额有限
+- 收不到推送时请先确认：通知权限已开、Bundle ID 正确、已点击「应用」且测试消息已发送
+
+---
 
 ## 社区与贡献
 
-- 📱 **Telegram 群聊**：[小白裙](https://t.me/+MLbOpDDD1mdlOTM1)，欢迎加入交流
-- 🔀 欢迎提交 **Pull Request** 参与贡献
-- 🐛 遇到问题请在 [Issues](https://github.com/AltmanTech/MoviePilotLite/issues) 提交反馈
-- 🚀 版本发布直达：[Releases](https://github.com/singleton-altman/MoviePilotLite/releases)
-- 📝 版本更新记录见 [CHANGELOG](CHANGELOG.md)
+- **Telegram**：[小白裙](https://t.me/+MLbOpDDD1mdlOTM1)
+- **Issue**：[AltmanTech/MoviePilotLite](https://github.com/AltmanTech/MoviePilotLite/issues)
+- **Release**：[singleton-altman/MoviePilotLite](https://github.com/singleton-altman/MoviePilotLite/releases)
+- **更新日志**：[CHANGELOG.md](CHANGELOG.md)
+- 欢迎 Pull Request
 
-## App 推送使用说明
-
-### iOS 用户
-
-#### TestFlight 用户
-
-1. 先前往 [http://106.14.89.6/apply](http://106.14.89.6/apply) 申请推送 Token。
-2. 申请完成后，请先进入 Telegram 群并 @ 我一下，方便确认与后续处理。
-3. 安装 [MoviePilot-Plugins](https://github.com/singleton-altman/MoviePilot-Plugins) 插件库中的 `APPLitePush` 插件。
-4. 在插件配置中填写 Push Token 与 Push API Key：
-   - Push Token：通过步骤 1 获取
-   - Push API Key：需要到 Telegram 群获取
-5. 打开 App，找到该插件，并点击“应用”完成一次 Token 绑定。
-
-#### 非 TestFlight 用户
-
-非 TestFlight 用户可自行搭建推送链路，流程如下：
-
-1. 准备可信的苹果开发者账号，注册 App ID，并为 App 配置推送权限与证书。
-2. 在 JPush 注册对应应用。
-3. 修改 App 内的 JPush 相关配置后，重新打包 App。
-4. 部署推送转发仓库 [moviepilot_apns](https://github.com/singleton-altman/moviepilot_apns)，并配置自己的 JPush App ID 与 Security。
-5. Fork [MoviePilot-Plugins](https://github.com/singleton-altman/MoviePilot-Plugins) 插件仓库，将推送服务转发 IP 修改为自己的服务器地址。
-6. 按照自己的 Push Key 与 Push Token 配置插件，然后回到 App 内点击“应用”完成绑定。
-
-需要注意的是，App 必须使用 release 方式打包安装，否则可能无法收到推送。
-
-### Android 用户
-
-Android 用户可参考 iOS TestFlight 用户的使用步骤：
-
-1. 申请推送 Token。
-2. 申请完成后，请先进入 Telegram 群并 @ 我一下，方便确认与后续处理。
-3. 安装 `APPLitePush` 插件。
-4. 配置插件中的 Push Token 与 Push API Key。
-5. 打开 App，在插件内点击“应用”完成绑定。
-
-需要注意的是，Android 版本目前没有配置渠道 Key 等信息，推送通达率没有任何保证。如果有可以提供相关信息的用户，欢迎通过 Telegram 联系我，感谢支持。
-
-### 使用限制与说明
-
-- App 推送依赖我的转发服务器。
-- 非常欢迎有能力、有条件的热心用户自行搭建转发服务器，帮助分担现有服务压力，也让整体推送能力更稳定。
-- 当前服务器为阿里云建站服务器，存在限流：每分钟每个 IP 最多可发送 10 条消息。
-- 由于资费原因，后续存在主动废弃该服务的可能性。
-- 当前 TestFlight 使用的是私人账号，只有极少数用户可用，暂时无法提供给其他用户使用，感谢理解。
+---
 
 ## 技术栈
 
-- **框架**: Flutter
-- **网络请求**: Dio
-- **状态管理**: GetX
-- **路由管理**: GetX
-- **UI风格**: iOS (Cupertino)
-- **数据解析**: Freezed
-- **本地数据库**: Realm
+| 类别 | 选型 |
+|------|------|
+| 框架 | Flutter |
+| 状态 / 路由 | GetX |
+| 网络 | Dio + Cookie 管理 |
+| 本地存储 | Hive CE；SharedPreferences |
+| 模型 | Freezed + json_serializable |
+| UI | Material 3 + Cupertino 组件混用 |
+| 日志 | Talker / Talker Dio |
+| 图表 | Syncfusion Charts |
+| 推送 | JPush（iOS/Android） |
 
-## 开发与 CI 说明
-
-- `altman_downloader_control` 通过 Git 依赖引入，默认跟随仓库远端最新提交。
-- 为避免 GitHub Actions 继续使用 `pubspec.lock` 中旧的 `resolved-ref`，CI 在执行 `flutter pub get` 前会先执行 `flutter pub upgrade altman_downloader_control`。
-- 如果你本地也需要同步该依赖的最新源码，可以手动执行同样的命令后再运行 `flutter pub get`。
+---
 
 ## 许可证
 
-本项目采用 **Business Source License 1.1 (BSL-1.1)** 许可证。
+本项目采用 **Business Source License 1.1 (BSL-1.1)**。
 
-**重要说明**:
-- 本许可证允许查看和修改源代码
-- 在特定条件下，生产环境使用可能受到限制
-- 许可证将在 **2029-01-21** 自动转换为 **GPL-3.0** 许可证
+- 允许查看与修改源代码
+- 生产环境使用在特定条件下可能受限
+- **2029-01-21** 起自动转为 **GPL-3.0**
 
-详细信息请参阅 [LICENSE](LICENSE) 文件。
+详见 [LICENSE](LICENSE)。
+
+---
 
 ## 免责声明
 
-- 本软件仅供学习交流使用，任何人不得将本软件用于商业用途
-- 任何人不得将本软件用于违法犯罪活动
-- 软件对用户行为不知情，一切责任由使用者承担
+- 本软件仅供学习交流，不得用于商业用途或违法犯罪活动
+- 软件对用户行为不知情，一切责任由使用者自行承担
+
+---
 
 ## 赞赏
 
-如果这个项目对你有帮助，欢迎赞赏支持持续维护。
+若本项目对你有帮助，欢迎赞赏以支持持续维护。
 
 ![赞赏码](donate.JPG)

@@ -55,31 +55,31 @@ class MediaDetailSeasonCard extends StatelessWidget {
           border: Border.all(color: Colors.white.withOpacity(0.08)),
         ),
         child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: CachedImage(
-                    imageUrl: posterUrl,
-                    fit: BoxFit.cover,
-                    width: 52,
-                    height: 72,
-                  ),
+          padding: const EdgeInsets.all(10),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: CachedImage(
+                  imageUrl: posterUrl,
+                  fit: BoxFit.cover,
+                  width: 52,
+                  height: 72,
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          if (voteText != null) ...[
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        if (voteText != null) ...[
                           _compactRatingBadge(theme, voteText),
                           const SizedBox(width: 8),
-                          ],
+                        ],
                         Expanded(
                           child: Text(
                             titleText,
@@ -91,41 +91,42 @@ class MediaDetailSeasonCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 6,
-                        children: [
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
+                        _pill(
+                          airDate,
+                          background: Colors.white.withOpacity(0.18),
+                        ),
+                        if (episodeText.isNotEmpty)
                           _pill(
-                            airDate,
+                            episodeText,
                             background: Colors.white.withOpacity(0.18),
                           ),
-                          if (episodeText.isNotEmpty)
-                            _pill(
-                              episodeText,
-                              background: Colors.white.withOpacity(0.18),
-                            ),
+                        _pill(
+                          isSubscribed ? '已订阅' : '未订阅',
+                          background: isSubscribed
+                              ? CupertinoColors.systemRed.withOpacity(0.95)
+                              : Colors.blueGrey.withOpacity(0.8),
+                        ),
+                        if (isMissing)
                           _pill(
-                            isSubscribed ? '已订阅' : '未订阅',
-                            background: isSubscribed
-                                ? CupertinoColors.systemRed.withOpacity(0.95)
-                                : Colors.blueGrey.withOpacity(0.8),
-                          ),
-                          if (isMissing)
-                            _pill(
-                              '缺失',
-                              background:
-                                  theme.colorScheme.error.withOpacity(0.95),
+                            '缺失',
+                            background: theme.colorScheme.error.withOpacity(
+                              0.95,
                             ),
-                        ],
-                      ),
-                    ],
-                  ),
+                          ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
+          ),
         ),
       );
     }

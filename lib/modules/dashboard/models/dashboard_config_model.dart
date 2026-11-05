@@ -39,6 +39,10 @@ class DashboardConfigValue with _$DashboardConfigValue {
     required bool library,
     required bool playing,
     required bool latest,
+    @Default(true) bool mediaRecommend,
+    @Default(true) bool recentImports,
+    @Default(true) bool quickActions,
+    @Default(true) bool systemInfo,
   }) = _DashboardConfigValue;
 
   factory DashboardConfigValue.fromJson(Map<String, dynamic> json) =>
