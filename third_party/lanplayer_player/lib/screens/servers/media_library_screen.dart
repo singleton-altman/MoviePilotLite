@@ -14,7 +14,7 @@ class MediaLibraryScreen extends ConsumerStatefulWidget {
 
   /// 宿主接管条目详情打开(返回 true 表示已处理):MP 内嵌时跳转 MP 媒体详情页
   // MLS onOpenItem
-  final bool Function(MediaItem item)? onOpenItem;
+  final Future<bool> Function(MediaItem item)? onOpenItem;
 
   MediaLibraryScreen({
     super.key,
@@ -368,9 +368,9 @@ class LibraryItemsScreen extends ConsumerStatefulWidget {
   final MediaServerService serverService;
   final MediaItem library;
 
-  /// 宿主接管条目详情打开(返回 true 表示已处理)
+  /// 宿主接管条目详情打开(返回 true 表示已处理；可异步解析媒体身份再跳转)
   // LIS onOpenItem
-  final bool Function(MediaItem item)? onOpenItem;
+  final Future<bool> Function(MediaItem item)? onOpenItem;
 
   LibraryItemsScreen({
     super.key,
@@ -403,9 +403,10 @@ class _LibraryItemsScreenState extends ConsumerState<LibraryItemsScreen> {
     setState(() => _isLoading = false);
   }
 
-  void _openItem(MediaItem item) {
-    // 宿主接管:MP 内嵌时按 TMDB 身份打开 MP 媒体详情页
-    if (widget.onOpenItem != null && widget.onOpenItem!(item)) {
+  Future<void> _openItem(MediaItem item) async {
+    // 宿主接管:MP 内嵌时按 TMDB 身份打开 MP 媒体详情页；宿主可异步解析
+    // (飞牛条目没有 TMDB 字段,宿主需要按标题查一次 MP 媒体身份)。
+    if (widget.onOpenItem != null && await widget.onOpenItem!(item)) {
       return;
     }
     // 合集（BoxSet）：点击后展示合集内的影视列表，而不是合集详情页

@@ -422,24 +422,59 @@ class MediaServerController extends GetxController {
     try {
       isLoading.value = true;
       talker.info('开始加载正在播放的媒体');
-      final response = await apiClient.get<dynamic>(
-        '/api/v1/mediaserver/playing?server=$serverName',
-      );
-      if (response.statusCode == 200) {
-        final data = response.data!;
-        if (data is List<dynamic>) {
-          playingMedia.value = data
-              .map((item) => LatestMedia.fromJson(item))
-              .toList();
-        } else {
-          playingMedia.value = [LatestMedia.fromJson(data)];
+      // 多服务器回退(2026-10-10 v3 实测):v3 常同时配多台媒体服务器
+      // (如 jellyfin + emby),其中一台下线时 MP 的代理接口会对它返回 502;
+      // 原先固定只问传入的那一台,导致「继续观看」整块空白。
+      // 现在依次尝试(传入的优先),第一个返回 200 的胜出。
+      final candidates = <String>[
+        if (serverName.isNotEmpty) serverName,
+        ...mediaServers.value
+            .where((server) => server.enabled)
+            .map((server) => server.name),
+      ];
+      for (final name in candidates.toSet()) {
+        final response = await apiClient.get<dynamic>(
+          '/api/v1/mediaserver/playing?server=$name',
+        );
+        if (response.statusCode != 200) {
+          talker.warning('服务器 $name 正在播放加载失败: ${response.statusCode}');
+          continue;
         }
+        final parsed = _parsePlayingPayload(response.data);
+        if (parsed == null) {
+          talker.warning('服务器 $name 正在播放数据格式异常');
+          continue;
+        }
+        playingMedia.value = parsed;
+        return;
       }
+      playingMedia.value = null;
     } catch (e, st) {
       talker.handle(e, stackTrace: st, message: '加载正在播放的媒体失败');
       playingMedia.value = null;
     } finally {
       isLoading.value = false;
     }
+  }
+
+  /// 解析「正在播放」响应:兼容裸数组、{success,data:[...]} 与单条对象三种形状
+  /// (v2 多为裸数组,v3 为信封包装)。
+  List<LatestMedia>? _parsePlayingPayload(dynamic data) {
+    List<dynamic>? list;
+    if (data is List) {
+      list = data;
+    } else if (data is Map) {
+      final inner = data['data'];
+      if (inner is List) {
+        list = inner;
+      } else if (inner is Map) {
+        list = [inner];
+      }
+    }
+    if (list == null) return null;
+    return list
+        .whereType<Map>()
+        .map((item) => LatestMedia.fromJson(Map<String, dynamic>.from(item)))
+        .toList();
   }
 }
