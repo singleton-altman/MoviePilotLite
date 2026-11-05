@@ -28,6 +28,15 @@ class NativeSurfaceEngine implements PlayerEngine {
   /// （远端抓取 0 失败、244MB/31s）。copy 路径把解码帧拷回内存再上屏，稳。
   static bool decodeCompatMode = true;
 
+  /// 杜比视界 Profile 5 强制软解(2026-10-24 真机实证)。
+  ///
+  /// P5 是单层 IPTPQc2、没有 HDR10 基础层,必须由 libplacebo 做 reshaping 才能
+  /// 正确显示;而 MediaCodec 硬解出来的帧**不携带杜比 RPU 元数据**,
+  /// libplacebo 拿不到就只能当普通 HEVC 处理 → 整片偏绿。
+  /// 软解(FFmpeg)会把 RPU 作为 side data 交给 libplacebo,颜色恢复正常。
+  /// 只对 P5 生效(P7/P8.1 有 HDR10 基础层,硬解没问题,不要浪费 CPU)。
+  static bool forceSoftwareDecode = false;
+
   MethodChannel? _channel;
   final StreamController<PlayerState> _stateController =
       StreamController<PlayerState>.broadcast();
@@ -117,8 +126,11 @@ class NativeSurfaceEngine implements PlayerEngine {
         // 不让异步 create 携带的旧 autoPlay 在后台短暂开播。
         'autoPlay': false,
         // 硬解路径由 Dart 侧决定（Kotlin 的 create 接受 hwdec 参数）：
-        // 直连 vs copy 的差别在真机上很实在，见 decodeCompatMode 的注释
-        'hwdec': decodeCompatMode ? 'mediacodec-copy' : 'mediacodec',
+        // 直连 vs copy 的差别在真机上很实在，见 decodeCompatMode 的注释；
+        // 杜比视界 P5 必须软解，否则 RPU 丢失 → 偏绿（见 forceSoftwareDecode）。
+        'hwdec': forceSoftwareDecode
+            ? 'no'
+            : (decodeCompatMode ? 'mediacodec-copy' : 'mediacodec'),
       });
       if (_disposed || revision != _createRevision || channel != _channel) return;
       AppLog.i('NativeSurface', 'mpv create: ok=$ok url=${url.length > 60 ? '…' : url}');

@@ -169,11 +169,16 @@ class _MediaLibraryBrowserPageState extends State<MediaLibraryBrowserPage> {
 
   /// kit 浏览网格点条目:优先打开 MP 媒体详情页(观感与 Emby/Jellyfin 一致),
   /// 同时携带媒体服务器条目上下文,详情页播放区可直连起播;返回 false 交给
-  /// kit 默认详情页。
+  /// kit 默认详情页(无 TMDB 映射的条目)。
   ///
   /// 飞牛条目不带 TMDB 标识(API 只给 imdb_id),所以无标识时先按
   /// 标题+年份+类型查一次 MP 媒体身份,命中才跳 MP 详情页。
   Future<bool> _openItemDetail(kit.MediaItem item) async {
+    // 合集(BoxSet)交给播放器自己的合集详情页:它会列出合集内的影视。
+    // 合集携带的是"合集级 TMDB 标识",拿它去查 MP 媒体详情会返回不完整数据
+    // (2026-10-10 v3 真机实测:合集点进去显示「请求错误 · 媒体信息不完整」,
+    //  而且会渲染出一个点了必然失败的播放入口)。
+    if (item.isBoxSet) return false;
     final path = await _resolveMediaPath(item);
     if (path == null) return false;
     PlayerLaunchController.to.resumeContexts[path] = ResumeContext(

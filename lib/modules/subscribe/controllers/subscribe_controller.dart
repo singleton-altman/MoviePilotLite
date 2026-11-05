@@ -9,6 +9,7 @@ import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_models.dart
 import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_submit_resp.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
+import 'package:moviepilot_mobile/services/ios_shared_session_service.dart';
 import 'package:moviepilot_mobile/services/hive_service.dart';
 import 'package:moviepilot_mobile/services/server_api_version_service.dart';
 import 'package:moviepilot_mobile/utils/media_identity_util.dart';
@@ -132,6 +133,9 @@ class SubscribeController extends GetxController {
   }
 
   Future<void> _notifyMultifunctionSubscribeChanged() async {
+    if (Get.isRegistered<IosSharedSessionService>()) {
+      Get.find<IosSharedSessionService>().reloadWidgets();
+    }
     if (!Get.isRegistered<MultifunctionController>()) return;
     final controller = Get.find<MultifunctionController>();
     await controller.refreshSubscribeSection();

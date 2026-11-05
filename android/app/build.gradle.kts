@@ -87,6 +87,8 @@ flutter {
 
 dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
+    // 订阅日历小组件后台刷新（登录、日期变化、周期任务）
+    implementation("androidx.work:work-runtime-ktx:2.10.1")
     // ── 内嵌播放器(lanplayer_player)Exo+FFmpeg 双内核原生依赖 ──
     implementation("androidx.media3:media3-exoplayer:1.8.0")
     implementation("androidx.media3:media3-exoplayer-hls:1.8.0")

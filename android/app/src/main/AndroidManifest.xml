@@ -56,6 +56,21 @@
         <activity-alias android:name=".MainActivityMono" android:enabled="false" android:exported="true" android:icon="@drawable/app_icon_mono" android:targetActivity=".MainActivity">
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
         </activity-alias>
+        <!-- 订阅日历桌面小组件：系统更新时只做本地渲染，网络刷新交给 WorkManager -->
+        <receiver
+            android:name=".widget.SubscribeCalendarWidgetProvider"
+            android:exported="false"
+            android:label="@string/widget_subscribe_calendar_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/subscribe_calendar_widget_info" />
+        </receiver>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

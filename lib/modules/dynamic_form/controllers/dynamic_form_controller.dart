@@ -36,7 +36,17 @@ class DynamicFormController extends GetxController {
   final _appService = Get.find<AppService>();
   final _jpushService = Get.find<JPushService>();
   final _log = Get.find<AppLog>();
-  static const _appLitePushRunPath = '/api/v1/plugin/AppPushMsg/run';
+  static const _appLitePushFallbackPluginId = 'AppPushMsg';
+
+  /// 插件可能以克隆实例的 id 安装，测试路径必须跟随当前表单的插件标识。
+  String get _appLitePushRunPath {
+    final key = pluginId?.trim();
+    final resolved = key == null || key.isEmpty
+        ? _appLitePushFallbackPluginId
+        : key;
+    return '/api/v1/plugin/$resolved/run';
+  }
+
   static final _appLitePushApiKeyPattern = RegExp(
     r'''apikey\s*:\s*['"]([^'"]+)['"]''',
   );
@@ -571,11 +581,14 @@ class DynamicFormController extends GetxController {
       final status = response.statusCode ?? 0;
       final responseMap = _extractMap(response.data);
       final responseCode = responseMap?['code'];
+      final explicitSuccess = responseMap?['success'];
       final success =
           status < 400 &&
-          (responseCode == null ||
-              (responseCode is num && responseCode.toInt() == 0) ||
-              responseCode.toString() == '0');
+          (explicitSuccess is bool
+              ? explicitSuccess
+              : responseCode == null ||
+                    (responseCode is num && responseCode.toInt() == 0) ||
+                    responseCode.toString() == '0');
       final message =
           _extractResponseMessage(response.data) ??
           (success ? '消息发送成功' : '操作失败');

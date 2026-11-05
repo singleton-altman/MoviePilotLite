@@ -85,6 +85,17 @@ subtitle_style_sheet.dart 各 1 处；宿主 pubspec 用 file_picker 11.x）。
 为宿主门面。`LanPlayerKit.ensureInitialized()` 负责包内存储初始化（原 lanplayer `main()`
 里的初始化搬到此处）。
 
+## 9.1 合集（BoxSet）的宿主钩子要一路传下去（media_library_screen.dart）
+
+**问题**：`_openItem` 里"合集 → 用 LibraryItemsScreen 列出成员"这一跳原先没把
+`onOpenItem` 传下去，于是**合集内的条目**会走播放器自己的详情页；而宿主（MP）的约定是
+"库条目打开 MP 媒体详情页"，从合集点进去的影片表现不一致（2026-10-10 MP 内嵌实测）。
+
+**修法**：该 push 处补 `onOpenItem: widget.onOpenItem`，让合集成员点击同样先经过宿主钩子
+（宿主返回 false 时才回落到播放器自己的详情页）。宿主侧对应地在媒体库浏览页对
+`item.isBoxSet` 直接返回 false —— 合集本身必须用这个成员列表页，而不是 MP 详情页
+（合集携带的是"合集级 TMDB 标识"，拿去查 MP 详情会返回不完整数据、并渲染出必然失败的播放入口）。
+
 ## 9.5 媒体服务器「本机账号」（宿主侧，最关键的一条）
 
 **问题本质（2026-09-27 三轮实证）**：Emby/Jellyfin **只对「用户登录令牌」建立的

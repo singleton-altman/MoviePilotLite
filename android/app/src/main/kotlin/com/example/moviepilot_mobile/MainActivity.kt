@@ -11,6 +11,9 @@ import com.lanplayer.ExoFFmpegPlugin
 import com.lanplayer.IsoPlugin
 import com.lanplayer.LibassPlugin
 import com.lanplayer.MpvSurfacePlatformViewFactory
+import com.example.moviepilot_mobile.widget.SubscribeCalendarRefreshScheduler
+import com.example.moviepilot_mobile.widget.SubscribeCalendarWidgetRenderer
+import com.example.moviepilot_mobile.widget.WidgetSessionStore
 import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -20,6 +23,10 @@ import java.io.File
 class MainActivity : FlutterActivity() {
     private val appUpdateChannel = "org.moviepilot/app_update"
     private val appIconChannel = "org.moviepilot/app_icon"
+    private val widgetSessionChannel = "org.moviepilot/ios_shared_session"
+    private val widgetNavigationChannelName = "org.moviepilot/widget_navigation"
+    private var widgetNavigationChannel: MethodChannel? = null
+    private var pendingWidgetRoute: String? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -54,6 +61,72 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+
+        pendingWidgetRoute = widgetRouteFromIntent(intent)
+        // ── 桌面小组件共享会话：登录/切换账号时写入凭证并触发刷新 ──
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, widgetSessionChannel).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "saveSharedSession" -> {
+                    WidgetSessionStore.saveSession(
+                        this,
+                        call.argument<String>("server").orEmpty(),
+                        call.argument<String>("accessToken").orEmpty(),
+                    )
+                    refreshWidgets()
+                    result.success(null)
+                }
+                "clearSharedSession" -> {
+                    WidgetSessionStore.clearSession(this)
+                    SubscribeCalendarWidgetRenderer.renderAll(this)
+                    result.success(null)
+                }
+                // 站点概览小组件目前仅 iOS 实现
+                "saveSiteWidgetPayload" -> result.success(null)
+                "reloadWidgets" -> {
+                    refreshWidgets()
+                    result.success(null)
+                }
+                else -> result.notImplemented()
+            }
+        }
+        widgetNavigationChannel =
+            MethodChannel(flutterEngine.dartExecutor.binaryMessenger, widgetNavigationChannelName).also { channel ->
+                channel.setMethodCallHandler { call, result ->
+                    when (call.method) {
+                        "getPendingWidgetRoute" -> {
+                            result.success(pendingWidgetRoute)
+                            pendingWidgetRoute = null
+                        }
+                        else -> result.notImplemented()
+                    }
+                }
+            }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val route = widgetRouteFromIntent(intent) ?: return
+        pendingWidgetRoute = route
+        val channel = widgetNavigationChannel
+        if (channel != null) {
+            channel.invokeMethod("openWidgetRoute", route)
+            pendingWidgetRoute = null
+        }
+    }
+
+    private fun refreshWidgets() {
+        SubscribeCalendarWidgetRenderer.renderAll(this)
+        SubscribeCalendarRefreshScheduler.ensurePeriodic(this)
+        SubscribeCalendarRefreshScheduler.requestImmediateRefresh(this)
+    }
+
+    private fun widgetRouteFromIntent(intent: Intent?): String? {
+        val data = intent?.data
+        if (data != null && data.scheme == "moviepilot") return data.toString()
+        val raw = intent?.getStringExtra("route")?.trim().orEmpty()
+        if (raw.isEmpty()) return null
+        return if (raw.startsWith("moviepilot://")) raw else "moviepilot://$raw"
     }
 
     private fun setAppIcon(iconId: String): Boolean {
@@ -77,11 +150,6 @@ class MainActivity : FlutterActivity() {
             )
         }
         return true
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        setIntent(intent)
     }
 
     private fun installApk(path: String): String {

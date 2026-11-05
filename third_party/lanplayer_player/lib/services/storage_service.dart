@@ -127,6 +127,10 @@ class StorageService {
   static const String danmakuUrlKey = 'danmaku_url';
   static const String danmakuApiKey = 'danmaku_api_key';
 
+  /// 播放页弹幕开关的"上次使用状态"。每次进播放页都读它，
+  /// 没有记录时才回落到设置里的默认值(enableDanmakuByDefault)。
+  static const String danmakuEnabledKey = 'danmaku_enabled_last';
+
   /// 媒体库缓存前缀，实际 key 为 "media_library_cache_<serverId>"
   static const String mediaLibraryCachePrefix = 'media_library_cache_';
 }

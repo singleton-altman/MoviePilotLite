@@ -7,6 +7,7 @@ import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_models.dart
 import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_submit_resp.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
 import 'package:moviepilot_mobile/services/app_service.dart';
+import 'package:moviepilot_mobile/services/ios_shared_session_service.dart';
 import 'package:moviepilot_mobile/services/server_api_version_service.dart';
 import 'package:moviepilot_mobile/utils/media_identity_util.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
@@ -221,7 +222,9 @@ class SubscribeService extends GetxService {
       final requestPayload = await prepareSubscribePayload(payload);
       final response = await _apiClient.post(path, data: requestPayload);
       if (response.statusCode == 200) {
-        return SubscribeSubmitResp.fromJson(response.data);
+        final result = SubscribeSubmitResp.fromJson(response.data);
+        if (result.success == true) _refreshCalendarWidget();
+        return result;
       }
       return SubscribeSubmitResp(success: false, message: '请求失败');
     } catch (e) {
@@ -329,13 +332,24 @@ class SubscribeService extends GetxService {
         'season': season,
       },
     );
-    return response.statusCode == 200 && response.data['success'] == true;
+    final ok =
+        response.statusCode == 200 && response.data['success'] == true;
+    if (ok) _refreshCalendarWidget();
+    return ok;
   }
 
   Future<bool> deleteSubscribes(String id) async {
     if (!_ensureCanSubscribe()) return false;
     final response = await _apiClient.delete('/api/v1/subscribe/$id');
-    return response.statusCode == 200 && response.data['success'] == true;
+    final ok =
+        response.statusCode == 200 && response.data['success'] == true;
+    if (ok) _refreshCalendarWidget();
+    return ok;
+  }
+
+  void _refreshCalendarWidget() {
+    if (!Get.isRegistered<IosSharedSessionService>()) return;
+    Get.find<IosSharedSessionService>().reloadWidgets();
   }
 
   /// GET /api/v1/subscribe/history/{mtype}?page=&count=
