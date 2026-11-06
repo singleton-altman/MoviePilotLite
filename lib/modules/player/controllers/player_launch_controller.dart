@@ -423,6 +423,9 @@ class PlayerLaunchController extends GetxService {
       case 'jellyfin':
         return kit.ServerType.jellyfin;
       case 'fnos':
+      // MoviePilot v3 把飞牛影视的服务端类型叫 trimemedia；不认识会被
+      // 默认分支当成 emby，拿飞牛的地址按 Emby 协议请求，媒体库全是错的。
+      case 'trimemedia':
         return kit.ServerType.fnos;
       case 'plex':
         return kit.ServerType.plex;

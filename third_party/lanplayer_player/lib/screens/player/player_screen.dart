@@ -180,8 +180,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
   List<Map<String, dynamic>> _fullSubtitleTracks = [];
   // 是否已展开显示全部字幕轨（默认只显示 中/英/默认轨）
   bool _showAllSubtitleTracks = false;
-  // 位图字幕（PGS/SUP）提示是否已弹出（轨道轮询会多次进入此块，只提示一次）
-  bool _bitmapWarned = false;
   int _currentAudioIndex = 0;
   List<Map<String, dynamic>> _audioTracks = [];
 
@@ -885,10 +883,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
         final serverSubsAll =
             _activeMedia.subtitleTracks ?? const <Map<String, dynamic>>[];
         final serverSubs = serverSubsAll.where((t) {
-          // 图片字幕（PGS/DVDsub 等）无法走文本渲染管线，不提供假选项
-          final c = (t['Codec'] ?? '').toString().toLowerCase();
-          return !['pgssub', 'dvdsub', 'hdmv_pgs_subtitle', 'dvb_subtitle', 's_avi']
-              .contains(c);
+          // 图片字幕（PGS/DVDsub 等）无法走文本渲染管线，不提供假选项。
+          // 编码名各服务端写法不一：Emby 用 PGSSUB，飞牛用 codec_name =
+          // hdmv_pgs_subtitle，这里统一取三种键并放宽匹配。
+          final c = (t['Codec'] ?? t['codec'] ?? t['codec_name'] ?? '')
+              .toString()
+              .toLowerCase();
+          if (c.contains('pgs') || c.contains('dvdsub')) return false;
+          return !['dvb_subtitle', 's_avi'].contains(c);
         }).toList();
 
         // 命名与详情页 TrackSelectorSheet 同一实现(trackDisplayTitle):
@@ -922,6 +924,21 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
           }
           map['nativeIndex'] = nativeIndex;
           merged.add(map);
+        }
+        // 顺序兜底：语言/编码都对不上时（飞牛 + mpv 常不给 language，靠语言
+        // 永远配不上），按文本轨出现顺序把剩余服务端轨与引擎轨一一对应。
+        // 不做这步，这些轨会被当成「纯服务端轨」走去按 Emby 端点下载 ——
+        // 飞牛没有该端点，于是明明能原生直切的字幕却弹「字幕下载失败」。
+        final unpaired =
+            merged.where((m) => m['nativeIndex'] == null).toList();
+        if (unpaired.isNotEmpty && engineLeft.isNotEmpty) {
+          final n = unpaired.length < engineLeft.length
+              ? unpaired.length
+              : engineLeft.length;
+          for (var k = 0; k < n; k++) {
+            unpaired[k]['nativeIndex'] = engineLeft[k];
+          }
+          engineLeft.removeRange(0, n);
         }
         // 引擎独有轨（服务器 MediaStreams 漏报的内嵌轨）兜底追加；
         // 引擎 title 常为 null/占位串，同样走 trackDisplayTitle 规范命名
@@ -1060,22 +1077,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
         if (!_subtitlePrefetched) {
           _prefetchServerSubtitles(merged);
         }
-        // 检测位图字幕（PGS/DVDsub 等）并提示用户（只提示一次）
-        final hasBitmap = subtitles.any((t) => t['isBitmap'] == true);
-        if (hasBitmap && !_bitmapWarned) {
-          _bitmapWarned = true;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('检测到图片字幕(PGS/SUP)，可能无法显示。建议使用外挂 SRT/ASS 字幕'),
-                  duration: const Duration(seconds: 5),
-                  action: SnackBarAction(label: '知道了', onPressed: () {}),
-                ),
-              );
-            }
-          });
-        }
+        // 位图字幕（PGS/SUP）早已能由两个内核原生渲染（mpv/libplacebo 与
+        // Media3 PgsDecoder 均支持），原先这里会在进入播放时弹「检测到图片
+        // 字幕，可能无法显示」的提示——实测 PGS 显示正常，提示只会误导用户
+        // （2026-10-24 用户反馈），已移除。
       }
       // ExoPlayer 文本轨可能远晚于时长才就绪（慢速 NAS/大文件索引解析），
       // 甚至首次拿到的列表为空后就不再刷新 → 内嵌字幕轨永远进不了面板。
@@ -2475,6 +2480,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
     try {
       final svc = widget.service;
       if (svc == null) return null;
+      // 飞牛等服务器没有 Emby 的字幕端点，字幕只能靠引擎原生轨直切。
+      // 走到这里说明没有配对到原生轨，直接给明确原因，别去发注定 404 的请求。
+      if (!svc.supportsServerSubtitleDownload) {
+        _subtitleDownloadError = '该媒体服务器不支持单独导出字幕，请使用内置字幕轨';
+        AppLog.w('Player', '跳过服务端字幕下载: ${svc.runtimeType} 无字幕导出端点');
+        return null;
+      }
       final codec = (track['Codec'] ?? track['codec'] ?? '').toString().toLowerCase();
       final ext = switch (codec) {
         'ass' || 'ssa' => 'ass',

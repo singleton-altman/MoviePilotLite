@@ -130,8 +130,11 @@ class _DetailPlaySectionState extends State<DetailPlaySection> {
       final launch = PlayerLaunchController.to;
       final servers = await launch.enabledServers();
       MediaServer? match;
+      final want = (resume.serverName ?? '').trim().toLowerCase();
       for (final s in servers) {
-        if (s.name == resume.serverName) {
+        // 上下文的 serverName 可能来自 MP 的服务端**类型**(trimemedia/emby),
+        // 也可能来自播放器服务器**名字**(飞牛)。按名字或类型都能匹配上。
+        if (s.name.toLowerCase() == want || s.type.toLowerCase() == want) {
           match = s;
           break;
         }
@@ -510,8 +513,10 @@ class _DetailPlaySectionState extends State<DetailPlaySection> {
     try {
       final servers = await launch.enabledServers();
       MediaServer? match;
+      final want = serverName.trim().toLowerCase();
       for (final s in servers) {
-        if (s.name == serverName) {
+        // 同 _refreshResumeProgress：serverName 可能是服务端类型或显示名
+        if (s.name.toLowerCase() == want || s.type.toLowerCase() == want) {
           match = s;
           break;
         }

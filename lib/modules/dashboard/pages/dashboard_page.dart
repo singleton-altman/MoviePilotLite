@@ -445,6 +445,9 @@ class DashboardPage extends GetView<DashboardController> {
                   arguments: {
                     'libraryId': library.id,
                     'libraryName': library.name,
+                    // 库所属媒体服务器:v3 常同时配多台(jellyfin + emby),
+                    // 带上它才能保证「点哪台的库就打开哪台」
+                    'serverName': library.server,
                   },
                 );
                 return;
