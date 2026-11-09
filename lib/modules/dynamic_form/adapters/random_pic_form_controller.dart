@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart' as dio;
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
+import 'package:moviepilot_mobile/utils/toast_util.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/adapters/plugin_form_adapter.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/models/dynamic_form_models.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/models/form_block_models.dart';
@@ -59,6 +61,23 @@ class RandomPicFormController extends GetxController
 
   /// 当前配置（保存与启停都会以它为基准，避免漏字段被服务端清空）
   final config = Rxn<RandomPicConfig>();
+
+  /// 访问统计（GET /visits）
+  final visits = Rxn<RandomPicVisits>();
+
+  /// 图源测速结果（GET /ping）
+  final pings = <String, RandomPicPing>{}.obs;
+
+  /// 网络图片下载任务状态（GET /download/status）
+  final downloadStatus = Rxn<RandomPicDownloadStatus>();
+
+  /// 候选下载地址（GET /download/candidates）
+  final candidates = <String>[].obs;
+
+  final pinging = false.obs;
+  final startingDownload = false.obs;
+
+  Timer? _downloadTimer;
 
   @override
   bool get supportsSave => formMode;
@@ -125,7 +144,8 @@ class RandomPicFormController extends GetxController
       }
       final parsed = RandomPicStatus.fromJson(statusMap);
       status.value = parsed;
-      blocks.assignAll(RandomPicConverter.convertPage(status: parsed));
+      await _loadPageExtras(token);
+      _rebuildBlocks();
       formModel.value = {};
     } catch (e, st) {
       _log.handle(e, stackTrace: st, message: '获取 RandomPic 数据失败');
@@ -135,6 +155,191 @@ class RandomPicFormController extends GetxController
     } finally {
       isLoading.value = false;
     }
+  }
+
+  /// 展示页附加数据：访问统计 + 下载任务状态（失败不影响主页面）
+  Future<void> _loadPageExtras(String token) async {
+    try {
+      final resp = await _apiClient.get<dynamic>(
+        '$_basePath/visits',
+        token: token,
+      );
+      final map = _extractMap(resp.data);
+      if (map != null) visits.value = RandomPicVisits.fromJson(map);
+    } catch (e, st) {
+      _log.handle(e, stackTrace: st, message: '获取 RandomPic 访问统计失败');
+    }
+    await _refreshDownloadStatus(token);
+  }
+
+  void _rebuildBlocks() {
+    final current = status.value;
+    if (current == null) return;
+    final list = <FormBlock>[
+      ...RandomPicConverter.convertPage(
+        status: current,
+        visits: visits.value,
+        pings: pings,
+        downloadStatus: downloadStatus.value,
+      ),
+      if (visits.value != null)
+        ...RandomPicConverter.convertVisits(visits.value!),
+      ...RandomPicConverter.convertDownloadStatus(
+        downloadStatus.value ??
+            const RandomPicDownloadStatus(),
+      ),
+      ...RandomPicConverter.convertPings(pings),
+    ];
+    blocks.assignAll(list);
+  }
+
+  Future<void> _refreshDownloadStatus(String token) async {
+    try {
+      final resp = await _apiClient.get<dynamic>(
+        '$_basePath/download/status',
+        token: token,
+      );
+      final map = _extractMap(resp.data);
+      if (map == null) return;
+      final parsed = RandomPicDownloadStatus.fromJson(map);
+      downloadStatus.value = parsed;
+      if (parsed.running) {
+        _startDownloadPolling();
+      } else {
+        _stopDownloadPolling();
+      }
+    } catch (e, st) {
+      _log.handle(e, stackTrace: st, message: '获取 RandomPic 下载状态失败');
+    }
+  }
+
+  void _startDownloadPolling() {
+    _downloadTimer?.cancel();
+    _downloadTimer = Timer.periodic(const Duration(seconds: 2), (_) async {
+      final token = _getToken();
+      if (token == null || token.isEmpty) return;
+      await _refreshDownloadStatus(token);
+      _rebuildBlocks();
+    });
+  }
+
+  void _stopDownloadPolling() {
+    _downloadTimer?.cancel();
+    _downloadTimer = null;
+  }
+
+  /// 图源连通性测速
+  Future<bool> pingSources() async {
+    final token = _getToken();
+    if (token == null || token.isEmpty) return false;
+    pinging.value = true;
+    try {
+      final resp = await _apiClient.get<dynamic>(
+        '$_basePath/ping',
+        token: token,
+      );
+      final map = _extractMap(resp.data);
+      final data = map?['data'];
+      if (data is Map) {
+        final result = <String, RandomPicPing>{};
+        for (final entry in data.entries) {
+          if (entry.value is Map) {
+            result[entry.key.toString()] = RandomPicPing.fromJson(
+              Map<String, dynamic>.from(entry.value as Map),
+            );
+          }
+        }
+        pings.assignAll(result);
+        _rebuildBlocks();
+        return true;
+      }
+      ToastUtil.error(map?['message']?.toString() ?? '测速失败');
+      return false;
+    } catch (e, st) {
+      _log.handle(e, stackTrace: st, message: 'RandomPic 图源测速失败');
+      ToastUtil.error('测速失败，请稍后重试');
+      return false;
+    } finally {
+      pinging.value = false;
+    }
+  }
+
+  /// 获取候选下载地址
+  Future<List<String>> loadCandidates({
+    String source = 'both',
+    int count = 30,
+  }) async {
+    final token = _getToken();
+    if (token == null || token.isEmpty) return const [];
+    try {
+      final resp = await _apiClient.get<dynamic>(
+        '$_basePath/download/candidates?source=$source&count=$count',
+        token: token,
+      );
+      final map = _extractMap(resp.data);
+      final data = map?['data'];
+      final urls = <String>[];
+      if (data is Map && data['urls'] is List) {
+        for (final url in data['urls'] as List) {
+          final text = url?.toString() ?? '';
+          if (text.startsWith('http')) urls.add(text);
+        }
+      }
+      candidates.assignAll(urls);
+      return urls;
+    } catch (e, st) {
+      _log.handle(e, stackTrace: st, message: '获取 RandomPic 候选图片失败');
+      return const [];
+    }
+  }
+
+  /// 启动网络图片下载；[urls] 为空时按 [source]/[count] 由插件自行解析
+  Future<RandomPicActionResult> startDownload({
+    List<String>? urls,
+    String source = 'both',
+    int? count,
+  }) async {
+    final token = _getToken();
+    if (token == null || token.isEmpty) {
+      return const RandomPicActionResult(false, '请先登录');
+    }
+    startingDownload.value = true;
+    try {
+      final body = <String, dynamic>{
+        if (urls != null && urls.isNotEmpty) 'urls': urls,
+        if (urls == null || urls.isEmpty) 'source': source,
+        if (urls == null || urls.isEmpty) 'count': count ?? 20,
+      };
+      final resp = await _apiClient.postJson<dynamic>(
+        '$_basePath/download',
+        body,
+        token: token,
+      );
+      final map = _extractMap(resp.data);
+      final ok = (resp.statusCode ?? 0) < 400 && map?['success'] != false;
+      final message =
+          map?['msg']?.toString() ?? map?['message']?.toString() ?? '';
+      if (ok) {
+        await _refreshDownloadStatus(token);
+        _startDownloadPolling();
+        _rebuildBlocks();
+      }
+      return RandomPicActionResult(
+        ok,
+        message.isEmpty ? (ok ? '下载任务已启动' : '启动失败') : message,
+      );
+    } catch (e, st) {
+      _log.handle(e, stackTrace: st, message: '启动 RandomPic 下载失败');
+      return const RandomPicActionResult(false, '启动失败，请稍后重试');
+    } finally {
+      startingDownload.value = false;
+    }
+  }
+
+  @override
+  void onClose() {
+    _stopDownloadPolling();
+    super.onClose();
   }
 
   @override

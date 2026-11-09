@@ -121,6 +121,9 @@ class RandomPicConfig {
     required this.downloadCount,
     this.defaultPcPath = '',
     this.defaultMobilePath = '',
+    // v3.x 新增字段：不随请求回传会被服务端重置为默认值
+    this.networkFirst = false,
+    this.dashboardEnable = true,
   });
 
   factory RandomPicConfig.fromJson(Map<String, dynamic> json) {
@@ -136,6 +139,8 @@ class RandomPicConfig {
           : _intOf(json['download_count']),
       defaultPcPath: _stringOf(json['default_pc_path']),
       defaultMobilePath: _stringOf(json['default_mobile_path']),
+      networkFirst: json['network_first'] == true,
+      dashboardEnable: json['dashboard_enable'] != false,
     );
   }
 
@@ -149,6 +154,12 @@ class RandomPicConfig {
   final String defaultPcPath;
   final String defaultMobilePath;
 
+  /// 网络图源优先（RandomPic v3.x 新增，保存时必须回传否则会被重置）
+  final bool networkFirst;
+
+  /// 是否在首页仪表盘展示统计卡片（RandomPic v3.x 新增）
+  final bool dashboardEnable;
+
   RandomPicConfig copyWith({bool? enable}) {
     return RandomPicConfig(
       enable: enable ?? this.enable,
@@ -160,6 +171,8 @@ class RandomPicConfig {
       downloadCount: downloadCount,
       defaultPcPath: defaultPcPath,
       defaultMobilePath: defaultMobilePath,
+      networkFirst: networkFirst,
+      dashboardEnable: dashboardEnable,
     );
   }
 
@@ -172,6 +185,8 @@ class RandomPicConfig {
       'network_image_url_mobile': networkImageUrlMobile,
       'network_image_url': networkImageUrl,
       'download_count': downloadCount,
+      'network_first': networkFirst,
+      'dashboard_enable': dashboardEnable,
     };
   }
 
@@ -186,6 +201,8 @@ class RandomPicConfig {
       downloadCount: _intOf(model['download_count']) == 0
           ? 20
           : _intOf(model['download_count']),
+      networkFirst: model['network_first'] == true,
+      dashboardEnable: model['dashboard_enable'] != false,
     );
   }
 
@@ -198,6 +215,8 @@ class RandomPicConfig {
       'network_image_url_mobile': networkImageUrlMobile,
       'network_image_url': networkImageUrl,
       'download_count': downloadCount.toString(),
+      'network_first': networkFirst,
+      'dashboard_enable': dashboardEnable,
     };
   }
 }
@@ -205,6 +224,158 @@ class RandomPicConfig {
 String _stringOf(Object? value) {
   if (value == null) return '';
   return value.toString();
+}
+
+/// 访问记录（GET /visits → recent）
+class RandomPicVisit {
+  const RandomPicVisit({
+    required this.time,
+    required this.endpoint,
+    required this.type,
+    required this.source,
+    required this.domain,
+    required this.imageSource,
+    required this.ok,
+    required this.elapsedMs,
+  });
+
+  factory RandomPicVisit.fromJson(Map<String, dynamic> json) {
+    return RandomPicVisit(
+      time: _stringOf(json['time']),
+      endpoint: _stringOf(json['endpoint']),
+      type: _stringOf(json['type']),
+      source: _stringOf(json['source']),
+      domain: _stringOf(json['domain']),
+      imageSource: _stringOf(json['img']),
+      ok: json['ok'] != false,
+      elapsedMs: _intOf(json['elapsed_ms']),
+    );
+  }
+
+  final String time;
+  final String endpoint;
+  final String type;
+  final String source;
+  final String domain;
+  final String imageSource;
+  final bool ok;
+  final int elapsedMs;
+}
+
+/// 每日访问量（GET /visits → daily）
+class RandomPicDailyVisit {
+  const RandomPicDailyVisit({
+    required this.date,
+    required this.label,
+    required this.count,
+  });
+
+  factory RandomPicDailyVisit.fromJson(Map<String, dynamic> json) {
+    return RandomPicDailyVisit(
+      date: _stringOf(json['date']),
+      label: _stringOf(json['label']),
+      count: _intOf(json['count']),
+    );
+  }
+
+  final String date;
+  final String label;
+  final int count;
+}
+
+/// 访问统计（GET /visits）
+class RandomPicVisits {
+  const RandomPicVisits({this.recent = const [], this.daily = const []});
+
+  factory RandomPicVisits.fromJson(Map<String, dynamic> json) {
+    final recentRaw = json['recent'];
+    final dailyRaw = json['daily'];
+    return RandomPicVisits(
+      recent: recentRaw is List
+          ? recentRaw
+                .whereType<Map>()
+                .map((e) => RandomPicVisit.fromJson(Map<String, dynamic>.from(e)))
+                .toList()
+          : const [],
+      daily: dailyRaw is List
+          ? dailyRaw
+                .whereType<Map>()
+                .map(
+                  (e) =>
+                      RandomPicDailyVisit.fromJson(Map<String, dynamic>.from(e)),
+                )
+                .toList()
+          : const [],
+    );
+  }
+
+  final List<RandomPicVisit> recent;
+  final List<RandomPicDailyVisit> daily;
+}
+
+/// 图源测速结果（GET /ping → data 下的各图源字段）
+class RandomPicPing {
+  const RandomPicPing({
+    required this.label,
+    required this.configured,
+    required this.ok,
+    this.ms,
+  });
+
+  factory RandomPicPing.fromJson(Map<String, dynamic> json) {
+    return RandomPicPing(
+      label: _stringOf(json['label']),
+      configured: json['configured'] == true,
+      ok: json['ok'] == true,
+      ms: json['ms'] == null ? null : _intOf(json['ms']),
+    );
+  }
+
+  final String label;
+  final bool configured;
+  final bool ok;
+  final int? ms;
+}
+
+/// 网络图片下载任务状态（GET /download/status）
+class RandomPicDownloadStatus {
+  const RandomPicDownloadStatus({
+    this.running = false,
+    this.total = 0,
+    this.done = 0,
+    this.success = 0,
+    this.failed = 0,
+    this.skipped = 0,
+    this.pcSaved = 0,
+    this.mobileSaved = 0,
+    this.message = '',
+  });
+
+  factory RandomPicDownloadStatus.fromJson(Map<String, dynamic> json) {
+    return RandomPicDownloadStatus(
+      running: json['running'] == true,
+      total: _intOf(json['total']),
+      done: _intOf(json['done']),
+      success: _intOf(json['success']),
+      failed: _intOf(json['failed']),
+      skipped: _intOf(json['skipped']),
+      pcSaved: _intOf(json['pc_saved']),
+      mobileSaved: _intOf(json['mobile_saved']),
+      message: _stringOf(json['message']),
+    );
+  }
+
+  final bool running;
+  final int total;
+  final int done;
+  final int success;
+  final int failed;
+  final int skipped;
+  final int pcSaved;
+  final int mobileSaved;
+  final String message;
+
+  double get progress => total <= 0 ? 0 : (done / total).clamp(0.0, 1.0);
 }
 
 int _intOf(Object? value) {
