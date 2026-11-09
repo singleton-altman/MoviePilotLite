@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:jpush_flutter/jpush_flutter.dart';
 import 'package:jpush_flutter/jpush_interface.dart';
@@ -25,14 +26,41 @@ class JPushSetAliasResult {
   }
 }
 
+class _SetAliasAttempt {
+  const _SetAliasAttempt._({
+    required this.ok,
+    this.errorMessage,
+    this.retryable = false,
+  });
+
+  const _SetAliasAttempt.success() : this._(ok: true);
+
+  factory _SetAliasAttempt.failure(
+    String message, {
+    bool retryable = false,
+  }) => _SetAliasAttempt._(
+    ok: false,
+    errorMessage: message.trim().isEmpty ? '未知错误' : message.trim(),
+    retryable: retryable,
+  );
+
+  final bool ok;
+  final String? errorMessage;
+  final bool retryable;
+}
+
 class JPushService extends GetxService {
   static const String _appKey = 'e462379fa18ab59e31fd7ac2';
   static const String _channel = 'developer-default';
+
+  /// 极光 iResCode：设置超时。官方说明为网络不佳或初始化尚未完成，建议重试。
+  static const int _codeTimeout = 6002;
 
   final AppLog _talker = Get.find<AppLog>();
 
   JPushFlutterInterface? _jpush;
   bool _initialized = false;
+  bool _registrationReady = false;
 
   bool get _isSupportedPlatform =>
       !kIsWeb && (Platform.isAndroid || Platform.isIOS);
@@ -197,6 +225,7 @@ class JPushService extends GetxService {
       try {
         final registrationId = await jpush.getRegistrationID();
         if (registrationId.isNotEmpty) {
+          _registrationReady = true;
           return registrationId;
         }
       } catch (e, stackTrace) {
@@ -216,6 +245,44 @@ class JPushService extends GetxService {
     return null;
   }
 
+  /// 等待 SDK 完成注册（拿得到 registrationID 才算就绪）。
+  ///
+  /// 极光 SDK 的 alias/tag 操作在初始化尚未完成时会直接回 6002 超时，
+  /// 所以设置 Alias 之前先等一小段，超时上限内没就绪就照常尝试。
+  Future<void> _waitUntilRegistered({
+    int maxAttempts = 8,
+    Duration retryDelay = const Duration(milliseconds: 700),
+  }) async {
+    if (_registrationReady) return;
+
+    await register();
+    final jpush = _jpush;
+    if (jpush == null) return;
+
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        final registrationId = await jpush.getRegistrationID();
+        if (registrationId.isNotEmpty) {
+          _registrationReady = true;
+          _talker.info('JPush SDK 已就绪: $registrationId');
+          return;
+        }
+      } catch (e, stackTrace) {
+        _talker.handle(
+          e,
+          stackTrace: stackTrace,
+          message: '等待 JPush 就绪时读取 Registration ID 失败: $e',
+        );
+      }
+
+      if (attempt < maxAttempts - 1) {
+        await Future<void>.delayed(retryDelay);
+      }
+    }
+
+    _talker.warning('等待 JPush SDK 就绪超时，仍继续尝试设置 Alias');
+  }
+
   Future<JPushSetAliasResult> setAlias(String alias) async {
     final normalizedAlias = alias.trim();
     if (normalizedAlias.isEmpty) {
@@ -228,21 +295,19 @@ class JPushService extends GetxService {
       return JPushSetAliasResult.failure('JPush 未初始化（仅支持 iOS / Android）');
     }
 
-    try {
-      final result = await jpush.setAlias(normalizedAlias);
-      final errorCode = result['errorCode'];
-      if (errorCode is num && errorCode != 0) {
-        _talker.warning('设置 JPush Alias 失败: $result');
-        final detail = result['msg'] ??
-            result['message'] ??
-            result['content'] ??
-            result.toString();
-        return JPushSetAliasResult.failure(
-          '极光设置 Alias 失败（错误码 $errorCode）: $detail',
-        );
-      }
-      final appliedAlias = await getAlias();
-      if (appliedAlias != normalizedAlias) {
+    await _waitUntilRegistered();
+
+    const maxAttempts = 3;
+    String? lastError;
+
+    for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+      final outcome = await _setAliasOnce(jpush, normalizedAlias);
+      if (outcome.ok) {
+        final appliedAlias = await getAlias();
+        if (appliedAlias == normalizedAlias) {
+          _talker.info('设置 JPush Alias 成功: $normalizedAlias');
+          return JPushSetAliasResult.success;
+        }
         _talker.warning(
           '设置 JPush Alias 后校验不一致，期望: $normalizedAlias，实际: ${appliedAlias ?? 'null'}',
         );
@@ -250,15 +315,100 @@ class JPushService extends GetxService {
           'Alias 未立即生效（期望: $normalizedAlias，当前: ${appliedAlias ?? '无'}），请检查网络或稍后重试',
         );
       }
-      _talker.info('设置 JPush Alias 成功: $normalizedAlias');
-      return JPushSetAliasResult.success;
+
+      lastError = outcome.errorMessage;
+      if (!outcome.retryable || attempt == maxAttempts) break;
+
+      final delay = Duration(milliseconds: 800 * attempt);
+      _talker.warning(
+        '设置 JPush Alias 第 $attempt 次失败（$lastError），${delay.inMilliseconds}ms 后重试',
+      );
+      await Future<void>.delayed(delay);
+    }
+
+    return JPushSetAliasResult.failure(lastError ?? '设置 JPush Alias 失败');
+  }
+
+  Future<_SetAliasAttempt> _setAliasOnce(
+    JPushFlutterInterface jpush,
+    String alias,
+  ) async {
+    try {
+      final result = await jpush.setAlias(alias);
+      final errorCode = result['errorCode'];
+      if (errorCode is num && errorCode != 0) {
+        return _SetAliasAttempt.failure(
+          _describeAliasError(errorCode.toInt(), result),
+          retryable: errorCode.toInt() == _codeTimeout,
+        );
+      }
+      return const _SetAliasAttempt.success();
+    } on PlatformException catch (e, stackTrace) {
+      _talker.handle(
+        e,
+        stackTrace: stackTrace,
+        message: '设置 JPush Alias 失败: ${e.code} ${e.message}',
+      );
+      final code = _aliasErrorCodeFromPlatformException(e);
+      if (code == null) {
+        return _SetAliasAttempt.failure(_platformExceptionMessage(e));
+      }
+      return _SetAliasAttempt.failure(
+        _describeAliasError(code, const {}),
+        retryable: code == _codeTimeout,
+      );
     } catch (e, stackTrace) {
       _talker.handle(
         e,
         stackTrace: stackTrace,
         message: '设置 JPush Alias 失败: $e',
       );
-      return JPushSetAliasResult.failure(e.toString());
+      return _SetAliasAttempt.failure(e.toString());
+    }
+  }
+
+  /// iOS 原生层把 iResCode 塞进 PlatformException 的 code（形如 "Error 6002"），
+  /// Android 侧则回 errorCode 字段，这里统一把数字抠出来。
+  int? _aliasErrorCodeFromPlatformException(PlatformException e) {
+    final fromDetails = e.details;
+    if (fromDetails is num) return fromDetails.toInt();
+    if (fromDetails is Map) {
+      final v = fromDetails['errorCode'];
+      if (v is num) return v.toInt();
+    }
+    final match = RegExp(r'(\d{4})').firstMatch(e.code);
+    if (match != null) return int.tryParse(match.group(1)!);
+    return null;
+  }
+
+  String _platformExceptionMessage(PlatformException e) {
+    final detail = e.message?.trim();
+    if (detail != null &&
+        detail.isNotEmpty &&
+        !detail.toLowerCase().contains('couldn\'t be completed')) {
+      return detail;
+    }
+    return 'JPush 调用失败（${e.code}），请检查网络后重试';
+  }
+
+  String _describeAliasError(int code, Map<dynamic, dynamic> result) {
+    final detail = result['msg'] ?? result['message'] ?? result['content'];
+    switch (code) {
+      case _codeTimeout:
+        return '极光设置 Alias 超时（6002），通常是网络不稳定或推送服务尚未就绪，请稍后重试';
+      case 6001:
+        return '极光设置 Alias 失败（6001）：参数为空';
+      case 6003:
+        return '极光设置 Alias 失败（6003）：Alias 含不合法字符';
+      case 6004:
+        return '极光设置 Alias 失败（6004）：Alias 超长（最多 40 字节）';
+      case 6011:
+        return '极光设置 Alias 失败（6011）：操作过于频繁，请稍后再试';
+      case 6027:
+        return '极光设置 Alias 失败（6027）：该 Alias 已绑定 10 台设备，请先解绑旧设备';
+      default:
+        final suffix = detail == null ? '' : '：$detail';
+        return '极光设置 Alias 失败（错误码 $code）$suffix';
     }
   }
 
