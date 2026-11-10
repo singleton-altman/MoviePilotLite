@@ -80,18 +80,38 @@ class ChartWidget extends StatelessWidget {
       );
     }
 
-    // 柱状图等其他类型可在此扩展
-    return Center(
-      child: Text(
-        '暂无数据',
-        style: TextStyle(
-          fontSize: 14,
-          color: CupertinoDynamicColor.resolve(
-            CupertinoColors.secondaryLabel,
-            context,
-          ),
-        ),
+    // 折线图 / 柱状图（趋势类数据）
+    return SfCartesianChart(
+      margin: const EdgeInsets.only(top: 8),
+      plotAreaBorderWidth: 0,
+      primaryXAxis: CategoryAxis(
+        majorGridLines: const MajorGridLines(width: 0),
+        labelStyle: const TextStyle(fontSize: 10),
       ),
+      primaryYAxis: NumericAxis(
+        minimum: 0,
+        majorTickLines: const MajorTickLines(size: 0),
+        axisLine: const AxisLine(width: 0),
+        labelStyle: const TextStyle(fontSize: 10),
+      ),
+      tooltipBehavior: TooltipBehavior(enable: true),
+      series: <CartesianSeries<_ChartPoint, String>>[
+        if (chartType == 'line')
+          LineSeries<_ChartPoint, String>(
+            dataSource: data,
+            xValueMapper: (_ChartPoint p, _) => p.label,
+            yValueMapper: (_ChartPoint p, _) => p.value,
+            markerSettings: const MarkerSettings(isVisible: true),
+            dataLabelSettings: const DataLabelSettings(isVisible: true),
+          )
+        else
+          ColumnSeries<_ChartPoint, String>(
+            dataSource: data,
+            xValueMapper: (_ChartPoint p, _) => p.label,
+            yValueMapper: (_ChartPoint p, _) => p.value,
+            dataLabelSettings: const DataLabelSettings(isVisible: true),
+          ),
+      ],
     );
   }
 }

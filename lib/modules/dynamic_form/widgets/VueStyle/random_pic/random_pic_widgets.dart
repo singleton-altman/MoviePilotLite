@@ -6,6 +6,8 @@ import 'package:moviepilot_mobile/modules/dynamic_form/adapters/plugin_form_adap
 import 'package:moviepilot_mobile/modules/dynamic_form/adapters/random_pic_form_controller.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/models/form_block_models.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/models/random_pic_models.dart';
+import 'package:moviepilot_mobile/modules/dynamic_form/services/random_pic_converter.dart';
+import 'package:moviepilot_mobile/modules/dynamic_form/widgets/VueStyle/random_pic/random_pic_download_panel.dart';
 import 'package:moviepilot_mobile/theme/section.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
 
@@ -215,6 +217,20 @@ class _RandomPicPageViewState extends State<RandomPicPageView> {
       if (status != null) {
         sections.add(_SourcesSection(status: status));
         if (!widget.formMode) {
+          final extras = <FormBlock>[
+            if (controller.visits.value != null)
+              ...RandomPicConverter.convertVisits(controller.visits.value!),
+            ...RandomPicConverter.convertPings(controller.pings),
+          ];
+          for (final block in extras) {
+            sections.add(widget.buildBlock(context, block));
+          }
+          sections.add(
+            RandomPicSpeedTestSection(controller: controller),
+          );
+          sections.add(
+            RandomPicDownloadPanel(controller: controller),
+          );
           sections.add(
             _EndpointsSection(status: status, urlBuilder: controller.previewUrl),
           );

@@ -20,16 +20,22 @@ import 'package:moviepilot_mobile/utils/image_util.dart';
 import 'package:moviepilot_mobile/modules/player/controllers/player_launch_controller.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/adapters/plugin_form_adapter_registry.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/adapters/brush_flow_form_controller.dart';
+import 'package:moviepilot_mobile/modules/dynamic_form/adapters/douban_folio_form_controller.dart';
+import 'package:moviepilot_mobile/modules/dynamic_form/adapters/ikuai_router_backup_form_controller.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/adapters/p115_strm_helper_form_controller.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/adapters/proxmox_ve_backup_form_controller.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/adapters/random_pic_form_controller.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/adapters/subtitle_manual_upload_form_controller.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/adapters/trash_clean_form_controller.dart';
+import 'package:moviepilot_mobile/modules/dynamic_form/adapters/vuequark_disk_form_controller.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/widgets/VueStyle/applitepush/app_lite_push_widgets.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/widgets/VueStyle/brush_flow/brush_flow_widgets.dart';
+import 'package:moviepilot_mobile/modules/dynamic_form/widgets/VueStyle/douban_folio/douban_folio_widgets.dart';
+import 'package:moviepilot_mobile/modules/dynamic_form/widgets/VueStyle/ikuai_router_backup/ikuai_router_backup_widgets.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/widgets/VueStyle/proxmox_ve/proxmox_ve_backup_widgets.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/widgets/VueStyle/random_pic/random_pic_widgets.dart';
 import 'package:moviepilot_mobile/modules/dynamic_form/widgets/VueStyle/subtitle_manual_upload/subtitle_manual_upload_widgets.dart';
+import 'package:moviepilot_mobile/modules/dynamic_form/widgets/VueStyle/vuequark_disk/vuequark_disk_widgets.dart';
 
 /// 启动期依赖注册与插件适配器注册。
 Future<void> bootstrapApp() async {
@@ -78,6 +84,19 @@ Future<void> bootstrapApp() async {
       'RandomPic',
       ({required formMode}) => RandomPicFormController(formMode: formMode),
     );
+    PluginFormAdapterRegistry.register(
+      'IkuaiRouterBackup',
+      ({required formMode}) =>
+          IkuaiRouterBackupFormController(formMode: formMode),
+    );
+    PluginFormAdapterRegistry.register(
+      'VueQuarkDisk',
+      ({required formMode}) => VueQuarkDiskFormController(formMode: formMode),
+    );
+    PluginFormAdapterRegistry.register(
+      'DoubanFolio',
+      ({required formMode}) => DoubanFolioFormController(formMode: formMode),
+    );
   } catch (e) {
     debugPrint('Error initializing app: $e');
   }
@@ -87,6 +106,9 @@ Future<void> bootstrapApp() async {
   registerRandomPicRenderer();
   registerSubtitleManualUploadRenderer();
   registerBrushFlowRenderer();
+  registerIkuaiRouterBackupRenderer();
+  registerVueQuarkDiskRenderer();
+  registerDoubanFolioRenderer();
   WidgetsBinding.instance.addObserver(_WidgetRefreshLifecycle());
 }
 
