@@ -1240,200 +1240,8 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
       return const SizedBox.shrink();
     }
 
-    final firstAir = detail.first_air_date ?? detail.release_date;
-    final runtime = _formatRuntime(detail);
-    final country = _formatCountryCodes(detail.origin_country);
-    final languages = _formatLanguages(detail);
-    final networks = _joinNames(
-      detail.networks?.map((network) => network.name),
-    );
-    final companies = _joinNames(
-      detail.production_companies?.map((company) => company.name),
-    );
-    final productionCountries = _joinNames(
-      detail.production_countries?.map((country) => country.name),
-    );
-    final directors = _joinNames(
-      detail.directors?.map((director) => director.name),
-    );
-    final creators = _joinNames(
-      detail.created_by?.map((creator) => creator.name),
-    );
-    final contentRating = _contentRating(detail);
-    final rating = _formatRating(detail);
-    final status = _localizedStatus(detail.status);
-    final type = detail.type?.trim().isNotEmpty == true
-        ? detail.type!.trim()
-        : (_isTv(detail) ? '电视剧' : '电影');
-
-    final facts = <_DetailFact>[
-      _DetailFact(
-        icon: CupertinoIcons.film,
-        label: '类型',
-        value: type,
-        accent: const Color(0xFF60A5FA),
-      ),
-      if (rating != null)
-        _DetailFact(
-          icon: CupertinoIcons.star_fill,
-          label: '评分',
-          value: rating,
-          accent: const Color(0xFFF5C518),
-        ),
-      if (firstAir != null && firstAir.isNotEmpty)
-        _DetailFact(
-          icon: CupertinoIcons.calendar,
-          label: _isTv(detail) ? '首播' : '上映',
-          value: firstAir,
-          accent: const Color(0xFF60A5FA),
-        ),
-      if (detail.last_air_date != null && detail.last_air_date!.isNotEmpty)
-        _DetailFact(
-          icon: CupertinoIcons.clock,
-          label: _isTv(detail) ? '完结' : '最后上映',
-          value: detail.last_air_date!,
-          accent: const Color(0xFF34D399),
-        ),
-      if (detail.number_of_seasons != null && detail.number_of_seasons! > 0)
-        _DetailFact(
-          icon: CupertinoIcons.square_stack_3d_up,
-          label: '季数',
-          value: detail.number_of_seasons!.toString(),
-          accent: const Color(0xFFA78BFA),
-        ),
-      if (detail.number_of_episodes != null && detail.number_of_episodes! > 0)
-        _DetailFact(
-          icon: CupertinoIcons.film,
-          label: '集数',
-          value: detail.number_of_episodes!.toString(),
-          accent: const Color(0xFFA78BFA),
-        ),
-      if (runtime != null && runtime.isNotEmpty)
-        _DetailFact(
-          icon: CupertinoIcons.timer,
-          label: '时长',
-          value: runtime,
-          accent: const Color(0xFFF97316),
-        ),
-      if (status != null)
-        _DetailFact(
-          icon: CupertinoIcons.bolt_circle,
-          label: '状态',
-          value: status,
-          accent: const Color(0xFFF5C518),
-        ),
-      if (contentRating != null)
-        _DetailFact(
-          icon: CupertinoIcons.shield_lefthalf_fill,
-          label: '分级',
-          value: contentRating,
-          accent: const Color(0xFFFB7185),
-        ),
-      if (languages != null)
-        _DetailFact(
-          icon: CupertinoIcons.globe,
-          label: '语言',
-          value: languages,
-          accent: const Color(0xFF38BDF8),
-        ),
-      if (country != null)
-        _DetailFact(
-          icon: CupertinoIcons.map,
-          label: '地区',
-          value: country,
-          accent: const Color(0xFF34D399),
-        ),
-      if (networks != null)
-        _DetailFact(
-          icon: CupertinoIcons.tv,
-          label: '播出平台',
-          value: networks,
-          accent: const Color(0xFF60A5FA),
-        ),
-      if (companies != null)
-        _DetailFact(
-          icon: CupertinoIcons.building_2_fill,
-          label: '出品',
-          value: companies,
-          accent: const Color(0xFFA78BFA),
-        ),
-      if (productionCountries != null)
-        _DetailFact(
-          icon: CupertinoIcons.flag,
-          label: '出品地区',
-          value: productionCountries,
-          accent: const Color(0xFFF472B6),
-        ),
-      if (directors != null)
-        _DetailFact(
-          icon: CupertinoIcons.person_2_fill,
-          label: '导演',
-          value: directors,
-          accent: const Color(0xFFF59E0B),
-        ),
-      if (creators != null)
-        _DetailFact(
-          icon: CupertinoIcons.person_crop_circle_fill,
-          label: '主创',
-          value: creators,
-          accent: const Color(0xFFF59E0B),
-        ),
-    ];
-
-    final links = <_DetailLink>[
-      if (_tmdbUrl(detail) != null)
-        _DetailLink(
-          label: 'TMDB',
-          value: detail.tmdb_id?.toString() ?? '详情',
-          iconPath: Assets.images.logos.tmdb.path,
-          url: _tmdbUrl(detail),
-        ),
-      if (_imdbUrl(detail) != null)
-        _DetailLink(
-          label: 'IMDb',
-          value: detail.imdb_id ?? '详情',
-          icon: CupertinoIcons.link,
-          url: _imdbUrl(detail),
-        ),
-      if (_tvdbUrl(detail) != null)
-        _DetailLink(
-          label: 'TVDB',
-          value: detail.tvdb_slug ?? detail.tvdb_id?.toString() ?? '详情',
-          iconPath: Assets.images.logos.thetvdb.path,
-          url: _tvdbUrl(detail),
-        ),
-      if (_doubanUrl(detail) != null)
-        _DetailLink(
-          label: '豆瓣',
-          value: detail.douban_id?.toString() ?? '详情',
-          iconPath: Assets.images.logos.douban.path,
-          url: _doubanUrl(detail),
-        ),
-      if ((detail.bangumi_id ?? 0) > 0)
-        _DetailLink(
-          label: 'Bangumi',
-          value: detail.bangumi_id!.toString(),
-          icon: CupertinoIcons.link,
-          url: 'https://bgm.tv/subject/${detail.bangumi_id}',
-        ),
-      if ((detail.anilist_id ?? 0) > 0)
-        _DetailLink(
-          label: 'AniList',
-          value: detail.anilist_id!.toString(),
-          icon: CupertinoIcons.link,
-          url: 'https://anilist.co/anime/${detail.anilist_id}',
-        ),
-      if (detail.homepage != null && detail.homepage!.trim().isNotEmpty)
-        _DetailLink(
-          label: '官网',
-          value: '打开',
-          icon: CupertinoIcons.globe,
-          url: detail.homepage!.trim(),
-        ),
-    ];
-
-    final aliases = _collectAliases(detail);
-    if (facts.isEmpty && links.isEmpty && aliases.isEmpty) {
+    final facts = _buildCoreFacts(detail);
+    if (facts.isEmpty && !_hasMoreInfo(detail)) {
       return const SizedBox.shrink();
     }
 
@@ -1459,23 +1267,145 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
                 );
               },
             ),
-          if (links.isNotEmpty) ...[
+          if (_hasMoreInfo(detail)) ...[
             const SizedBox(height: 18),
-            Container(height: 0.5, color: Colors.white.withValues(alpha: 0.08)),
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 18,
-              runSpacing: 10,
-              children: [for (final link in links) _buildInfoLink(link)],
-            ),
-          ],
-          if (aliases.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            _buildAliasLine(aliases),
+            _buildMoreInfoButton(context, detail),
           ],
         ],
       ),
     );
+  }
+
+  List<_DetailFact> _buildCoreFacts(MediaDetail detail) {
+    final isTv = _isTv(detail);
+    final firstAir = detail.first_air_date ?? detail.release_date;
+    final seasonEpisode = isTv ? _formatSeasonEpisode(detail) : null;
+    final runtime = _formatRuntime(detail);
+    final status = _localizedStatus(detail.status);
+    final rating = _formatRating(detail);
+    final country = _formatCountryCodes(detail.origin_country);
+    final languages = _formatLanguages(detail);
+    final contentRating = _contentRating(detail);
+
+    return <_DetailFact>[
+      if (firstAir != null && firstAir.isNotEmpty)
+        _DetailFact(
+          icon: CupertinoIcons.calendar,
+          label: isTv ? '首播' : '上映',
+          value: firstAir,
+          accent: const Color(0xFF60A5FA),
+        ),
+      if (seasonEpisode != null)
+        _DetailFact(
+          icon: CupertinoIcons.square_stack_3d_up,
+          label: '季 / 集',
+          value: seasonEpisode,
+          accent: const Color(0xFFA78BFA),
+        ),
+      if (runtime != null && runtime.isNotEmpty)
+        _DetailFact(
+          icon: CupertinoIcons.timer,
+          label: isTv ? '单集时长' : '片长',
+          value: runtime,
+          accent: const Color(0xFFF97316),
+        ),
+      if (status != null)
+        _DetailFact(
+          icon: CupertinoIcons.bolt_circle,
+          label: '状态',
+          value: status,
+          accent: const Color(0xFFF5C518),
+        ),
+      if (rating != null)
+        _DetailFact(
+          icon: CupertinoIcons.star_fill,
+          label: '评分',
+          value: rating,
+          accent: const Color(0xFFF5C518),
+        ),
+      if (country != null)
+        _DetailFact(
+          icon: CupertinoIcons.map,
+          label: '地区',
+          value: country,
+          accent: const Color(0xFF34D399),
+        ),
+      if (languages != null)
+        _DetailFact(
+          icon: CupertinoIcons.globe,
+          label: '语言',
+          value: languages,
+          accent: const Color(0xFF38BDF8),
+        ),
+      if (contentRating != null)
+        _DetailFact(
+          icon: CupertinoIcons.shield_lefthalf_fill,
+          label: '分级',
+          value: contentRating,
+          accent: const Color(0xFFFB7185),
+        ),
+    ];
+  }
+
+  bool _hasMoreInfo(MediaDetail detail) {
+    return _collectExtraFacts(detail).isNotEmpty ||
+        _collectInfoLinks(detail).isNotEmpty ||
+        _collectAliases(detail).isNotEmpty;
+  }
+
+  List<_DetailFact> _collectExtraFacts(MediaDetail detail) {
+    final networks = _joinNames(
+      detail.networks?.map((network) => network.name),
+    );
+    final companies = _joinNames(
+      detail.production_companies?.map((company) => company.name),
+    );
+    final productionCountries = _joinNames(
+      detail.production_countries?.map((country) => country.name),
+    );
+    final directors = _joinNames(
+      detail.directors?.map((director) => director.name),
+    );
+    final creators = _joinNames(
+      detail.created_by?.map((creator) => creator.name),
+    );
+    return <_DetailFact>[
+      if (networks != null)
+        _DetailFact(
+          icon: CupertinoIcons.tv,
+          label: '播出平台',
+          value: networks,
+          accent: const Color(0xFF60A5FA),
+        ),
+      if (companies != null)
+        _DetailFact(
+          icon: CupertinoIcons.building_2_fill,
+          label: '出品公司',
+          value: companies,
+          accent: const Color(0xFFA78BFA),
+        ),
+      if (productionCountries != null)
+        _DetailFact(
+          icon: CupertinoIcons.flag,
+          label: '出品地区',
+          value: productionCountries,
+          accent: const Color(0xFFF472B6),
+        ),
+      if (directors != null)
+        _DetailFact(
+          icon: CupertinoIcons.person_2_fill,
+          label: '导演',
+          value: directors,
+          accent: const Color(0xFFF59E0B),
+        ),
+      if (creators != null)
+        _DetailFact(
+          icon: CupertinoIcons.person_crop_circle_fill,
+          label: '主创',
+          value: creators,
+          accent: const Color(0xFFF59E0B),
+        ),
+    ];
   }
 
   Widget _buildFactItem(_DetailFact fact) {
@@ -1583,6 +1513,138 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
       ),
       maxLines: 3,
       overflow: TextOverflow.ellipsis,
+    );
+  }
+
+  Widget _buildMoreInfoButton(BuildContext context, MediaDetail detail) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _showMoreInfoSheet(context, detail),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '更多资料',
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w500,
+              color: Colors.white.withValues(alpha: 0.44),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Icon(
+            CupertinoIcons.chevron_forward,
+            size: 10,
+            color: Colors.white.withValues(alpha: 0.30),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showMoreInfoSheet(
+    BuildContext context,
+    MediaDetail detail,
+  ) async {
+    final extraFacts = _collectExtraFacts(detail);
+    final links = _collectInfoLinks(detail);
+    final aliases = _collectAliases(detail);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.62,
+        minChildSize: 0.35,
+        maxChildSize: 0.92,
+        builder: (context, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF17191F),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+            border: Border(
+              top: BorderSide(color: Colors.white.withValues(alpha: 0.10)),
+            ),
+          ),
+          child: ListView(
+            controller: scrollController,
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
+            children: [
+              Center(
+                child: Container(
+                  width: 38,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                '更多资料',
+                style: TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+              if (extraFacts.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                _buildSheetFacts(extraFacts),
+              ],
+              if (links.isNotEmpty) ...[
+                const SizedBox(height: 24),
+                _buildSheetSectionTitle('外部编号'),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 10,
+                  children: [for (final link in links) _buildInfoLink(link)],
+                ),
+              ],
+              if (aliases.isNotEmpty) ...[
+                const SizedBox(height: 24),
+                _buildSheetSectionTitle('别名'),
+                const SizedBox(height: 8),
+                _buildAliasLine(aliases),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSheetFacts(List<_DetailFact> facts) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const gap = 18.0;
+        final columns = constraints.maxWidth >= 520 ? 3 : 2;
+        final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
+        return Wrap(
+          spacing: gap,
+          runSpacing: 18,
+          children: [
+            for (final fact in facts)
+              SizedBox(width: width, child: _buildFactItem(fact)),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildSheetSectionTitle(String title) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 10.5,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.4,
+        color: Colors.white.withValues(alpha: 0.42),
+      ),
     );
   }
 
@@ -1699,6 +1761,15 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
       default:
         return code.trim().toUpperCase();
     }
+  }
+
+  String? _formatSeasonEpisode(MediaDetail detail) {
+    final seasons = detail.number_of_seasons ?? 0;
+    final episodes = detail.number_of_episodes ?? 0;
+    if (seasons > 0 && episodes > 0) return '$seasons 季 · $episodes 集';
+    if (episodes > 0) return '$episodes 集';
+    if (seasons > 0) return '$seasons 季';
+    return null;
   }
 
   String? _formatRating(MediaDetail detail) {
@@ -2115,12 +2186,8 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
     await controller.fetchDetail();
   }
 
-  Widget _buildExternalLinks(
-    BuildContext context,
-    MediaDetail detail,
-    bool isLoading,
-  ) {
-    final links = <_DetailLink>[
+  List<_DetailLink> _collectInfoLinks(MediaDetail detail) {
+    return <_DetailLink>[
       if (_tmdbUrl(detail) != null)
         _DetailLink(
           label: 'TMDB',
@@ -2149,6 +2216,20 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
           iconPath: Assets.images.logos.thetvdb.path,
           url: _tvdbUrl(detail),
         ),
+      if ((detail.bangumi_id ?? 0) > 0)
+        _DetailLink(
+          label: 'Bangumi',
+          value: detail.bangumi_id!.toString(),
+          icon: CupertinoIcons.link,
+          url: 'https://bgm.tv/subject/${detail.bangumi_id}',
+        ),
+      if ((detail.anilist_id ?? 0) > 0)
+        _DetailLink(
+          label: 'AniList',
+          value: detail.anilist_id!.toString(),
+          icon: CupertinoIcons.link,
+          url: 'https://anilist.co/anime/${detail.anilist_id}',
+        ),
       if (detail.homepage != null && detail.homepage!.trim().isNotEmpty)
         _DetailLink(
           label: '官网',
@@ -2157,6 +2238,14 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
           url: detail.homepage!.trim(),
         ),
     ];
+  }
+
+  Widget _buildExternalLinks(
+    BuildContext context,
+    MediaDetail detail,
+    bool isLoading,
+  ) {
+    final links = _collectInfoLinks(detail);
     if (links.isEmpty) return const SizedBox.shrink();
 
     return LayoutBuilder(
