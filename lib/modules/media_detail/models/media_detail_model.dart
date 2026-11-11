@@ -7,9 +7,13 @@ part 'media_detail_model.g.dart';
 class MediaDetail with _$MediaDetail {
   const factory MediaDetail({
     String? source,
+    String? media_source,
     String? type,
     String? title,
     String? en_title,
+    String? hk_title,
+    String? tw_title,
+    String? sg_title,
     String? year,
     String? title_year,
     @JsonKey(fromJson: _intFromJson) int? season,
@@ -18,17 +22,25 @@ class MediaDetail with _$MediaDetail {
     @JsonKey(fromJson: _intFromJson) int? tvdb_id,
     @JsonKey(fromJson: _intFromJson) int? douban_id,
     @JsonKey(fromJson: _intFromJson) int? bangumi_id,
+    @JsonKey(fromJson: _intFromJson) int? anilist_id,
+    @JsonKey(fromJson: _intFromJson) int? anidb_id,
     @JsonKey(fromJson: _intFromJson) int? collection_id,
     String? mediaid_prefix,
     String? media_id,
+    String? scrape_source,
     String? original_language,
     String? original_title,
     String? release_date,
     String? backdrop_path,
     String? poster_path,
+    String? logo_path,
     @JsonKey(fromJson: _doubleFromJson) double? vote_average,
     String? overview,
     String? category,
+    String? library_category,
+    String? metadata_category,
+    String? content_rating,
+    String? tvdb_slug,
     @JsonKey(fromJson: _seasonsFromJson, toJson: _seasonsToJson)
     List<SeasonEpisodes>? seasons,
     List<SeasonInfo>? season_info,
@@ -420,10 +432,7 @@ ActorImages? _actorImagesFromJson(Object? value) {
 
 Map<String, dynamic>? _actorImagesToJson(ActorImages? value) {
   if (value == null) return null;
-  return {
-    'large': value.large?.toJson(),
-    'normal': value.normal?.toJson(),
-  };
+  return {'large': value.large?.toJson(), 'normal': value.normal?.toJson()};
 }
 
 Map<String, dynamic> _normalizeActorJson(Map<String, dynamic> json) {
@@ -443,7 +452,10 @@ Map<String, dynamic> _normalizeActorJson(Map<String, dynamic> json) {
       map['images'] is Map) {
     final images = Map<String, dynamic>.from(map['images'] as Map);
     final raw =
-        images['large'] ?? images['medium'] ?? images['small'] ?? images['grid'];
+        images['large'] ??
+        images['medium'] ??
+        images['small'] ??
+        images['grid'];
     if (raw is String && raw.trim().isNotEmpty) {
       map['profile_path'] = raw.trim();
     } else if (raw is Map) {

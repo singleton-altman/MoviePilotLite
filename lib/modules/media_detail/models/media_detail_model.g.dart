@@ -9,9 +9,13 @@ part of 'media_detail_model.dart';
 _$MediaDetailImpl _$$MediaDetailImplFromJson(Map<String, dynamic> json) =>
     _$MediaDetailImpl(
       source: json['source'] as String?,
+      media_source: json['media_source'] as String?,
       type: json['type'] as String?,
       title: json['title'] as String?,
       en_title: json['en_title'] as String?,
+      hk_title: json['hk_title'] as String?,
+      tw_title: json['tw_title'] as String?,
+      sg_title: json['sg_title'] as String?,
       year: json['year'] as String?,
       title_year: json['title_year'] as String?,
       season: _intFromJson(json['season']),
@@ -20,17 +24,25 @@ _$MediaDetailImpl _$$MediaDetailImplFromJson(Map<String, dynamic> json) =>
       tvdb_id: _intFromJson(json['tvdb_id']),
       douban_id: _intFromJson(json['douban_id']),
       bangumi_id: _intFromJson(json['bangumi_id']),
+      anilist_id: _intFromJson(json['anilist_id']),
+      anidb_id: _intFromJson(json['anidb_id']),
       collection_id: _intFromJson(json['collection_id']),
       mediaid_prefix: json['mediaid_prefix'] as String?,
       media_id: json['media_id'] as String?,
+      scrape_source: json['scrape_source'] as String?,
       original_language: json['original_language'] as String?,
       original_title: json['original_title'] as String?,
       release_date: json['release_date'] as String?,
       backdrop_path: json['backdrop_path'] as String?,
       poster_path: json['poster_path'] as String?,
+      logo_path: json['logo_path'] as String?,
       vote_average: _doubleFromJson(json['vote_average']),
       overview: json['overview'] as String?,
       category: json['category'] as String?,
+      library_category: json['library_category'] as String?,
+      metadata_category: json['metadata_category'] as String?,
+      content_rating: json['content_rating'] as String?,
+      tvdb_slug: json['tvdb_slug'] as String?,
       seasons: _seasonsFromJson(json['seasons']),
       season_info: (json['season_info'] as List<dynamic>?)
           ?.map((e) => SeasonInfo.fromJson(e as Map<String, dynamic>))
@@ -94,9 +106,13 @@ _$MediaDetailImpl _$$MediaDetailImplFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$$MediaDetailImplToJson(_$MediaDetailImpl instance) =>
     <String, dynamic>{
       'source': instance.source,
+      'media_source': instance.media_source,
       'type': instance.type,
       'title': instance.title,
       'en_title': instance.en_title,
+      'hk_title': instance.hk_title,
+      'tw_title': instance.tw_title,
+      'sg_title': instance.sg_title,
       'year': instance.year,
       'title_year': instance.title_year,
       'season': instance.season,
@@ -105,17 +121,25 @@ Map<String, dynamic> _$$MediaDetailImplToJson(_$MediaDetailImpl instance) =>
       'tvdb_id': instance.tvdb_id,
       'douban_id': instance.douban_id,
       'bangumi_id': instance.bangumi_id,
+      'anilist_id': instance.anilist_id,
+      'anidb_id': instance.anidb_id,
       'collection_id': instance.collection_id,
       'mediaid_prefix': instance.mediaid_prefix,
       'media_id': instance.media_id,
+      'scrape_source': instance.scrape_source,
       'original_language': instance.original_language,
       'original_title': instance.original_title,
       'release_date': instance.release_date,
       'backdrop_path': instance.backdrop_path,
       'poster_path': instance.poster_path,
+      'logo_path': instance.logo_path,
       'vote_average': instance.vote_average,
       'overview': instance.overview,
       'category': instance.category,
+      'library_category': instance.library_category,
+      'metadata_category': instance.metadata_category,
+      'content_rating': instance.content_rating,
+      'tvdb_slug': instance.tvdb_slug,
       'seasons': _seasonsToJson(instance.seasons),
       'season_info': instance.season_info,
       'names': _stringListToJson(instance.names),
@@ -226,10 +250,15 @@ Map<String, dynamic> _$$ActorImplToJson(_$ActorImpl instance) =>
       'sharing_url': instance.sharing_url,
     };
 
-_$ActorImagesImpl _$$ActorImagesImplFromJson(Map<String, dynamic> json) {
-  final parsed = _actorImagesFromJson(json);
-  return _$ActorImagesImpl(large: parsed?.large, normal: parsed?.normal);
-}
+_$ActorImagesImpl _$$ActorImagesImplFromJson(Map<String, dynamic> json) =>
+    _$ActorImagesImpl(
+      large: json['large'] == null
+          ? null
+          : ActorImage.fromJson(json['large'] as Map<String, dynamic>),
+      normal: json['normal'] == null
+          ? null
+          : ActorImage.fromJson(json['normal'] as Map<String, dynamic>),
+    );
 
 Map<String, dynamic> _$$ActorImagesImplToJson(_$ActorImagesImpl instance) =>
     <String, dynamic>{'large': instance.large, 'normal': instance.normal};
