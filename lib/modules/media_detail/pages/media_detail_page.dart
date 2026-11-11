@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/gen/assets.gen.dart';
 import 'package:moviepilot_mobile/modules/media_detail/controllers/media_detail_controller.dart';
+import 'package:moviepilot_mobile/modules/media_detail/models/douban_comment_models.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/media_detail_model.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/media_notexists.dart';
 import 'package:moviepilot_mobile/modules/media_detail/pages/media_season_detail_page.dart';
@@ -23,6 +24,7 @@ import 'package:moviepilot_mobile/utils/open_url.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
 import 'package:moviepilot_mobile/widgets/app_loading.dart';
 import 'package:moviepilot_mobile/widgets/cached_image.dart';
+import 'package:moviepilot_mobile/widgets/load_more_footer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:moviepilot_mobile/modules/tmdb/pages/tmdb_collection_page.dart';
@@ -626,7 +628,9 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
                 leading: const Icon(Icons.collections_bookmark_outlined),
                 title: const Text('查看系列合集'),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => Get.to(() => TmdbCollectionPage(collectionId: detail.collection_id!)),
+                onTap: () => Get.to(
+                  () => TmdbCollectionPage(collectionId: detail.collection_id!),
+                ),
               ),
             ),
           ],
@@ -649,6 +653,19 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
             _buildSectionTitle('主演'),
             const SizedBox(height: 16),
             _buildActorList(detail.actors!),
+            const SizedBox(height: 16),
+          ],
+
+          if (controller.doubanCommentsEnabled.value ||
+              controller.doubanReviewsEnabled.value) ...[
+            const SizedBox(height: 2),
+            _buildSectionTitle('豆瓣短评'),
+            const SizedBox(height: 12),
+            _buildDoubanComments(),
+            const SizedBox(height: 18),
+            _buildSectionTitle('豆瓣影评'),
+            const SizedBox(height: 12),
+            _buildDoubanReviews(),
             const SizedBox(height: 16),
           ],
 
@@ -685,6 +702,355 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildDoubanComments() {
+    final items = controller.doubanComments;
+    final isLoading = controller.isLoadingDoubanComments.value;
+    final isLoadingMore = controller.isLoadingMoreDoubanComments.value;
+    if (items.isEmpty) {
+      return _buildGlassPanel(
+        child: _buildDoubanStatus(isLoading: isLoading, emptyText: '暂无豆瓣短评'),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildGlassPanel(
+          padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+          child: Column(
+            children: [
+              for (var index = 0; index < items.length; index++) ...[
+                _buildDoubanCommentTile(items[index]),
+                if (index != items.length - 1)
+                  Divider(
+                    height: 1,
+                    color: Colors.white.withValues(alpha: 0.10),
+                  ),
+              ],
+            ],
+          ),
+        ),
+        LoadMoreFooter(
+          hasMore: controller.hasMoreDoubanComments,
+          isLoading: isLoadingMore,
+          total: controller.doubanCommentsTotal.value,
+          onLoadMore: controller.loadMoreDoubanComments,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDoubanReviews() {
+    final items = controller.doubanReviews;
+    final isLoading = controller.isLoadingDoubanReviews.value;
+    final isLoadingMore = controller.isLoadingMoreDoubanReviews.value;
+    if (items.isEmpty) {
+      return _buildGlassPanel(
+        child: _buildDoubanStatus(isLoading: isLoading, emptyText: '暂无豆瓣影评'),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildGlassPanel(
+          padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+          child: Column(
+            children: [
+              for (var index = 0; index < items.length; index++) ...[
+                _buildDoubanReviewTile(items[index]),
+                if (index != items.length - 1)
+                  Divider(
+                    height: 1,
+                    color: Colors.white.withValues(alpha: 0.10),
+                  ),
+              ],
+            ],
+          ),
+        ),
+        LoadMoreFooter(
+          hasMore: controller.hasMoreDoubanReviews,
+          isLoading: isLoadingMore,
+          total: controller.doubanReviewsTotal.value,
+          onLoadMore: controller.loadMoreDoubanReviews,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDoubanStatus({
+    required bool isLoading,
+    required String emptyText,
+  }) {
+    return Row(
+      children: [
+        if (isLoading) ...[
+          const CupertinoActivityIndicator(radius: 8, color: Colors.white70),
+          const SizedBox(width: 10),
+        ],
+        Text(
+          isLoading ? '正在加载豆瓣评论...' : emptyText,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.62),
+            fontSize: 13,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDoubanCommentTile(DoubanComment comment) {
+    final author = comment.author;
+    final content = comment.comment ?? '';
+    final url = comment.url?.trim() ?? '';
+    return GestureDetector(
+      behavior: url.isEmpty
+          ? HitTestBehavior.deferToChild
+          : HitTestBehavior.opaque,
+      onTap: url.isEmpty ? null : () => WebUtil.open(url: url),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDoubanAvatar(author?.avatar),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          author?.name ?? '豆瓣用户',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      _buildDoubanRating(comment.rating),
+                      const SizedBox(width: 8),
+                      if ((comment.createTime ?? '').isNotEmpty)
+                        Text(
+                          comment.createTime!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.48),
+                            fontSize: 11,
+                          ),
+                        ),
+                    ],
+                  ),
+                  if (content.isNotEmpty) ...[
+                    const SizedBox(height: 7),
+                    Text(
+                      content,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.86),
+                        fontSize: 13,
+                        height: 1.45,
+                      ),
+                    ),
+                  ],
+                  if ((comment.voteCount ?? 0) > 0) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          CupertinoIcons.hand_thumbsup,
+                          size: 12,
+                          color: Colors.white.withValues(alpha: 0.48),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${comment.voteCount} 有用',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.48),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDoubanReviewTile(DoubanReview review) {
+    final author = review.author;
+    final title = review.title ?? '豆瓣影评';
+    final abstract = review.abstract ?? '';
+    final url = review.url?.trim() ?? '';
+    return GestureDetector(
+      behavior: url.isEmpty
+          ? HitTestBehavior.deferToChild
+          : HitTestBehavior.opaque,
+      onTap: url.isEmpty ? null : () => WebUtil.open(url: url),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                height: 1.3,
+              ),
+            ),
+            const SizedBox(height: 7),
+            Row(
+              children: [
+                _buildDoubanAvatar(author?.avatar, size: 22),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    author?.name ?? '豆瓣用户',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.72),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                _buildDoubanRating(review.rating),
+                const SizedBox(width: 8),
+                if ((review.createTime ?? '').isNotEmpty)
+                  Text(
+                    review.createTime!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.46),
+                      fontSize: 11,
+                    ),
+                  ),
+              ],
+            ),
+            if (abstract.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                abstract,
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.80),
+                  fontSize: 13,
+                  height: 1.5,
+                ),
+              ),
+            ],
+            if ((review.usefulCount ?? 0) > 0 ||
+                (review.commentsCount ?? 0) > 0) ...[
+              const SizedBox(height: 8),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if ((review.usefulCount ?? 0) > 0)
+                    _buildDoubanMeta(
+                      CupertinoIcons.hand_thumbsup,
+                      '${review.usefulCount} 有用',
+                    ),
+                  if ((review.usefulCount ?? 0) > 0 &&
+                      (review.commentsCount ?? 0) > 0)
+                    const SizedBox(width: 12),
+                  if ((review.commentsCount ?? 0) > 0)
+                    _buildDoubanMeta(
+                      CupertinoIcons.chat_bubble,
+                      '${review.commentsCount} 回应',
+                    ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDoubanMeta(IconData icon, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 12, color: Colors.white.withValues(alpha: 0.48)),
+        const SizedBox(width: 4),
+        Text(
+          text,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.48),
+            fontSize: 11,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDoubanAvatar(String? avatar, {double size = 28}) {
+    final raw = avatar?.trim() ?? '';
+    final url = raw.isEmpty ? null : ImageUtil.convertCacheImageUrl(raw);
+    return ClipOval(
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: url == null
+            ? Container(
+                color: Colors.white.withValues(alpha: 0.12),
+                child: Icon(
+                  CupertinoIcons.person_fill,
+                  size: size * 0.6,
+                  color: Colors.white.withValues(alpha: 0.55),
+                ),
+              )
+            : CachedImage(
+                imageUrl: url,
+                width: size,
+                height: size,
+                fit: BoxFit.cover,
+              ),
+      ),
+    );
+  }
+
+  Widget _buildDoubanRating(double? rating) {
+    final value = rating ?? 0;
+    if (value <= 0) return const SizedBox.shrink();
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var index = 0; index < 5; index++)
+          Icon(
+            value >= index + 1
+                ? CupertinoIcons.star_fill
+                : value > index + 0.25
+                ? CupertinoIcons.star_lefthalf_fill
+                : CupertinoIcons.star,
+            size: 10,
+            color: value > index
+                ? const Color(0xFFFFD66B)
+                : Colors.white.withValues(alpha: 0.24),
+          ),
+      ],
     );
   }
 
@@ -1755,8 +2121,8 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
     // path 为 tmdb:xxx 等媒体标识时,改用标题作为搜索关键字
     final searchKey = _isMediaIdPath(controller.args.path)
         ? (controller.mediaDetail.value?.title ??
-            controller.mediaDetail.value?.en_title ??
-            '')
+              controller.mediaDetail.value?.en_title ??
+              '')
         : controller.args.path;
     final detail = controller.mediaDetail.value;
     final result = await Get.bottomSheet<({String area, List<int> sites})>(
@@ -1801,8 +2167,8 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
     // path 为媒体标识时改用标题(同 _openSearch)
     final searchKey = _isMediaIdPath(controller.args.path)
         ? (controller.mediaDetail.value?.title ??
-            controller.mediaDetail.value?.en_title ??
-            '')
+              controller.mediaDetail.value?.en_title ??
+              '')
         : controller.args.path;
     final detail = controller.mediaDetail.value;
     final result = await Get.bottomSheet<({String area, List<int> sites})>(

@@ -1,8 +1,10 @@
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
+import 'package:moviepilot_mobile/modules/media_detail/models/douban_comment_models.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/media_detail_model.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/media_notexists.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/season_episode_detail.dart';
+import 'package:moviepilot_mobile/modules/media_detail/utils/douban_id_resolver.dart';
 import 'package:moviepilot_mobile/modules/subscribe/controllers/subscribe_service.dart';
 import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_models.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
@@ -47,8 +49,7 @@ class MediaDetailService extends GetxService {
   }) async {
     try {
       final identity = MediaIdentity.parse(mediaId);
-      final useV3 =
-          identity != null && await _serverApiVersionService.isV3();
+      final useV3 = identity != null && await _serverApiVersionService.isV3();
       final query = useV3
           ? <String, dynamic>{
               'media_source': identity.source,
@@ -134,5 +135,126 @@ class MediaDetailService extends GetxService {
       _log.handle(e, message: '获取订阅状态失败');
       return null;
     }
+  }
+
+  /// GET /api/v1/douban/interests/{doubanid}/{type_name}
+  ///
+  /// v3 服务端提供豆瓣短评，type_name 传「电影」或「电视剧」。
+  Future<DoubanCommentPage> getDoubanComments({
+    required String doubanId,
+    required String typeName,
+    int start = 0,
+    int count = 20,
+  }) async {
+    final payload = await _getDoubanPage(
+      kind: 'interests',
+      doubanId: doubanId,
+      typeName: typeName,
+      start: start,
+      count: count,
+      errorMessage: '获取豆瓣短评失败',
+    );
+    return payload == null
+        ? const DoubanCommentPage()
+        : DoubanCommentPage.fromJson(payload);
+  }
+
+  /// GET /api/v1/douban/reviews/{doubanid}/{type_name}
+  ///
+  /// v3 服务端提供豆瓣影评，返回正文摘要而非全文。
+  Future<DoubanReviewPage> getDoubanReviews({
+    required String doubanId,
+    required String typeName,
+    int start = 0,
+    int count = 20,
+  }) async {
+    final payload = await _getDoubanPage(
+      kind: 'reviews',
+      doubanId: doubanId,
+      typeName: typeName,
+      start: start,
+      count: count,
+      errorMessage: '获取豆瓣影评失败',
+    );
+    return payload == null
+        ? const DoubanReviewPage()
+        : DoubanReviewPage.fromJson(payload);
+  }
+
+  Future<Map<String, dynamic>?> _getDoubanPage({
+    required String kind,
+    required String doubanId,
+    required String typeName,
+    required int start,
+    required int count,
+    required String errorMessage,
+  }) async {
+    try {
+      final uri = Uri(
+        pathSegments: ['api', 'v1', 'douban', kind, doubanId, typeName],
+      );
+      final response = await _apiClient.get<dynamic>(
+        '/${uri.path}',
+        queryParameters: {'start': start, 'count': count},
+      );
+      final status = response.statusCode ?? 0;
+      if (status < 200 || status >= 300) {
+        throw ApiHttpException(status, response.statusMessage);
+      }
+      final data = response.data;
+      if (data is Map) return Map<String, dynamic>.from(data);
+      return null;
+    } catch (e) {
+      _log.handle(e, message: errorMessage);
+      return null;
+    }
+  }
+
+  /// GET /api/v1/media/search?media_source=douban
+  ///
+  /// 详情来自 TMDB 等来源时通常没有 douban_id，用官方搜索接口按标题补一次
+  /// 严格匹配，命中后才请求豆瓣评论。
+  Future<String?> resolveDoubanId({
+    required String title,
+    String? year,
+    String? typeName,
+  }) async {
+    final term = title.trim();
+    if (term.isEmpty) return null;
+    try {
+      final response = await _apiClient.get<dynamic>(
+        '/api/v1/media/search',
+        queryParameters: {
+          'title': term,
+          'type': 'media',
+          'page': 1,
+          'count': 8,
+          'media_source': 'douban',
+        },
+      );
+      final status = response.statusCode ?? 0;
+      if (status < 200 || status >= 300) return null;
+      final items = _extractMediaList(response.data);
+      return pickDoubanIdFromSearchResults(
+        items: items,
+        title: term,
+        year: year,
+        typeName: typeName,
+      );
+    } catch (e) {
+      _log.handle(e, message: '解析豆瓣 ID 失败');
+      return null;
+    }
+  }
+
+  List<dynamic> _extractMediaList(dynamic data) {
+    if (data is List) return data;
+    if (data is Map) {
+      for (final key in ['data', 'items', 'results', 'list']) {
+        final value = data[key];
+        if (value is List) return value;
+      }
+    }
+    return const [];
   }
 }
