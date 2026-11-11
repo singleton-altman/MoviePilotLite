@@ -145,6 +145,7 @@ class MediaDetailService extends GetxService {
     required String typeName,
     int start = 0,
     int count = 20,
+    bool throwOnError = false,
   }) async {
     final payload = await _getDoubanPage(
       kind: 'interests',
@@ -153,6 +154,7 @@ class MediaDetailService extends GetxService {
       start: start,
       count: count,
       errorMessage: '获取豆瓣短评失败',
+      throwOnError: throwOnError,
     );
     return payload == null
         ? const DoubanCommentPage()
@@ -167,6 +169,7 @@ class MediaDetailService extends GetxService {
     required String typeName,
     int start = 0,
     int count = 20,
+    bool throwOnError = false,
   }) async {
     final payload = await _getDoubanPage(
       kind: 'reviews',
@@ -175,6 +178,7 @@ class MediaDetailService extends GetxService {
       start: start,
       count: count,
       errorMessage: '获取豆瓣影评失败',
+      throwOnError: throwOnError,
     );
     return payload == null
         ? const DoubanReviewPage()
@@ -188,6 +192,7 @@ class MediaDetailService extends GetxService {
     required int start,
     required int count,
     required String errorMessage,
+    bool throwOnError = false,
   }) async {
     try {
       final uri = Uri(
@@ -203,9 +208,11 @@ class MediaDetailService extends GetxService {
       }
       final data = response.data;
       if (data is Map) return Map<String, dynamic>.from(data);
+      if (throwOnError) throw const FormatException('豆瓣评论响应格式错误');
       return null;
     } catch (e) {
       _log.handle(e, message: errorMessage);
+      if (throwOnError) rethrow;
       return null;
     }
   }

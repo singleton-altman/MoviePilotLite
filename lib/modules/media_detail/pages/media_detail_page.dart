@@ -10,6 +10,8 @@ import 'package:moviepilot_mobile/modules/media_detail/models/douban_comment_mod
 import 'package:moviepilot_mobile/modules/media_detail/models/media_detail_model.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/media_notexists.dart';
 import 'package:moviepilot_mobile/modules/media_detail/pages/media_season_detail_page.dart';
+import 'package:moviepilot_mobile/modules/media_detail/pages/douban_review_list_page.dart';
+import 'package:moviepilot_mobile/modules/media_detail/pages/douban_comment_list_page.dart';
 import 'package:moviepilot_mobile/modules/media_detail/services/danmaku_display_settings_service.dart';
 import 'package:moviepilot_mobile/modules/media_detail/widgets/media_detail_season_card.dart';
 import 'package:moviepilot_mobile/modules/media_detail/widgets/media_danmaku_overlay.dart';
@@ -26,7 +28,6 @@ import 'package:moviepilot_mobile/utils/open_url.dart';
 import 'package:moviepilot_mobile/utils/toast_util.dart';
 import 'package:moviepilot_mobile/widgets/app_loading.dart';
 import 'package:moviepilot_mobile/widgets/cached_image.dart';
-import 'package:moviepilot_mobile/widgets/load_more_footer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:moviepilot_mobile/modules/tmdb/pages/tmdb_collection_page.dart';
@@ -735,11 +736,11 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
           if (controller.doubanCommentsEnabled.value ||
               controller.doubanReviewsEnabled.value) ...[
             const SizedBox(height: 2),
-            _buildSectionTitle('豆瓣短评'),
+            _buildDoubanSectionTitle('豆瓣短评', _openDoubanCommentList),
             const SizedBox(height: 12),
             _buildDoubanComments(),
             const SizedBox(height: 18),
-            _buildSectionTitle('豆瓣影评'),
+            _buildDoubanSectionTitle('豆瓣影评', _openDoubanReviewList),
             const SizedBox(height: 12),
             _buildDoubanReviews(),
             const SizedBox(height: 16),
@@ -790,7 +791,7 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
   Widget _buildDoubanComments() {
     final items = controller.doubanComments;
     final isLoading = controller.isLoadingDoubanComments.value;
-    final isLoadingMore = controller.isLoadingMoreDoubanComments.value;
+    final previewItems = items.take(3).toList(growable: false);
     if (items.isEmpty) {
       return _buildGlassPanel(
         child: _buildDoubanStatus(isLoading: isLoading, emptyText: '暂无豆瓣短评'),
@@ -803,9 +804,9 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
           padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
           child: Column(
             children: [
-              for (var index = 0; index < items.length; index++) ...[
-                _buildDoubanCommentTile(items[index]),
-                if (index != items.length - 1)
+              for (var index = 0; index < previewItems.length; index++) ...[
+                _buildDoubanCommentTile(previewItems[index]),
+                if (index != previewItems.length - 1)
                   Divider(
                     height: 1,
                     color: Colors.white.withValues(alpha: 0.10),
@@ -814,11 +815,10 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
             ],
           ),
         ),
-        LoadMoreFooter(
-          hasMore: controller.hasMoreDoubanComments,
-          isLoading: isLoadingMore,
-          total: controller.doubanCommentsTotal.value,
-          onLoadMore: controller.loadMoreDoubanComments,
+        TextButton.icon(
+          onPressed: _openDoubanCommentList,
+          icon: const Icon(CupertinoIcons.text_bubble, size: 14),
+          label: const Text('查看全部短评'),
         ),
       ],
     );
@@ -826,8 +826,8 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
 
   Widget _buildDoubanReviews() {
     final items = controller.doubanReviews;
+    final previewItems = items.take(3).toList(growable: false);
     final isLoading = controller.isLoadingDoubanReviews.value;
-    final isLoadingMore = controller.isLoadingMoreDoubanReviews.value;
     if (items.isEmpty) {
       return _buildGlassPanel(
         child: _buildDoubanStatus(isLoading: isLoading, emptyText: '暂无豆瓣影评'),
@@ -840,9 +840,9 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
           padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
           child: Column(
             children: [
-              for (var index = 0; index < items.length; index++) ...[
-                _buildDoubanReviewTile(items[index]),
-                if (index != items.length - 1)
+              for (var index = 0; index < previewItems.length; index++) ...[
+                _buildDoubanReviewTile(previewItems[index]),
+                if (index != previewItems.length - 1)
                   Divider(
                     height: 1,
                     color: Colors.white.withValues(alpha: 0.10),
@@ -851,13 +851,88 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
             ],
           ),
         ),
-        LoadMoreFooter(
-          hasMore: controller.hasMoreDoubanReviews,
-          isLoading: isLoadingMore,
-          total: controller.doubanReviewsTotal.value,
-          onLoadMore: controller.loadMoreDoubanReviews,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(0, 10, 0, 2),
+          child: Align(
+            alignment: Alignment.center,
+            child: TextButton.icon(
+              onPressed: _openDoubanReviewList,
+              icon: const Icon(
+                CupertinoIcons.text_bubble,
+                size: 14,
+                color: Colors.white70,
+              ),
+              label: Text(
+                controller.hasMoreDoubanReviews
+                    ? '查看更多影评 · 共 ${controller.doubanReviewsTotal.value}'
+                    : '查看全部影评',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
         ),
       ],
+    );
+  }
+
+  void _openDoubanReviewList() {
+    final args = controller.buildDoubanReviewListArgs();
+    if (args == null) {
+      ToastUtil.info('暂无影评可查看');
+      return;
+    }
+    Get.to(
+      () => DoubanReviewListPage(key: UniqueKey()),
+      arguments: args,
+      binding: BindingsBuilder(
+        () => Get.create(() => DoubanReviewListController()),
+      ),
+      preventDuplicates: false,
+    );
+  }
+
+  void _openDoubanCommentList() {
+    final doubanId = controller.doubanId;
+    if (doubanId == null || doubanId.isEmpty) {
+      ToastUtil.info('暂无短评可查看');
+      return;
+    }
+    final detail = controller.mediaDetail.value;
+    Get.to(
+      () => DoubanCommentListPage(
+        doubanId: doubanId,
+        typeName: controller.doubanTypeName,
+        title: detail?.title ?? controller.args.title,
+        initialItems: controller.doubanComments.toList(),
+        initialTotal: controller.doubanCommentsTotal.value,
+      ),
+    );
+  }
+
+  Widget _buildDoubanSectionTitle(String title, VoidCallback onTap) {
+    return Semantics(
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        child: Row(
+          children: [
+            Expanded(child: _buildSectionTitle(title)),
+            const Text(
+              '查看全部',
+              style: TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+            const Icon(
+              CupertinoIcons.chevron_right,
+              color: Colors.white70,
+              size: 14,
+            ),
+          ],
+        ),
+      ),
     );
   }
 

@@ -50,6 +50,7 @@ import 'package:moviepilot_mobile/modules/system_message/controllers/system_mess
 import 'package:moviepilot_mobile/modules/system_message/pages/system_message_page.dart';
 import 'package:moviepilot_mobile/modules/media_detail/controllers/media_detail_controller.dart';
 import 'package:moviepilot_mobile/modules/media_detail/pages/media_detail_page.dart';
+import 'package:moviepilot_mobile/modules/media_detail/pages/douban_review_list_page.dart';
 import 'package:moviepilot_mobile/modules/recommend/controllers/recommend_category_list_controller.dart';
 import 'package:moviepilot_mobile/modules/recommend/pages/recommend_category_list_page.dart';
 import 'package:moviepilot_mobile/modules/search_result/controllers/search_result_controller.dart';
@@ -703,9 +704,16 @@ List<GetPage> buildAppPages() => [
   ),
   GetPage(
     name: '/media-detail',
-    page: () => const MediaDetailPage(),
+    page: () => MediaDetailPage(key: UniqueKey()),
     binding: BindingsBuilder(() {
       Get.create(() => MediaDetailController());
+    }),
+  ),
+  GetPage(
+    name: '/douban-review-list',
+    page: () => const DoubanReviewListPage(),
+    binding: BindingsBuilder(() {
+      Get.create(() => DoubanReviewListController());
     }),
   ),
   GetPage(
