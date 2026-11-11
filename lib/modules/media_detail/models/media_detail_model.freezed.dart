@@ -22,9 +22,13 @@ MediaDetail _$MediaDetailFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$MediaDetail {
   String? get source => throw _privateConstructorUsedError;
+  String? get media_source => throw _privateConstructorUsedError;
   String? get type => throw _privateConstructorUsedError;
   String? get title => throw _privateConstructorUsedError;
   String? get en_title => throw _privateConstructorUsedError;
+  String? get hk_title => throw _privateConstructorUsedError;
+  String? get tw_title => throw _privateConstructorUsedError;
+  String? get sg_title => throw _privateConstructorUsedError;
   String? get year => throw _privateConstructorUsedError;
   String? get title_year => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _intFromJson)
@@ -39,18 +43,28 @@ mixin _$MediaDetail {
   @JsonKey(fromJson: _intFromJson)
   int? get bangumi_id => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _intFromJson)
+  int? get anilist_id => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _intFromJson)
+  int? get anidb_id => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _intFromJson)
   int? get collection_id => throw _privateConstructorUsedError;
   String? get mediaid_prefix => throw _privateConstructorUsedError;
   String? get media_id => throw _privateConstructorUsedError;
+  String? get scrape_source => throw _privateConstructorUsedError;
   String? get original_language => throw _privateConstructorUsedError;
   String? get original_title => throw _privateConstructorUsedError;
   String? get release_date => throw _privateConstructorUsedError;
   String? get backdrop_path => throw _privateConstructorUsedError;
   String? get poster_path => throw _privateConstructorUsedError;
+  String? get logo_path => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _doubleFromJson)
   double? get vote_average => throw _privateConstructorUsedError;
   String? get overview => throw _privateConstructorUsedError;
   String? get category => throw _privateConstructorUsedError;
+  String? get library_category => throw _privateConstructorUsedError;
+  String? get metadata_category => throw _privateConstructorUsedError;
+  String? get content_rating => throw _privateConstructorUsedError;
+  String? get tvdb_slug => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _seasonsFromJson, toJson: _seasonsToJson)
   List<SeasonEpisodes>? get seasons => throw _privateConstructorUsedError;
   List<SeasonInfo>? get season_info => throw _privateConstructorUsedError;
@@ -119,9 +133,13 @@ abstract class $MediaDetailCopyWith<$Res> {
   @useResult
   $Res call({
     String? source,
+    String? media_source,
     String? type,
     String? title,
     String? en_title,
+    String? hk_title,
+    String? tw_title,
+    String? sg_title,
     String? year,
     String? title_year,
     @JsonKey(fromJson: _intFromJson) int? season,
@@ -130,17 +148,25 @@ abstract class $MediaDetailCopyWith<$Res> {
     @JsonKey(fromJson: _intFromJson) int? tvdb_id,
     @JsonKey(fromJson: _intFromJson) int? douban_id,
     @JsonKey(fromJson: _intFromJson) int? bangumi_id,
+    @JsonKey(fromJson: _intFromJson) int? anilist_id,
+    @JsonKey(fromJson: _intFromJson) int? anidb_id,
     @JsonKey(fromJson: _intFromJson) int? collection_id,
     String? mediaid_prefix,
     String? media_id,
+    String? scrape_source,
     String? original_language,
     String? original_title,
     String? release_date,
     String? backdrop_path,
     String? poster_path,
+    String? logo_path,
     @JsonKey(fromJson: _doubleFromJson) double? vote_average,
     String? overview,
     String? category,
+    String? library_category,
+    String? metadata_category,
+    String? content_rating,
+    String? tvdb_slug,
     @JsonKey(fromJson: _seasonsFromJson, toJson: _seasonsToJson)
     List<SeasonEpisodes>? seasons,
     List<SeasonInfo>? season_info,
@@ -202,9 +228,13 @@ class _$MediaDetailCopyWithImpl<$Res, $Val extends MediaDetail>
   @override
   $Res call({
     Object? source = freezed,
+    Object? media_source = freezed,
     Object? type = freezed,
     Object? title = freezed,
     Object? en_title = freezed,
+    Object? hk_title = freezed,
+    Object? tw_title = freezed,
+    Object? sg_title = freezed,
     Object? year = freezed,
     Object? title_year = freezed,
     Object? season = freezed,
@@ -213,17 +243,25 @@ class _$MediaDetailCopyWithImpl<$Res, $Val extends MediaDetail>
     Object? tvdb_id = freezed,
     Object? douban_id = freezed,
     Object? bangumi_id = freezed,
+    Object? anilist_id = freezed,
+    Object? anidb_id = freezed,
     Object? collection_id = freezed,
     Object? mediaid_prefix = freezed,
     Object? media_id = freezed,
+    Object? scrape_source = freezed,
     Object? original_language = freezed,
     Object? original_title = freezed,
     Object? release_date = freezed,
     Object? backdrop_path = freezed,
     Object? poster_path = freezed,
+    Object? logo_path = freezed,
     Object? vote_average = freezed,
     Object? overview = freezed,
     Object? category = freezed,
+    Object? library_category = freezed,
+    Object? metadata_category = freezed,
+    Object? content_rating = freezed,
+    Object? tvdb_slug = freezed,
     Object? seasons = freezed,
     Object? season_info = freezed,
     Object? names = freezed,
@@ -263,6 +301,10 @@ class _$MediaDetailCopyWithImpl<$Res, $Val extends MediaDetail>
                 ? _value.source
                 : source // ignore: cast_nullable_to_non_nullable
                       as String?,
+            media_source: freezed == media_source
+                ? _value.media_source
+                : media_source // ignore: cast_nullable_to_non_nullable
+                      as String?,
             type: freezed == type
                 ? _value.type
                 : type // ignore: cast_nullable_to_non_nullable
@@ -274,6 +316,18 @@ class _$MediaDetailCopyWithImpl<$Res, $Val extends MediaDetail>
             en_title: freezed == en_title
                 ? _value.en_title
                 : en_title // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            hk_title: freezed == hk_title
+                ? _value.hk_title
+                : hk_title // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            tw_title: freezed == tw_title
+                ? _value.tw_title
+                : tw_title // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            sg_title: freezed == sg_title
+                ? _value.sg_title
+                : sg_title // ignore: cast_nullable_to_non_nullable
                       as String?,
             year: freezed == year
                 ? _value.year
@@ -307,6 +361,14 @@ class _$MediaDetailCopyWithImpl<$Res, $Val extends MediaDetail>
                 ? _value.bangumi_id
                 : bangumi_id // ignore: cast_nullable_to_non_nullable
                       as int?,
+            anilist_id: freezed == anilist_id
+                ? _value.anilist_id
+                : anilist_id // ignore: cast_nullable_to_non_nullable
+                      as int?,
+            anidb_id: freezed == anidb_id
+                ? _value.anidb_id
+                : anidb_id // ignore: cast_nullable_to_non_nullable
+                      as int?,
             collection_id: freezed == collection_id
                 ? _value.collection_id
                 : collection_id // ignore: cast_nullable_to_non_nullable
@@ -318,6 +380,10 @@ class _$MediaDetailCopyWithImpl<$Res, $Val extends MediaDetail>
             media_id: freezed == media_id
                 ? _value.media_id
                 : media_id // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            scrape_source: freezed == scrape_source
+                ? _value.scrape_source
+                : scrape_source // ignore: cast_nullable_to_non_nullable
                       as String?,
             original_language: freezed == original_language
                 ? _value.original_language
@@ -339,6 +405,10 @@ class _$MediaDetailCopyWithImpl<$Res, $Val extends MediaDetail>
                 ? _value.poster_path
                 : poster_path // ignore: cast_nullable_to_non_nullable
                       as String?,
+            logo_path: freezed == logo_path
+                ? _value.logo_path
+                : logo_path // ignore: cast_nullable_to_non_nullable
+                      as String?,
             vote_average: freezed == vote_average
                 ? _value.vote_average
                 : vote_average // ignore: cast_nullable_to_non_nullable
@@ -350,6 +420,22 @@ class _$MediaDetailCopyWithImpl<$Res, $Val extends MediaDetail>
             category: freezed == category
                 ? _value.category
                 : category // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            library_category: freezed == library_category
+                ? _value.library_category
+                : library_category // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            metadata_category: freezed == metadata_category
+                ? _value.metadata_category
+                : metadata_category // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            content_rating: freezed == content_rating
+                ? _value.content_rating
+                : content_rating // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            tvdb_slug: freezed == tvdb_slug
+                ? _value.tvdb_slug
+                : tvdb_slug // ignore: cast_nullable_to_non_nullable
                       as String?,
             seasons: freezed == seasons
                 ? _value.seasons
@@ -526,9 +612,13 @@ abstract class _$$MediaDetailImplCopyWith<$Res>
   @useResult
   $Res call({
     String? source,
+    String? media_source,
     String? type,
     String? title,
     String? en_title,
+    String? hk_title,
+    String? tw_title,
+    String? sg_title,
     String? year,
     String? title_year,
     @JsonKey(fromJson: _intFromJson) int? season,
@@ -537,17 +627,25 @@ abstract class _$$MediaDetailImplCopyWith<$Res>
     @JsonKey(fromJson: _intFromJson) int? tvdb_id,
     @JsonKey(fromJson: _intFromJson) int? douban_id,
     @JsonKey(fromJson: _intFromJson) int? bangumi_id,
+    @JsonKey(fromJson: _intFromJson) int? anilist_id,
+    @JsonKey(fromJson: _intFromJson) int? anidb_id,
     @JsonKey(fromJson: _intFromJson) int? collection_id,
     String? mediaid_prefix,
     String? media_id,
+    String? scrape_source,
     String? original_language,
     String? original_title,
     String? release_date,
     String? backdrop_path,
     String? poster_path,
+    String? logo_path,
     @JsonKey(fromJson: _doubleFromJson) double? vote_average,
     String? overview,
     String? category,
+    String? library_category,
+    String? metadata_category,
+    String? content_rating,
+    String? tvdb_slug,
     @JsonKey(fromJson: _seasonsFromJson, toJson: _seasonsToJson)
     List<SeasonEpisodes>? seasons,
     List<SeasonInfo>? season_info,
@@ -610,9 +708,13 @@ class __$$MediaDetailImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? source = freezed,
+    Object? media_source = freezed,
     Object? type = freezed,
     Object? title = freezed,
     Object? en_title = freezed,
+    Object? hk_title = freezed,
+    Object? tw_title = freezed,
+    Object? sg_title = freezed,
     Object? year = freezed,
     Object? title_year = freezed,
     Object? season = freezed,
@@ -621,17 +723,25 @@ class __$$MediaDetailImplCopyWithImpl<$Res>
     Object? tvdb_id = freezed,
     Object? douban_id = freezed,
     Object? bangumi_id = freezed,
+    Object? anilist_id = freezed,
+    Object? anidb_id = freezed,
     Object? collection_id = freezed,
     Object? mediaid_prefix = freezed,
     Object? media_id = freezed,
+    Object? scrape_source = freezed,
     Object? original_language = freezed,
     Object? original_title = freezed,
     Object? release_date = freezed,
     Object? backdrop_path = freezed,
     Object? poster_path = freezed,
+    Object? logo_path = freezed,
     Object? vote_average = freezed,
     Object? overview = freezed,
     Object? category = freezed,
+    Object? library_category = freezed,
+    Object? metadata_category = freezed,
+    Object? content_rating = freezed,
+    Object? tvdb_slug = freezed,
     Object? seasons = freezed,
     Object? season_info = freezed,
     Object? names = freezed,
@@ -671,6 +781,10 @@ class __$$MediaDetailImplCopyWithImpl<$Res>
             ? _value.source
             : source // ignore: cast_nullable_to_non_nullable
                   as String?,
+        media_source: freezed == media_source
+            ? _value.media_source
+            : media_source // ignore: cast_nullable_to_non_nullable
+                  as String?,
         type: freezed == type
             ? _value.type
             : type // ignore: cast_nullable_to_non_nullable
@@ -682,6 +796,18 @@ class __$$MediaDetailImplCopyWithImpl<$Res>
         en_title: freezed == en_title
             ? _value.en_title
             : en_title // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        hk_title: freezed == hk_title
+            ? _value.hk_title
+            : hk_title // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        tw_title: freezed == tw_title
+            ? _value.tw_title
+            : tw_title // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        sg_title: freezed == sg_title
+            ? _value.sg_title
+            : sg_title // ignore: cast_nullable_to_non_nullable
                   as String?,
         year: freezed == year
             ? _value.year
@@ -715,6 +841,14 @@ class __$$MediaDetailImplCopyWithImpl<$Res>
             ? _value.bangumi_id
             : bangumi_id // ignore: cast_nullable_to_non_nullable
                   as int?,
+        anilist_id: freezed == anilist_id
+            ? _value.anilist_id
+            : anilist_id // ignore: cast_nullable_to_non_nullable
+                  as int?,
+        anidb_id: freezed == anidb_id
+            ? _value.anidb_id
+            : anidb_id // ignore: cast_nullable_to_non_nullable
+                  as int?,
         collection_id: freezed == collection_id
             ? _value.collection_id
             : collection_id // ignore: cast_nullable_to_non_nullable
@@ -726,6 +860,10 @@ class __$$MediaDetailImplCopyWithImpl<$Res>
         media_id: freezed == media_id
             ? _value.media_id
             : media_id // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        scrape_source: freezed == scrape_source
+            ? _value.scrape_source
+            : scrape_source // ignore: cast_nullable_to_non_nullable
                   as String?,
         original_language: freezed == original_language
             ? _value.original_language
@@ -747,6 +885,10 @@ class __$$MediaDetailImplCopyWithImpl<$Res>
             ? _value.poster_path
             : poster_path // ignore: cast_nullable_to_non_nullable
                   as String?,
+        logo_path: freezed == logo_path
+            ? _value.logo_path
+            : logo_path // ignore: cast_nullable_to_non_nullable
+                  as String?,
         vote_average: freezed == vote_average
             ? _value.vote_average
             : vote_average // ignore: cast_nullable_to_non_nullable
@@ -758,6 +900,22 @@ class __$$MediaDetailImplCopyWithImpl<$Res>
         category: freezed == category
             ? _value.category
             : category // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        library_category: freezed == library_category
+            ? _value.library_category
+            : library_category // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        metadata_category: freezed == metadata_category
+            ? _value.metadata_category
+            : metadata_category // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        content_rating: freezed == content_rating
+            ? _value.content_rating
+            : content_rating // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        tvdb_slug: freezed == tvdb_slug
+            ? _value.tvdb_slug
+            : tvdb_slug // ignore: cast_nullable_to_non_nullable
                   as String?,
         seasons: freezed == seasons
             ? _value._seasons
@@ -897,9 +1055,13 @@ class __$$MediaDetailImplCopyWithImpl<$Res>
 class _$MediaDetailImpl implements _MediaDetail {
   const _$MediaDetailImpl({
     this.source,
+    this.media_source,
     this.type,
     this.title,
     this.en_title,
+    this.hk_title,
+    this.tw_title,
+    this.sg_title,
     this.year,
     this.title_year,
     @JsonKey(fromJson: _intFromJson) this.season,
@@ -908,17 +1070,25 @@ class _$MediaDetailImpl implements _MediaDetail {
     @JsonKey(fromJson: _intFromJson) this.tvdb_id,
     @JsonKey(fromJson: _intFromJson) this.douban_id,
     @JsonKey(fromJson: _intFromJson) this.bangumi_id,
+    @JsonKey(fromJson: _intFromJson) this.anilist_id,
+    @JsonKey(fromJson: _intFromJson) this.anidb_id,
     @JsonKey(fromJson: _intFromJson) this.collection_id,
     this.mediaid_prefix,
     this.media_id,
+    this.scrape_source,
     this.original_language,
     this.original_title,
     this.release_date,
     this.backdrop_path,
     this.poster_path,
+    this.logo_path,
     @JsonKey(fromJson: _doubleFromJson) this.vote_average,
     this.overview,
     this.category,
+    this.library_category,
+    this.metadata_category,
+    this.content_rating,
+    this.tvdb_slug,
     @JsonKey(fromJson: _seasonsFromJson, toJson: _seasonsToJson)
     final List<SeasonEpisodes>? seasons,
     final List<SeasonInfo>? season_info,
@@ -982,11 +1152,19 @@ class _$MediaDetailImpl implements _MediaDetail {
   @override
   final String? source;
   @override
+  final String? media_source;
+  @override
   final String? type;
   @override
   final String? title;
   @override
   final String? en_title;
+  @override
+  final String? hk_title;
+  @override
+  final String? tw_title;
+  @override
+  final String? sg_title;
   @override
   final String? year;
   @override
@@ -1010,11 +1188,19 @@ class _$MediaDetailImpl implements _MediaDetail {
   final int? bangumi_id;
   @override
   @JsonKey(fromJson: _intFromJson)
+  final int? anilist_id;
+  @override
+  @JsonKey(fromJson: _intFromJson)
+  final int? anidb_id;
+  @override
+  @JsonKey(fromJson: _intFromJson)
   final int? collection_id;
   @override
   final String? mediaid_prefix;
   @override
   final String? media_id;
+  @override
+  final String? scrape_source;
   @override
   final String? original_language;
   @override
@@ -1026,12 +1212,22 @@ class _$MediaDetailImpl implements _MediaDetail {
   @override
   final String? poster_path;
   @override
+  final String? logo_path;
+  @override
   @JsonKey(fromJson: _doubleFromJson)
   final double? vote_average;
   @override
   final String? overview;
   @override
   final String? category;
+  @override
+  final String? library_category;
+  @override
+  final String? metadata_category;
+  @override
+  final String? content_rating;
+  @override
+  final String? tvdb_slug;
   final List<SeasonEpisodes>? _seasons;
   @override
   @JsonKey(fromJson: _seasonsFromJson, toJson: _seasonsToJson)
@@ -1251,7 +1447,7 @@ class _$MediaDetailImpl implements _MediaDetail {
 
   @override
   String toString() {
-    return 'MediaDetail(source: $source, type: $type, title: $title, en_title: $en_title, year: $year, title_year: $title_year, season: $season, tmdb_id: $tmdb_id, imdb_id: $imdb_id, tvdb_id: $tvdb_id, douban_id: $douban_id, bangumi_id: $bangumi_id, collection_id: $collection_id, mediaid_prefix: $mediaid_prefix, media_id: $media_id, original_language: $original_language, original_title: $original_title, release_date: $release_date, backdrop_path: $backdrop_path, poster_path: $poster_path, vote_average: $vote_average, overview: $overview, category: $category, seasons: $seasons, season_info: $season_info, names: $names, actors: $actors, directors: $directors, detail_link: $detail_link, adult: $adult, created_by: $created_by, episode_run_time: $episode_run_time, genres: $genres, first_air_date: $first_air_date, homepage: $homepage, languages: $languages, last_air_date: $last_air_date, networks: $networks, number_of_episodes: $number_of_episodes, number_of_seasons: $number_of_seasons, origin_country: $origin_country, original_name: $original_name, production_companies: $production_companies, production_countries: $production_countries, spoken_languages: $spoken_languages, release_dates: $release_dates, status: $status, tagline: $tagline, genre_ids: $genre_ids, vote_count: $vote_count, popularity: $popularity, runtime: $runtime, next_episode_to_air: $next_episode_to_air, episode_groups: $episode_groups, episode_group: $episode_group)';
+    return 'MediaDetail(source: $source, media_source: $media_source, type: $type, title: $title, en_title: $en_title, hk_title: $hk_title, tw_title: $tw_title, sg_title: $sg_title, year: $year, title_year: $title_year, season: $season, tmdb_id: $tmdb_id, imdb_id: $imdb_id, tvdb_id: $tvdb_id, douban_id: $douban_id, bangumi_id: $bangumi_id, anilist_id: $anilist_id, anidb_id: $anidb_id, collection_id: $collection_id, mediaid_prefix: $mediaid_prefix, media_id: $media_id, scrape_source: $scrape_source, original_language: $original_language, original_title: $original_title, release_date: $release_date, backdrop_path: $backdrop_path, poster_path: $poster_path, logo_path: $logo_path, vote_average: $vote_average, overview: $overview, category: $category, library_category: $library_category, metadata_category: $metadata_category, content_rating: $content_rating, tvdb_slug: $tvdb_slug, seasons: $seasons, season_info: $season_info, names: $names, actors: $actors, directors: $directors, detail_link: $detail_link, adult: $adult, created_by: $created_by, episode_run_time: $episode_run_time, genres: $genres, first_air_date: $first_air_date, homepage: $homepage, languages: $languages, last_air_date: $last_air_date, networks: $networks, number_of_episodes: $number_of_episodes, number_of_seasons: $number_of_seasons, origin_country: $origin_country, original_name: $original_name, production_companies: $production_companies, production_countries: $production_countries, spoken_languages: $spoken_languages, release_dates: $release_dates, status: $status, tagline: $tagline, genre_ids: $genre_ids, vote_count: $vote_count, popularity: $popularity, runtime: $runtime, next_episode_to_air: $next_episode_to_air, episode_groups: $episode_groups, episode_group: $episode_group)';
   }
 
   @override
@@ -1260,10 +1456,18 @@ class _$MediaDetailImpl implements _MediaDetail {
         (other.runtimeType == runtimeType &&
             other is _$MediaDetailImpl &&
             (identical(other.source, source) || other.source == source) &&
+            (identical(other.media_source, media_source) ||
+                other.media_source == media_source) &&
             (identical(other.type, type) || other.type == type) &&
             (identical(other.title, title) || other.title == title) &&
             (identical(other.en_title, en_title) ||
                 other.en_title == en_title) &&
+            (identical(other.hk_title, hk_title) ||
+                other.hk_title == hk_title) &&
+            (identical(other.tw_title, tw_title) ||
+                other.tw_title == tw_title) &&
+            (identical(other.sg_title, sg_title) ||
+                other.sg_title == sg_title) &&
             (identical(other.year, year) || other.year == year) &&
             (identical(other.title_year, title_year) ||
                 other.title_year == title_year) &&
@@ -1275,12 +1479,18 @@ class _$MediaDetailImpl implements _MediaDetail {
                 other.douban_id == douban_id) &&
             (identical(other.bangumi_id, bangumi_id) ||
                 other.bangumi_id == bangumi_id) &&
+            (identical(other.anilist_id, anilist_id) ||
+                other.anilist_id == anilist_id) &&
+            (identical(other.anidb_id, anidb_id) ||
+                other.anidb_id == anidb_id) &&
             (identical(other.collection_id, collection_id) ||
                 other.collection_id == collection_id) &&
             (identical(other.mediaid_prefix, mediaid_prefix) ||
                 other.mediaid_prefix == mediaid_prefix) &&
             (identical(other.media_id, media_id) ||
                 other.media_id == media_id) &&
+            (identical(other.scrape_source, scrape_source) ||
+                other.scrape_source == scrape_source) &&
             (identical(other.original_language, original_language) ||
                 other.original_language == original_language) &&
             (identical(other.original_title, original_title) ||
@@ -1291,12 +1501,22 @@ class _$MediaDetailImpl implements _MediaDetail {
                 other.backdrop_path == backdrop_path) &&
             (identical(other.poster_path, poster_path) ||
                 other.poster_path == poster_path) &&
+            (identical(other.logo_path, logo_path) ||
+                other.logo_path == logo_path) &&
             (identical(other.vote_average, vote_average) ||
                 other.vote_average == vote_average) &&
             (identical(other.overview, overview) ||
                 other.overview == overview) &&
             (identical(other.category, category) ||
                 other.category == category) &&
+            (identical(other.library_category, library_category) ||
+                other.library_category == library_category) &&
+            (identical(other.metadata_category, metadata_category) ||
+                other.metadata_category == metadata_category) &&
+            (identical(other.content_rating, content_rating) ||
+                other.content_rating == content_rating) &&
+            (identical(other.tvdb_slug, tvdb_slug) ||
+                other.tvdb_slug == tvdb_slug) &&
             const DeepCollectionEquality().equals(other._seasons, _seasons) &&
             const DeepCollectionEquality().equals(
               other._season_info,
@@ -1383,9 +1603,13 @@ class _$MediaDetailImpl implements _MediaDetail {
   int get hashCode => Object.hashAll([
     runtimeType,
     source,
+    media_source,
     type,
     title,
     en_title,
+    hk_title,
+    tw_title,
+    sg_title,
     year,
     title_year,
     season,
@@ -1394,17 +1618,25 @@ class _$MediaDetailImpl implements _MediaDetail {
     tvdb_id,
     douban_id,
     bangumi_id,
+    anilist_id,
+    anidb_id,
     collection_id,
     mediaid_prefix,
     media_id,
+    scrape_source,
     original_language,
     original_title,
     release_date,
     backdrop_path,
     poster_path,
+    logo_path,
     vote_average,
     overview,
     category,
+    library_category,
+    metadata_category,
+    content_rating,
+    tvdb_slug,
     const DeepCollectionEquality().hash(_seasons),
     const DeepCollectionEquality().hash(_season_info),
     const DeepCollectionEquality().hash(_names),
@@ -1456,9 +1688,13 @@ class _$MediaDetailImpl implements _MediaDetail {
 abstract class _MediaDetail implements MediaDetail {
   const factory _MediaDetail({
     final String? source,
+    final String? media_source,
     final String? type,
     final String? title,
     final String? en_title,
+    final String? hk_title,
+    final String? tw_title,
+    final String? sg_title,
     final String? year,
     final String? title_year,
     @JsonKey(fromJson: _intFromJson) final int? season,
@@ -1467,17 +1703,25 @@ abstract class _MediaDetail implements MediaDetail {
     @JsonKey(fromJson: _intFromJson) final int? tvdb_id,
     @JsonKey(fromJson: _intFromJson) final int? douban_id,
     @JsonKey(fromJson: _intFromJson) final int? bangumi_id,
+    @JsonKey(fromJson: _intFromJson) final int? anilist_id,
+    @JsonKey(fromJson: _intFromJson) final int? anidb_id,
     @JsonKey(fromJson: _intFromJson) final int? collection_id,
     final String? mediaid_prefix,
     final String? media_id,
+    final String? scrape_source,
     final String? original_language,
     final String? original_title,
     final String? release_date,
     final String? backdrop_path,
     final String? poster_path,
+    final String? logo_path,
     @JsonKey(fromJson: _doubleFromJson) final double? vote_average,
     final String? overview,
     final String? category,
+    final String? library_category,
+    final String? metadata_category,
+    final String? content_rating,
+    final String? tvdb_slug,
     @JsonKey(fromJson: _seasonsFromJson, toJson: _seasonsToJson)
     final List<SeasonEpisodes>? seasons,
     final List<SeasonInfo>? season_info,
@@ -1525,11 +1769,19 @@ abstract class _MediaDetail implements MediaDetail {
   @override
   String? get source;
   @override
+  String? get media_source;
+  @override
   String? get type;
   @override
   String? get title;
   @override
   String? get en_title;
+  @override
+  String? get hk_title;
+  @override
+  String? get tw_title;
+  @override
+  String? get sg_title;
   @override
   String? get year;
   @override
@@ -1553,11 +1805,19 @@ abstract class _MediaDetail implements MediaDetail {
   int? get bangumi_id;
   @override
   @JsonKey(fromJson: _intFromJson)
+  int? get anilist_id;
+  @override
+  @JsonKey(fromJson: _intFromJson)
+  int? get anidb_id;
+  @override
+  @JsonKey(fromJson: _intFromJson)
   int? get collection_id;
   @override
   String? get mediaid_prefix;
   @override
   String? get media_id;
+  @override
+  String? get scrape_source;
   @override
   String? get original_language;
   @override
@@ -1569,12 +1829,22 @@ abstract class _MediaDetail implements MediaDetail {
   @override
   String? get poster_path;
   @override
+  String? get logo_path;
+  @override
   @JsonKey(fromJson: _doubleFromJson)
   double? get vote_average;
   @override
   String? get overview;
   @override
   String? get category;
+  @override
+  String? get library_category;
+  @override
+  String? get metadata_category;
+  @override
+  String? get content_rating;
+  @override
+  String? get tvdb_slug;
   @override
   @JsonKey(fromJson: _seasonsFromJson, toJson: _seasonsToJson)
   List<SeasonEpisodes>? get seasons;
@@ -2198,6 +2468,7 @@ mixin _$Actor {
   int? get order => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _actorAvatarFromJson, toJson: _actorAvatarToJson)
   ActorAvatar? get avatar => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _actorImagesFromJson, toJson: _actorImagesToJson)
   ActorImages? get images => throw _privateConstructorUsedError;
   String? get sharing_url => throw _privateConstructorUsedError;
 
@@ -2230,6 +2501,7 @@ abstract class $ActorCopyWith<$Res> {
     @JsonKey(fromJson: _intFromJson) int? order,
     @JsonKey(fromJson: _actorAvatarFromJson, toJson: _actorAvatarToJson)
     ActorAvatar? avatar,
+    @JsonKey(fromJson: _actorImagesFromJson, toJson: _actorImagesToJson)
     ActorImages? images,
     String? sharing_url,
   });
@@ -2388,6 +2660,7 @@ abstract class _$$ActorImplCopyWith<$Res> implements $ActorCopyWith<$Res> {
     @JsonKey(fromJson: _intFromJson) int? order,
     @JsonKey(fromJson: _actorAvatarFromJson, toJson: _actorAvatarToJson)
     ActorAvatar? avatar,
+    @JsonKey(fromJson: _actorImagesFromJson, toJson: _actorImagesToJson)
     ActorImages? images,
     String? sharing_url,
   });
@@ -2513,6 +2786,7 @@ class _$ActorImpl implements _Actor {
     @JsonKey(fromJson: _intFromJson) this.order,
     @JsonKey(fromJson: _actorAvatarFromJson, toJson: _actorAvatarToJson)
     this.avatar,
+    @JsonKey(fromJson: _actorImagesFromJson, toJson: _actorImagesToJson)
     this.images,
     this.sharing_url,
   });
@@ -2552,6 +2826,7 @@ class _$ActorImpl implements _Actor {
   @JsonKey(fromJson: _actorAvatarFromJson, toJson: _actorAvatarToJson)
   final ActorAvatar? avatar;
   @override
+  @JsonKey(fromJson: _actorImagesFromJson, toJson: _actorImagesToJson)
   final ActorImages? images;
   @override
   final String? sharing_url;
@@ -2641,6 +2916,7 @@ abstract class _Actor implements Actor {
     @JsonKey(fromJson: _intFromJson) final int? order,
     @JsonKey(fromJson: _actorAvatarFromJson, toJson: _actorAvatarToJson)
     final ActorAvatar? avatar,
+    @JsonKey(fromJson: _actorImagesFromJson, toJson: _actorImagesToJson)
     final ActorImages? images,
     final String? sharing_url,
   }) = _$ActorImpl;
@@ -2679,6 +2955,7 @@ abstract class _Actor implements Actor {
   @JsonKey(fromJson: _actorAvatarFromJson, toJson: _actorAvatarToJson)
   ActorAvatar? get avatar;
   @override
+  @JsonKey(fromJson: _actorImagesFromJson, toJson: _actorImagesToJson)
   ActorImages? get images;
   @override
   String? get sharing_url;

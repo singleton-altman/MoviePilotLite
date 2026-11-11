@@ -115,7 +115,7 @@ List<SettingsCategory> get settingsCategories => [
       SettingsSubItem(
         id: 'danmaku',
         title: '弹幕设置',
-        subtitle: '弹幕源服务器与匹配设置',
+        subtitle: '显示样式、字色与弹幕源',
         route: '/settings/system/danmaku',
         icon: Icons.speaker_notes_outlined,
       ),

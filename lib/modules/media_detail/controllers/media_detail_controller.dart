@@ -7,6 +7,8 @@ import 'package:get/get.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:moviepilot_mobile/modules/login/repositories/auth_repository.dart';
 import 'package:moviepilot_mobile/modules/media_detail/controllers/media_detail_service.dart';
+import 'package:moviepilot_mobile/modules/media_detail/models/douban_comment_models.dart';
+import 'package:moviepilot_mobile/modules/media_detail/models/douban_review_list_args.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/media_detail_cache.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/media_detail_model.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/media_notexists.dart';
@@ -23,6 +25,7 @@ import 'package:moviepilot_mobile/utils/toast_util.dart';
 class MediaDetailController extends GetxController {
   static const Duration _cacheValidDuration = Duration(hours: 24 * 2);
   static const _mediaserverExistsPath = '/api/v1/mediaserver/exists';
+  static const int _doubanPageSize = 20;
 
   final ApiClient _apiClient = Get.find<ApiClient>();
   final _authRepository = Get.find<AuthRepository>();
@@ -59,7 +62,21 @@ class MediaDetailController extends GetxController {
   final similarSupported = false.obs;
   final recommendSupported = false.obs;
 
+  final doubanComments = <DoubanComment>[].obs;
+  final doubanReviews = <DoubanReview>[].obs;
+  final doubanCommentsTotal = 0.obs;
+  final doubanReviewsTotal = 0.obs;
+  final isLoadingDoubanComments = false.obs;
+  final isLoadingMoreDoubanComments = false.obs;
+  final isLoadingDoubanReviews = false.obs;
+  final isLoadingMoreDoubanReviews = false.obs;
+  final doubanCommentsEnabled = false.obs;
+  final doubanReviewsEnabled = false.obs;
+
   String? _relatedKey;
+  String? _doubanKey;
+  String? _doubanId;
+  String _doubanTypeName = '电影';
 
   late final MediaDetailArgs _args;
 
@@ -267,6 +284,7 @@ class MediaDetailController extends GetxController {
         mediaDetail.value = detail;
         _cacheDetail(detail);
         _fetchRelated(detail);
+        unawaited(_fetchDoubanContent(detail));
         _fetchMediaNotExists(detail);
         _fetchSubscribeStatus(detail);
         if (_appService.enableFetchMediaserverLibraryStatus.value) {
@@ -284,6 +302,221 @@ class MediaDetailController extends GetxController {
 
   Future<void> refreshDetail() => fetchDetail();
 
+  bool get hasMoreDoubanComments =>
+      doubanComments.length < doubanCommentsTotal.value;
+
+  bool get hasMoreDoubanReviews =>
+      doubanReviews.length < doubanReviewsTotal.value;
+
+  bool get canOpenDoubanReviewList =>
+      doubanReviewsEnabled.value &&
+      (_doubanId?.isNotEmpty ?? false) &&
+      doubanReviews.isNotEmpty;
+
+  DoubanReviewListArgs? buildDoubanReviewListArgs() {
+    final detail = mediaDetail.value;
+    final doubanId = _doubanId;
+    if (doubanId == null || doubanId.isEmpty) {
+      return null;
+    }
+    return DoubanReviewListArgs(
+      doubanId: doubanId,
+      typeName: _doubanTypeName,
+      title: detail?.title ?? args.title,
+      posterPath: detail?.poster_path,
+      initialItems: doubanReviews.toList(),
+      initialTotal: doubanReviewsTotal.value,
+    );
+  }
+
+  String? get doubanId => _doubanId;
+  String get doubanTypeName => _doubanTypeName;
+
+  Future<void> loadMoreDoubanComments() => _loadDoubanComments(reset: false);
+
+  Future<void> loadMoreDoubanReviews() => _loadDoubanReviews(reset: false);
+
+  Future<void> _fetchDoubanContent(MediaDetail detail) async {
+    final useV3 = await _serverApiVersionService.isV3();
+    if (isClosed) return;
+    if (!useV3) {
+      _clearDoubanState();
+      return;
+    }
+    final typeName = _mediaTypeName(detail);
+    final directId = (detail.douban_id ?? 0) > 0
+        ? detail.douban_id.toString()
+        : null;
+    final doubanId =
+        directId ?? await _resolveDoubanIdByTitle(detail, typeName);
+    if (isClosed) return;
+    if (doubanId == null || doubanId.isEmpty) {
+      _clearDoubanState();
+      return;
+    }
+    final key = '$doubanId::$typeName';
+    if (_doubanKey == key &&
+        (doubanComments.isNotEmpty ||
+            doubanReviews.isNotEmpty ||
+            isLoadingDoubanComments.value ||
+            isLoadingDoubanReviews.value)) {
+      return;
+    }
+    _doubanKey = key;
+    _doubanId = doubanId;
+    _doubanTypeName = typeName;
+    doubanCommentsEnabled.value = true;
+    doubanReviewsEnabled.value = true;
+    try {
+      await Future.wait([
+        _loadDoubanComments(reset: true),
+        _loadDoubanReviews(reset: true),
+      ]);
+    } catch (e) {
+      _log.handle(e, message: '加载豆瓣评论失败');
+    }
+  }
+
+  Future<String?> _resolveDoubanIdByTitle(
+    MediaDetail detail,
+    String typeName,
+  ) async {
+    final titles = <String>{
+      if (detail.title?.trim().isNotEmpty == true) detail.title!.trim(),
+      if (detail.original_title?.trim().isNotEmpty == true)
+        detail.original_title!.trim(),
+      if (detail.original_name?.trim().isNotEmpty == true)
+        detail.original_name!.trim(),
+    };
+    for (final title in titles) {
+      final id = await _mediaDetailService.resolveDoubanId(
+        title: title,
+        year: detail.year,
+        typeName: typeName,
+      );
+      if (isClosed) return null;
+      if (id != null && id.isNotEmpty) return id;
+    }
+    return null;
+  }
+
+  Future<void> _loadDoubanComments({required bool reset}) async {
+    if (reset) {
+      isLoadingDoubanComments.value = true;
+      isLoadingMoreDoubanComments.value = false;
+      doubanComments.clear();
+      doubanCommentsTotal.value = 0;
+    } else {
+      if (isLoadingDoubanComments.value ||
+          isLoadingMoreDoubanComments.value ||
+          !hasMoreDoubanComments) {
+        return;
+      }
+      isLoadingMoreDoubanComments.value = true;
+    }
+    final key = _doubanKey;
+    try {
+      final page = await _mediaDetailService.getDoubanComments(
+        doubanId: _doubanId ?? '',
+        typeName: _doubanTypeName,
+        start: reset ? 0 : doubanComments.length,
+        count: _doubanPageSize,
+      );
+      if (_doubanKey != key) return;
+      if (reset) {
+        doubanComments.assignAll(page.items);
+      } else {
+        final knownIds = doubanComments
+            .map((item) => item.id)
+            .whereType<String>()
+            .toSet();
+        doubanComments.addAll(
+          page.items.where(
+            (item) => item.id == null || !knownIds.contains(item.id),
+          ),
+        );
+      }
+      doubanCommentsTotal.value = page.items.isEmpty
+          ? doubanComments.length
+          : (page.total < doubanComments.length
+                ? doubanComments.length
+                : page.total);
+    } catch (e) {
+      _log.handle(e, message: '加载豆瓣短评失败');
+    } finally {
+      if (_doubanKey == key) {
+        isLoadingDoubanComments.value = false;
+        isLoadingMoreDoubanComments.value = false;
+      }
+    }
+  }
+
+  Future<void> _loadDoubanReviews({required bool reset}) async {
+    if (reset) {
+      isLoadingDoubanReviews.value = true;
+      isLoadingMoreDoubanReviews.value = false;
+      doubanReviews.clear();
+      doubanReviewsTotal.value = 0;
+    } else {
+      if (isLoadingDoubanReviews.value ||
+          isLoadingMoreDoubanReviews.value ||
+          !hasMoreDoubanReviews) {
+        return;
+      }
+      isLoadingMoreDoubanReviews.value = true;
+    }
+    final key = _doubanKey;
+    try {
+      final page = await _mediaDetailService.getDoubanReviews(
+        doubanId: _doubanId ?? '',
+        typeName: _doubanTypeName,
+        start: reset ? 0 : doubanReviews.length,
+        count: _doubanPageSize,
+      );
+      if (_doubanKey != key) return;
+      if (reset) {
+        doubanReviews.assignAll(page.items);
+      } else {
+        final knownIds = doubanReviews
+            .map((item) => item.id)
+            .whereType<String>()
+            .toSet();
+        doubanReviews.addAll(
+          page.items.where(
+            (item) => item.id == null || !knownIds.contains(item.id),
+          ),
+        );
+      }
+      doubanReviewsTotal.value = page.items.isEmpty
+          ? doubanReviews.length
+          : (page.total < doubanReviews.length
+                ? doubanReviews.length
+                : page.total);
+    } catch (e) {
+      _log.handle(e, message: '加载豆瓣影评失败');
+    } finally {
+      if (_doubanKey == key) {
+        isLoadingDoubanReviews.value = false;
+        isLoadingMoreDoubanReviews.value = false;
+      }
+    }
+  }
+
+  void _clearDoubanState() {
+    _doubanKey = null;
+    _doubanId = null;
+    doubanComments.clear();
+    doubanReviews.clear();
+    doubanCommentsTotal.value = 0;
+    doubanReviewsTotal.value = 0;
+    isLoadingDoubanComments.value = false;
+    isLoadingMoreDoubanComments.value = false;
+    isLoadingDoubanReviews.value = false;
+    isLoadingMoreDoubanReviews.value = false;
+    doubanCommentsEnabled.value = false;
+    doubanReviewsEnabled.value = false;
+  }
+
   String _buildPath(MediaDetailArgs args, {bool useV3 = false}) {
     final path = _normalizePath(args.path);
     if (path.isEmpty) return '/api/v1/media/';
@@ -294,10 +527,7 @@ class MediaDetailController extends GetxController {
     return '/api/v1/media/$path';
   }
 
-  Map<String, dynamic> _buildQuery(
-    MediaDetailArgs args, {
-    bool useV3 = false,
-  }) {
+  Map<String, dynamic> _buildQuery(MediaDetailArgs args, {bool useV3 = false}) {
     final query = <String, dynamic>{};
     if (args.title.trim().isNotEmpty) {
       query['title'] = args.title.trim();
