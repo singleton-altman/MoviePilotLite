@@ -13,13 +13,15 @@ const _danmakuPalette = <Color>[
   Color(0xFFFDBA74),
 ];
 
-const _danmakuGap = 28.0;
+const _danmakuSizes = [11.5, 12.5, 13.5];
+const _danmakuSpeeds = [13.0, 17.0, 22.0];
+const _danmakuOpacities = [0.72, 0.86, 1.0];
 const _danmakuMaxLength = 56;
 
 /// 详情页头图上的豆瓣短评弹幕层。
 ///
-/// 默认 3 行，每行是一条持续左移的评论流；颜色由评论内容和行号做稳定散列
-/// 从调色板中选取，避免重建时颜色闪烁。
+/// 默认 3 行；同一行内的每条弹幕独立拥有字号、速度和透明度，
+/// 速度/字号/透明度按评论内容做稳定散列分档，避免重建时闪烁。
 class MediaDanmakuOverlay extends StatelessWidget {
   const MediaDanmakuOverlay({
     super.key,
@@ -39,23 +41,28 @@ class MediaDanmakuOverlay extends StatelessWidget {
     final lanes = math.min(laneCount, texts.length);
 
     return RepaintBoundary(
-      child: ClipRect(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (var lane = 0; lane < lanes; lane++)
-              SizedBox(
-                height: laneHeight,
-                child: _DanmakuLane(
-                  key: ValueKey('danmaku-$lane-${texts.length}'),
-                  entries: _entriesForLane(texts, lane),
-                  speed: _speedForLane(lane),
-                  fontSize: _fontSizeForLane(lane),
-                  opacity: _opacityForLane(lane),
-                ),
-              ),
-          ],
-        ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final viewportWidth = constraints.maxWidth;
+          return ClipRect(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (var lane = 0; lane < lanes; lane++)
+                  SizedBox(
+                    height: laneHeight,
+                    child: _DanmakuLane(
+                      key: ValueKey('danmaku-$lane-${texts.length}'),
+                      entries: _entriesForLane(texts, lane),
+                      viewportWidth: viewportWidth,
+                      laneHeight: laneHeight,
+                      phase: _phaseForLane(lane),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -79,13 +86,31 @@ class MediaDanmakuOverlay extends StatelessWidget {
   List<_DanmakuEntry> _entriesForLane(List<String> texts, int lane) {
     final offset = lane % texts.length;
     final rotated = <String>[...texts.skip(offset), ...texts.take(offset)];
-    return [
-      for (var index = 0; index < rotated.length; index++)
+    final entries = <_DanmakuEntry>[];
+    var previousTier = -1;
+    for (var index = 0; index < rotated.length; index++) {
+      var tier = _tierFor(rotated[index], lane, index);
+      if (tier == previousTier) tier = (tier + 1) % 3;
+      previousTier = tier;
+      entries.add(
         _DanmakuEntry(
           text: rotated[index],
           color: _colorFor(rotated[index], lane, index),
+          fontSize: _danmakuSizes[tier],
+          speed: _danmakuSpeeds[tier],
+          opacity: _danmakuOpacities[tier],
         ),
-    ];
+      );
+    }
+    return entries;
+  }
+
+  int _tierFor(String text, int lane, int index) {
+    var hash = 17;
+    for (final code in text.codeUnits) {
+      hash = (hash * 31 + code) & 0x7fffffff;
+    }
+    return (hash + lane * 11 + index * 7) % 3;
   }
 
   Color _colorFor(String text, int lane, int index) {
@@ -97,42 +122,41 @@ class MediaDanmakuOverlay extends StatelessWidget {
     return _danmakuPalette[seed % _danmakuPalette.length];
   }
 
-  double _speedForLane(int lane) {
-    const speeds = [13.0, 17.0, 22.0];
-    return speeds[lane % speeds.length];
-  }
-
-  double _fontSizeForLane(int lane) {
-    const sizes = [11.5, 12.5, 13.5];
-    return sizes[lane % sizes.length];
-  }
-
-  double _opacityForLane(int lane) {
-    const opacities = [0.72, 0.86, 1.0];
-    return opacities[lane % opacities.length];
+  double _phaseForLane(int lane) {
+    const phases = [0.22, 0.48, 0.34];
+    return phases[lane % phases.length];
   }
 }
 
 class _DanmakuEntry {
-  const _DanmakuEntry({required this.text, required this.color});
+  const _DanmakuEntry({
+    required this.text,
+    required this.color,
+    required this.fontSize,
+    required this.speed,
+    required this.opacity,
+  });
 
   final String text;
   final Color color;
+  final double fontSize;
+  final double speed;
+  final double opacity;
 }
 
 class _DanmakuLane extends StatefulWidget {
   const _DanmakuLane({
     super.key,
     required this.entries,
-    required this.speed,
-    required this.fontSize,
-    required this.opacity,
+    required this.viewportWidth,
+    required this.laneHeight,
+    required this.phase,
   });
 
   final List<_DanmakuEntry> entries;
-  final double speed;
-  final double fontSize;
-  final double opacity;
+  final double viewportWidth;
+  final double laneHeight;
+  final double phase;
 
   @override
   State<_DanmakuLane> createState() => _DanmakuLaneState();
@@ -141,7 +165,8 @@ class _DanmakuLane extends StatefulWidget {
 class _DanmakuLaneState extends State<_DanmakuLane>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-  double _contentWidth = 1;
+  List<_LaneItem> _items = const [];
+  double _cycleSeconds = 20;
   String _signature = '';
 
   @override
@@ -149,16 +174,16 @@ class _DanmakuLaneState extends State<_DanmakuLane>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 30),
+      duration: const Duration(seconds: 20),
     );
-    _refreshMeasurement();
+    _rebuildTimeline();
   }
 
   @override
   void didUpdateWidget(covariant _DanmakuLane oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (_signatureFor(widget) != _signature) {
-      _refreshMeasurement();
+      _rebuildTimeline();
     }
   }
 
@@ -169,37 +194,56 @@ class _DanmakuLaneState extends State<_DanmakuLane>
   }
 
   String _signatureFor(_DanmakuLane lane) {
-    return '${lane.speed}|${lane.fontSize}|${lane.opacity}|'
-        '${lane.entries.map((entry) => entry.text).join('|')}';
+    final entries = lane.entries
+        .map((entry) => '${entry.text}:${entry.fontSize}:${entry.speed}')
+        .join('|');
+    return '${lane.viewportWidth}|${lane.laneHeight}|$entries';
   }
 
-  void _refreshMeasurement() {
+  void _rebuildTimeline() {
     _signature = _signatureFor(widget);
-    var width = 0.0;
+    final items = <_LaneItem>[];
+    var cursor = 0.0;
     for (final entry in widget.entries) {
-      final painter = TextPainter(
-        text: TextSpan(text: entry.text, style: _textStyle(entry.color)),
-        textDirection: TextDirection.ltr,
-        maxLines: 1,
-        textScaler: TextScaler.noScaling,
-      )..layout();
-      width += painter.width + _danmakuGap;
+      final width = _measure(entry);
+      final duration = (widget.viewportWidth + width) / entry.speed;
+      items.add(
+        _LaneItem(
+          entry: entry,
+          width: width,
+          start: cursor,
+          duration: duration,
+        ),
+      );
+      cursor += (width + 36) / entry.speed + 0.6;
     }
-    _contentWidth = math.max(width, 1);
-    final milliseconds = (1000 * _contentWidth / widget.speed).round().clamp(
-      9000,
-      60000,
-    );
+    _items = items;
+    final lastEnd = items.isEmpty
+        ? 0.0
+        : items
+              .map((item) => item.start + item.duration)
+              .reduce((a, b) => math.max(a, b));
+    _cycleSeconds = math.max(lastEnd + 3, 12);
     _controller
       ..stop()
-      ..duration = Duration(milliseconds: milliseconds)
+      ..duration = Duration(milliseconds: (_cycleSeconds * 1000).round())
       ..repeat();
   }
 
-  TextStyle _textStyle(Color color) {
+  double _measure(_DanmakuEntry entry) {
+    final painter = TextPainter(
+      text: TextSpan(text: entry.text, style: _textStyle(entry)),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+      textScaler: TextScaler.noScaling,
+    )..layout();
+    return painter.width;
+  }
+
+  TextStyle _textStyle(_DanmakuEntry entry) {
     return TextStyle(
-      color: color.withValues(alpha: widget.opacity),
-      fontSize: widget.fontSize,
+      color: entry.color.withValues(alpha: entry.opacity),
+      fontSize: entry.fontSize,
       fontWeight: FontWeight.w600,
       height: 1,
       letterSpacing: 0.15,
@@ -215,34 +259,53 @@ class _DanmakuLaneState extends State<_DanmakuLane>
       child: ClipRect(
         child: AnimatedBuilder(
           animation: _controller,
-          builder: (context, child) => Transform.translate(
-            offset: Offset(-_contentWidth * _controller.value, 0),
-            child: child,
-          ),
-          child: OverflowBox(
-            alignment: Alignment.centerLeft,
-            minWidth: 0,
-            maxWidth: double.infinity,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (var copy = 0; copy < 2; copy++) ...[
-                  for (final entry in widget.entries) ...[
-                    Text(
-                      entry.text,
+          builder: (context, _) {
+            final elapsed =
+                (_cycleSeconds * (_controller.value + widget.phase)) %
+                _cycleSeconds;
+            final children = <Widget>[];
+            for (final item in _items) {
+              final progress = elapsed - item.start;
+              if (progress < 0 || progress > item.duration) continue;
+              final x = widget.viewportWidth - progress * item.entry.speed;
+              if (x > widget.viewportWidth || x + item.width < 0) continue;
+              children.add(
+                Positioned(
+                  left: x,
+                  top: 0,
+                  height: widget.laneHeight,
+                  child: Align(
+                    widthFactor: 1,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      item.entry.text,
                       maxLines: 1,
                       softWrap: false,
                       textScaler: TextScaler.noScaling,
-                      style: _textStyle(entry.color),
+                      style: _textStyle(item.entry),
                     ),
-                    const SizedBox(width: _danmakuGap),
-                  ],
-                ],
-              ],
-            ),
-          ),
+                  ),
+                ),
+              );
+            }
+            return Stack(clipBehavior: Clip.hardEdge, children: children);
+          },
         ),
       ),
     );
   }
+}
+
+class _LaneItem {
+  const _LaneItem({
+    required this.entry,
+    required this.width,
+    required this.start,
+    required this.duration,
+  });
+
+  final _DanmakuEntry entry;
+  final double width;
+  final double start;
+  final double duration;
 }

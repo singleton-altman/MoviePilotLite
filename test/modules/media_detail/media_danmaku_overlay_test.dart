@@ -27,6 +27,16 @@ void main() {
     expect(find.byKey(const ValueKey('danmaku-1-8')), findsOneWidget);
     expect(find.byKey(const ValueKey('danmaku-2-8')), findsOneWidget);
     expect(find.text('第 0 条短评'), findsWidgets);
+    final renderedTexts = tester.widgetList<Text>(
+      find.byWidgetPredicate(
+        (widget) => widget is Text && (widget.data?.contains('条短评') ?? false),
+      ),
+    );
+    final fontSizes = renderedTexts
+        .map((text) => text.style?.fontSize)
+        .whereType<double>()
+        .toSet();
+    expect(fontSizes.length, greaterThan(1));
     expect(tester.takeException(), isNull);
   });
 
