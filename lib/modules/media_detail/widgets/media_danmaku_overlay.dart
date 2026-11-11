@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:moviepilot_mobile/modules/media_detail/models/danmaku_display_settings.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/douban_comment_models.dart';
 
 const _danmakuPalette = <Color>[
@@ -28,11 +29,13 @@ class MediaDanmakuOverlay extends StatelessWidget {
     required this.comments,
     this.laneCount = 3,
     this.laneHeight = 30,
+    this.settings = DanmakuDisplaySettings.defaults,
   });
 
   final List<DoubanComment> comments;
   final int laneCount;
   final double laneHeight;
+  final DanmakuDisplaySettings settings;
 
   @override
   Widget build(BuildContext context) {
@@ -96,9 +99,11 @@ class MediaDanmakuOverlay extends StatelessWidget {
         _DanmakuEntry(
           text: rotated[index],
           color: _colorFor(rotated[index], lane, index),
-          fontSize: _danmakuSizes[tier],
-          speed: _danmakuSpeeds[tier],
-          opacity: _danmakuOpacities[tier],
+          fontSize: _danmakuSizes[tier] * settings.fontScale,
+          speed: _danmakuSpeeds[tier] * settings.speedScale,
+          opacity: (_danmakuOpacities[tier] * settings.opacity)
+              .clamp(0.0, 1.0)
+              .toDouble(),
         ),
       );
     }
@@ -114,6 +119,8 @@ class MediaDanmakuOverlay extends StatelessWidget {
   }
 
   Color _colorFor(String text, int lane, int index) {
+    final fixedColor = settings.colorMode.color;
+    if (fixedColor != null) return fixedColor;
     var hash = 17;
     for (final code in text.codeUnits) {
       hash = (hash * 31 + code) & 0x7fffffff;

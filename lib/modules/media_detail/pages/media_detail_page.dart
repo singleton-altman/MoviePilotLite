@@ -10,6 +10,7 @@ import 'package:moviepilot_mobile/modules/media_detail/models/douban_comment_mod
 import 'package:moviepilot_mobile/modules/media_detail/models/media_detail_model.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/media_notexists.dart';
 import 'package:moviepilot_mobile/modules/media_detail/pages/media_season_detail_page.dart';
+import 'package:moviepilot_mobile/modules/media_detail/services/danmaku_display_settings_service.dart';
 import 'package:moviepilot_mobile/modules/media_detail/widgets/media_detail_season_card.dart';
 import 'package:moviepilot_mobile/modules/media_detail/widgets/media_danmaku_overlay.dart';
 import 'package:moviepilot_mobile/modules/search/pages/search_mid_sheet.dart';
@@ -175,6 +176,8 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isWide = screenWidth > 600;
     final expandedHeight = isWide ? 400.0 : 520.0;
+    final danmakuSettings =
+        Get.find<DanmakuDisplaySettingsService>().settings.value;
 
     return SliverAppBar(
       pinned: true,
@@ -236,22 +239,29 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
                   if (comments.isEmpty) {
                     return const SizedBox.shrink();
                   }
-                  return IgnorePointer(
-                    child: Align(
-                      alignment: Alignment.topCenter,
-                      child: Padding(
-                        padding: EdgeInsets.only(
-                          top: isWide
-                              ? 60
-                              : MediaQuery.of(context).padding.top + 56,
-                          left: 14,
-                          right: 14,
-                        ),
-                        child: SizedBox(
-                          height: 90,
-                          child: MediaDanmakuOverlay(
-                            comments: comments,
-                            laneCount: 3,
+                  return Align(
+                    alignment: Alignment.topCenter,
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        top: isWide
+                            ? 60
+                            : MediaQuery.of(context).padding.top + 56,
+                        left: 14,
+                        right: 14,
+                      ),
+                      child: Semantics(
+                        button: true,
+                        label: '弹幕设置',
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => Get.toNamed('/settings/system/danmaku'),
+                          child: SizedBox(
+                            height: 90,
+                            child: MediaDanmakuOverlay(
+                              comments: comments,
+                              laneCount: 3,
+                              settings: danmakuSettings,
+                            ),
                           ),
                         ),
                       ),

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:lanplayer_player/lanplayer_player.dart' as kit;
+import 'package:moviepilot_mobile/modules/media_detail/models/danmaku_display_settings.dart';
+import 'package:moviepilot_mobile/modules/media_detail/services/danmaku_display_settings_service.dart';
 
 import '../../../utils/toast_util.dart';
 
-/// 弹幕源服务器设置(系统设置 · 弹幕设置):
-/// 管理 dandanplay 兼容 API 服务器列表(地址 + 可选 API 密钥),
-/// 持久化与内嵌播放器的弹幕自动匹配共用同一份存储。
+/// 弹幕设置(系统设置 · 弹幕设置):
+/// 上半部分为本地显示配置(速度、字号、透明度、字色),详情页与后续播放器共用;
+/// 下半部分管理 dandanplay 兼容 API 服务器列表(地址 + 可选 API 密钥)。
 class DanmakuSettingsController extends GetxController {
   final configs = <kit.DanmakuConfig>[].obs;
   final testingIds = <String>{}.obs;
@@ -98,13 +100,28 @@ class DanmakuSettingsPage extends GetWidget<DanmakuSettingsController> {
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
+    final displaySettings = Get.isRegistered<DanmakuDisplaySettingsService>()
+        ? Get.find<DanmakuDisplaySettingsService>()
+        : Get.put(DanmakuDisplaySettingsService());
     return Scaffold(
       appBar: AppBar(title: const Text('弹幕设置')),
       body: Obx(() {
         final configs = controller.configs;
+        final settings = displaySettings.settings.value;
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
+            _buildDisplaySettings(context, displaySettings, settings),
+            const SizedBox(height: 24),
+            Text(
+              '弹幕源服务器',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 6),
             Text(
               '播放时按文件名 / 哈希自动匹配弹幕库,支持 dandanplay 兼容 API;'
               '可配置多台服务器,匹配按列表顺序依次尝试。',
@@ -120,20 +137,23 @@ class DanmakuSettingsPage extends GetWidget<DanmakuSettingsController> {
                 padding: const EdgeInsets.symmetric(vertical: 28),
                 child: Column(
                   children: [
-                    Icon(Icons.speaker_notes_off_outlined,
-                        size: 40,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurfaceVariant
-                            .withOpacity(0.4)),
+                    Icon(
+                      Icons.speaker_notes_off_outlined,
+                      size: 40,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurfaceVariant.withOpacity(0.4),
+                    ),
                     const SizedBox(height: 10),
-                    Text('暂无弹幕服务器',
-                        style: TextStyle(
-                            fontSize: 13,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant
-                                .withOpacity(0.6))),
+                    Text(
+                      '暂无弹幕服务器',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant.withOpacity(0.6),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -153,8 +173,9 @@ class DanmakuSettingsPage extends GetWidget<DanmakuSettingsController> {
             Text(
               '长按服务器可设为默认(置顶,优先匹配)。',
               style: TextStyle(
-                  fontSize: 11,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant),
+                fontSize: 11,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         );
@@ -162,8 +183,174 @@ class DanmakuSettingsPage extends GetWidget<DanmakuSettingsController> {
     );
   }
 
+  Widget _buildDisplaySettings(
+    BuildContext context,
+    DanmakuDisplaySettingsService service,
+    DanmakuDisplaySettings settings,
+  ) {
+    final scheme = Theme.of(context).colorScheme;
+
+    Widget slider({
+      required String label,
+      required String value,
+      required double current,
+      required double min,
+      required double max,
+      required int divisions,
+      required ValueChanged<double> onChanged,
+    }) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: scheme.primary,
+                ),
+              ),
+            ],
+          ),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              trackHeight: 3,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+            ),
+            child: Slider(
+              value: current,
+              min: min,
+              max: max,
+              divisions: divisions,
+              onChanged: onChanged,
+              onChangeEnd: (_) => service.persist(),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.34),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.38),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text(
+                '显示设置',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: service.reset,
+                style: TextButton.styleFrom(
+                  minimumSize: Size.zero,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text('恢复默认'),
+              ),
+            ],
+          ),
+          Text(
+            '本地保存，详情页弹幕与后续播放器弹幕共用',
+            style: TextStyle(fontSize: 11.5, color: scheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 14),
+          slider(
+            label: '速度',
+            value: '${settings.speedScale.toStringAsFixed(1)}x',
+            current: settings.speedScale,
+            min: 0.6,
+            max: 1.8,
+            divisions: 12,
+            onChanged: (value) =>
+                service.preview(settings.copyWith(speedScale: value)),
+          ),
+          slider(
+            label: '字号',
+            value: '${(settings.fontScale * 100).round()}%',
+            current: settings.fontScale,
+            min: 0.8,
+            max: 1.4,
+            divisions: 6,
+            onChanged: (value) =>
+                service.preview(settings.copyWith(fontScale: value)),
+          ),
+          slider(
+            label: '透明度',
+            value: '${(settings.opacity * 100).round()}%',
+            current: settings.opacity,
+            min: 0.4,
+            max: 1,
+            divisions: 6,
+            onChanged: (value) =>
+                service.preview(settings.copyWith(opacity: value)),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            '字色',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final mode in DanmakuColorMode.values)
+                ChoiceChip(
+                  label: Text(mode.label),
+                  selected: settings.colorMode == mode,
+                  avatar: mode.color == null
+                      ? const Icon(Icons.palette_outlined, size: 15)
+                      : Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: mode.color,
+                            border: Border.all(
+                              color: Colors.black.withValues(alpha: 0.12),
+                            ),
+                          ),
+                        ),
+                  onSelected: (_) =>
+                      service.update(settings.copyWith(colorMode: mode)),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildServerCard(
-      BuildContext context, kit.DanmakuConfig config, Color primary) {
+    BuildContext context,
+    kit.DanmakuConfig config,
+    Color primary,
+  ) {
     final result = controller.testResults[config.id];
     final testing = controller.testingIds.contains(config.id);
     final isDefault = controller.configs.indexOf(config) == 0;
@@ -176,14 +363,13 @@ class DanmakuSettingsPage extends GetWidget<DanmakuSettingsController> {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest
-              .withOpacity(0.5),
+          color: Theme.of(
+            context,
+          ).colorScheme.surfaceContainerHighest.withOpacity(0.5),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurface
-                  .withOpacity(0.08)),
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
+          ),
         ),
         child: Row(
           children: [
@@ -194,8 +380,11 @@ class DanmakuSettingsPage extends GetWidget<DanmakuSettingsController> {
                 color: primary.withOpacity(0.16),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child:
-                  Icon(Icons.speaker_notes_outlined, color: primary, size: 20),
+              child: Icon(
+                Icons.speaker_notes_outlined,
+                color: primary,
+                size: 20,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -205,27 +394,35 @@ class DanmakuSettingsPage extends GetWidget<DanmakuSettingsController> {
                   Row(
                     children: [
                       Flexible(
-                        child: Text(config.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                fontSize: 14.5,
-                                fontWeight: FontWeight.w800)),
+                        child: Text(
+                          config.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                       ),
                       if (isDefault) ...[
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: primary.withOpacity(0.14),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Text('默认',
-                              style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: primary)),
+                          child: Text(
+                            '默认',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: primary,
+                            ),
+                          ),
                         ),
                       ],
                     ],
@@ -237,24 +434,23 @@ class DanmakuSettingsPage extends GetWidget<DanmakuSettingsController> {
                         testing
                             ? Icons.hourglass_top_rounded
                             : (result == null
-                                ? Icons.circle
-                                : (result.ok
-                                    ? Icons.check_circle_rounded
-                                    : Icons.error_outline_rounded)),
+                                  ? Icons.circle
+                                  : (result.ok
+                                        ? Icons.check_circle_rounded
+                                        : Icons.error_outline_rounded)),
                         size: 11,
                         color: testing
-                            ? Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant
-                                .withOpacity(0.5)
+                            ? Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant.withOpacity(0.5)
                             : (result == null
-                                ? Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant
-                                    .withOpacity(0.35)
-                                : (result.ok
-                                    ? Colors.green
-                                    : Colors.redAccent)),
+                                  ? Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant
+                                        .withOpacity(0.35)
+                                  : (result.ok
+                                        ? Colors.green
+                                        : Colors.redAccent)),
                       ),
                       const SizedBox(width: 6),
                       Expanded(
@@ -262,14 +458,15 @@ class DanmakuSettingsPage extends GetWidget<DanmakuSettingsController> {
                           testing
                               ? '测试中…'
                               : (result?.message ??
-                                  '${config.url}${(config.apiKey ?? '').isNotEmpty ? ' · 密钥已配置' : ''}'),
+                                    '${config.url}${(config.apiKey ?? '').isNotEmpty ? ' · 密钥已配置' : ''}'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                              fontSize: 11.5,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant),
+                            fontSize: 11.5,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ),
                     ],
@@ -289,8 +486,7 @@ class DanmakuSettingsPage extends GetWidget<DanmakuSettingsController> {
   }
 
   void _showEditSheet(BuildContext context, kit.DanmakuConfig? existing) {
-    final nameCtrl =
-        TextEditingController(text: existing?.name ?? '');
+    final nameCtrl = TextEditingController(text: existing?.name ?? '');
     final urlCtrl = TextEditingController(text: existing?.url ?? '');
     final keyCtrl = TextEditingController(text: existing?.apiKey ?? '');
     final formKey = GlobalKey<FormState>();
@@ -302,7 +498,8 @@ class DanmakuSettingsPage extends GetWidget<DanmakuSettingsController> {
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => Padding(
         padding: EdgeInsets.only(
-            bottom: MediaQuery.of(sheetContext).viewInsets.bottom),
+          bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+        ),
         child: Container(
           decoration: BoxDecoration(
             color: Theme.of(sheetContext).colorScheme.surface,
@@ -320,7 +517,9 @@ class DanmakuSettingsPage extends GetWidget<DanmakuSettingsController> {
                     Text(
                       existing == null ? '添加弹幕服务器' : '编辑弹幕服务器',
                       style: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w800),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const Spacer(),
                     IconButton(
@@ -332,8 +531,7 @@ class DanmakuSettingsPage extends GetWidget<DanmakuSettingsController> {
                 const SizedBox(height: 6),
                 TextFormField(
                   controller: nameCtrl,
-                  decoration:
-                      const InputDecoration(labelText: '名称'),
+                  decoration: const InputDecoration(labelText: '名称'),
                   validator: (v) =>
                       (v == null || v.trim().isEmpty) ? '请输入名称' : null,
                 ),
@@ -341,7 +539,8 @@ class DanmakuSettingsPage extends GetWidget<DanmakuSettingsController> {
                 TextFormField(
                   controller: urlCtrl,
                   decoration: const InputDecoration(
-                      labelText: '服务器地址(https://...)'),
+                    labelText: '服务器地址(https://...)',
+                  ),
                   keyboardType: TextInputType.url,
                   validator: (v) =>
                       (v == null || v.trim().isEmpty) ? '请输入服务器地址' : null,
@@ -349,8 +548,7 @@ class DanmakuSettingsPage extends GetWidget<DanmakuSettingsController> {
                 const SizedBox(height: 10),
                 TextFormField(
                   controller: keyCtrl,
-                  decoration: const InputDecoration(
-                      labelText: 'API 密钥(可选)'),
+                  decoration: const InputDecoration(labelText: 'API 密钥(可选)'),
                   obscureText: true,
                 ),
                 const SizedBox(height: 16),
@@ -359,12 +557,12 @@ class DanmakuSettingsPage extends GetWidget<DanmakuSettingsController> {
                     Expanded(
                       child: OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
-                          foregroundColor:
-                              Theme.of(sheetContext).colorScheme.primary,
+                          foregroundColor: Theme.of(
+                            sheetContext,
+                          ).colorScheme.primary,
                           side: BorderSide(
-                              color: Theme.of(sheetContext)
-                                  .colorScheme
-                                  .primary),
+                            color: Theme.of(sheetContext).colorScheme.primary,
+                          ),
                           minimumSize: const Size.fromHeight(44),
                         ),
                         onPressed: () {
@@ -373,7 +571,8 @@ class DanmakuSettingsPage extends GetWidget<DanmakuSettingsController> {
                             ToastUtil.info('请先填写服务器地址');
                             return;
                           }
-                          final id = existing?.id ??
+                          final id =
+                              existing?.id ??
                               'mp_${DateTime.now().millisecondsSinceEpoch}';
                           final probe = kit.DanmakuConfig(
                             id: id,
@@ -388,8 +587,10 @@ class DanmakuSettingsPage extends GetWidget<DanmakuSettingsController> {
                           );
                           controller.testConnection(probe);
                         },
-                        icon: const Icon(Icons.wifi_tethering_rounded,
-                            size: 18),
+                        icon: const Icon(
+                          Icons.wifi_tethering_rounded,
+                          size: 18,
+                        ),
                         label: const Text('测试连接'),
                       ),
                     ),
@@ -397,18 +598,19 @@ class DanmakuSettingsPage extends GetWidget<DanmakuSettingsController> {
                     Expanded(
                       child: FilledButton.icon(
                         style: FilledButton.styleFrom(
-                          backgroundColor:
-                              Theme.of(sheetContext).colorScheme.primary,
+                          backgroundColor: Theme.of(
+                            sheetContext,
+                          ).colorScheme.primary,
                           foregroundColor: Colors.white,
                           minimumSize: const Size.fromHeight(44),
                         ),
                         onPressed: () async {
-                          if (!(formKey.currentState?.validate() ??
-                              false)) {
+                          if (!(formKey.currentState?.validate() ?? false)) {
                             return;
                           }
                           final config = kit.DanmakuConfig(
-                            id: existing?.id ??
+                            id:
+                                existing?.id ??
                                 'mp_${DateTime.now().millisecondsSinceEpoch}',
                             name: nameCtrl.text.trim(),
                             url: urlCtrl.text.trim(),
@@ -451,9 +653,9 @@ class DanmakuSettingsPage extends GetWidget<DanmakuSettingsController> {
                         );
                       },
                       style: TextButton.styleFrom(
-                          foregroundColor: Colors.redAccent),
-                      icon: const Icon(Icons.delete_outline_rounded,
-                          size: 18),
+                        foregroundColor: Colors.redAccent,
+                      ),
+                      icon: const Icon(Icons.delete_outline_rounded, size: 18),
                       label: const Text('删除此服务器'),
                     ),
                   ),
