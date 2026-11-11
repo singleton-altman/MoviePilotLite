@@ -74,7 +74,7 @@ class MediaDetailController extends GetxController {
 
   String? _relatedKey;
   String? _doubanKey;
-  int _doubanId = 0;
+  String? _doubanId;
   String _doubanTypeName = '电影';
 
   late final MediaDetailArgs _args;
@@ -312,11 +312,6 @@ class MediaDetailController extends GetxController {
   Future<void> loadMoreDoubanReviews() => _loadDoubanReviews(reset: false);
 
   Future<void> _fetchDoubanContent(MediaDetail detail) async {
-    final doubanId = detail.douban_id ?? 0;
-    if (doubanId <= 0) {
-      _clearDoubanState();
-      return;
-    }
     final useV3 = await _serverApiVersionService.isV3();
     if (isClosed) return;
     if (!useV3) {
@@ -324,6 +319,21 @@ class MediaDetailController extends GetxController {
       return;
     }
     final typeName = _mediaTypeName(detail);
+    final directId = (detail.douban_id ?? 0) > 0
+        ? detail.douban_id.toString()
+        : null;
+    final doubanId =
+        directId ??
+        await _mediaDetailService.resolveDoubanId(
+          title: detail.title ?? detail.original_title ?? '',
+          year: detail.year,
+          typeName: typeName,
+        );
+    if (isClosed) return;
+    if (doubanId == null || doubanId.isEmpty) {
+      _clearDoubanState();
+      return;
+    }
     final key = '$doubanId::$typeName';
     if (_doubanKey == key &&
         (doubanComments.isNotEmpty ||
@@ -364,7 +374,7 @@ class MediaDetailController extends GetxController {
     final key = _doubanKey;
     try {
       final page = await _mediaDetailService.getDoubanComments(
-        doubanId: _doubanId.toString(),
+        doubanId: _doubanId ?? '',
         typeName: _doubanTypeName,
         start: reset ? 0 : doubanComments.length,
         count: _doubanPageSize,
@@ -415,7 +425,7 @@ class MediaDetailController extends GetxController {
     final key = _doubanKey;
     try {
       final page = await _mediaDetailService.getDoubanReviews(
-        doubanId: _doubanId.toString(),
+        doubanId: _doubanId ?? '',
         typeName: _doubanTypeName,
         start: reset ? 0 : doubanReviews.length,
         count: _doubanPageSize,
@@ -451,7 +461,7 @@ class MediaDetailController extends GetxController {
 
   void _clearDoubanState() {
     _doubanKey = null;
-    _doubanId = 0;
+    _doubanId = null;
     doubanComments.clear();
     doubanReviews.clear();
     doubanCommentsTotal.value = 0;

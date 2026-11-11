@@ -4,6 +4,7 @@ import 'package:moviepilot_mobile/modules/media_detail/models/douban_comment_mod
 import 'package:moviepilot_mobile/modules/media_detail/models/media_detail_model.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/media_notexists.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/season_episode_detail.dart';
+import 'package:moviepilot_mobile/modules/media_detail/utils/douban_id_resolver.dart';
 import 'package:moviepilot_mobile/modules/subscribe/controllers/subscribe_service.dart';
 import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_models.dart';
 import 'package:moviepilot_mobile/services/api_client.dart';
@@ -207,5 +208,53 @@ class MediaDetailService extends GetxService {
       _log.handle(e, message: errorMessage);
       return null;
     }
+  }
+
+  /// GET /api/v1/media/search?media_source=douban
+  ///
+  /// 详情来自 TMDB 等来源时通常没有 douban_id，用官方搜索接口按标题补一次
+  /// 严格匹配，命中后才请求豆瓣评论。
+  Future<String?> resolveDoubanId({
+    required String title,
+    String? year,
+    String? typeName,
+  }) async {
+    final term = title.trim();
+    if (term.isEmpty) return null;
+    try {
+      final response = await _apiClient.get<dynamic>(
+        '/api/v1/media/search',
+        queryParameters: {
+          'title': term,
+          'type': 'media',
+          'page': 1,
+          'count': 8,
+          'media_source': 'douban',
+        },
+      );
+      final status = response.statusCode ?? 0;
+      if (status < 200 || status >= 300) return null;
+      final items = _extractMediaList(response.data);
+      return pickDoubanIdFromSearchResults(
+        items: items,
+        title: term,
+        year: year,
+        typeName: typeName,
+      );
+    } catch (e) {
+      _log.handle(e, message: '解析豆瓣 ID 失败');
+      return null;
+    }
+  }
+
+  List<dynamic> _extractMediaList(dynamic data) {
+    if (data is List) return data;
+    if (data is Map) {
+      for (final key in ['data', 'items', 'results', 'list']) {
+        final value = data[key];
+        if (value is List) return value;
+      }
+    }
+    return const [];
   }
 }
