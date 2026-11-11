@@ -14,7 +14,7 @@ const _danmakuPalette = <Color>[
 ];
 
 const _danmakuSizes = [11.5, 12.5, 13.5];
-const _danmakuSpeeds = [13.0, 17.0, 22.0];
+const _danmakuSpeeds = [22.0, 30.0, 40.0];
 const _danmakuOpacities = [0.72, 0.86, 1.0];
 const _danmakuMaxLength = 56;
 
@@ -215,7 +215,7 @@ class _DanmakuLaneState extends State<_DanmakuLane>
           duration: duration,
         ),
       );
-      cursor += (width + 36) / entry.speed + 0.6;
+      cursor += (width + 24) / entry.speed + 0.35;
     }
     _items = items;
     final lastEnd = items.isEmpty
