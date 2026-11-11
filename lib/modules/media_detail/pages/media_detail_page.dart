@@ -1445,182 +1445,144 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
           if (facts.isNotEmpty)
             LayoutBuilder(
               builder: (context, constraints) {
-                const gap = 10.0;
+                const gap = 18.0;
                 final columns = constraints.maxWidth >= 560 ? 3 : 2;
                 final width =
                     (constraints.maxWidth - gap * (columns - 1)) / columns;
                 return Wrap(
                   spacing: gap,
-                  runSpacing: gap,
+                  runSpacing: 18,
                   children: [
                     for (final fact in facts)
-                      SizedBox(width: width, child: _buildFactTile(fact)),
+                      SizedBox(width: width, child: _buildFactItem(fact)),
                   ],
                 );
               },
             ),
           if (links.isNotEmpty) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 18),
+            Container(height: 0.5, color: Colors.white.withValues(alpha: 0.08)),
+            const SizedBox(height: 14),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [for (final link in links) _buildInfoChip(link)],
+              spacing: 18,
+              runSpacing: 10,
+              children: [for (final link in links) _buildInfoLink(link)],
             ),
           ],
           if (aliases.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _buildAliasPanel(aliases),
+            const SizedBox(height: 16),
+            _buildAliasLine(aliases),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildFactTile(_DetailFact fact) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white.withValues(alpha: 0.075),
-            Colors.white.withValues(alpha: 0.032),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: fact.accent.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(9),
-            ),
-            child: Icon(fact.icon, size: 15, color: fact.accent),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  fact.label,
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.4,
-                    color: Colors.white.withValues(alpha: 0.52),
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  fact.value,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                    height: 1.25,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoChip(_DetailLink link) {
-    final url = link.url?.trim();
-    final hasUrl = url != null && url.isNotEmpty;
-    return CupertinoButton(
-      padding: EdgeInsets.zero,
-      minimumSize: Size.zero,
-      onPressed: hasUrl ? () => WebUtil.open(url: url) : null,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.11)),
-        ),
-        child: Row(
+  Widget _buildFactItem(_DetailFact fact) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (link.iconPath != null)
-              Image.asset(link.iconPath!, width: 14, height: 14)
-            else
-              Icon(
-                link.icon ?? CupertinoIcons.link,
-                size: 13,
-                color: Colors.white.withValues(alpha: 0.62),
-              ),
-            const SizedBox(width: 6),
+            Icon(
+              fact.icon,
+              size: 10,
+              color: fact.accent.withValues(alpha: 0.72),
+            ),
+            const SizedBox(width: 5),
             Text(
-              '${link.label} ${link.value}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              fact.label,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.86),
-                fontSize: 11.5,
+                fontSize: 10.5,
                 fontWeight: FontWeight.w600,
+                letterSpacing: 0.3,
+                color: Colors.white.withValues(alpha: 0.44),
               ),
             ),
-            if (hasUrl) ...[
-              const SizedBox(width: 4),
-              Icon(
-                CupertinoIcons.arrow_up_right,
-                size: 10,
-                color: Colors.white.withValues(alpha: 0.42),
-              ),
-            ],
           ],
         ),
+        const SizedBox(height: 5),
+        Text(
+          fact.value,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w600,
+            height: 1.32,
+            color: Colors.white.withValues(alpha: 0.92),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoLink(_DetailLink link) {
+    final url = link.url?.trim();
+    final hasUrl = url != null && url.isNotEmpty;
+    return GestureDetector(
+      behavior: hasUrl ? HitTestBehavior.opaque : HitTestBehavior.deferToChild,
+      onTap: hasUrl ? () => WebUtil.open(url: url) : null,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            link.label,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w500,
+              color: Colors.white.withValues(alpha: 0.44),
+            ),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            link.value,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: Colors.white.withValues(alpha: 0.78),
+            ),
+          ),
+          if (hasUrl) ...[
+            const SizedBox(width: 3),
+            Icon(
+              CupertinoIcons.arrow_up_right,
+              size: 9,
+              color: Colors.white.withValues(alpha: 0.32),
+            ),
+          ],
+        ],
       ),
     );
   }
 
-  Widget _buildAliasPanel(List<String> aliases) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.045),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.09)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildAliasLine(List<String> aliases) {
+    return Text.rich(
+      TextSpan(
         children: [
-          Text(
-            '别名',
+          TextSpan(
+            text: '别名  ',
             style: TextStyle(
               fontSize: 10.5,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.4,
-              color: Colors.white.withValues(alpha: 0.52),
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.3,
+              color: Colors.white.withValues(alpha: 0.44),
             ),
           ),
-          const SizedBox(height: 5),
-          Text(
-            aliases.join(' / '),
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
+          TextSpan(
+            text: aliases.join(' / '),
             style: TextStyle(
-              fontSize: 12.5,
-              height: 1.4,
-              fontWeight: FontWeight.w600,
-              color: Colors.white.withValues(alpha: 0.80),
+              fontSize: 12,
+              height: 1.45,
+              fontWeight: FontWeight.w500,
+              color: Colors.white.withValues(alpha: 0.70),
             ),
           ),
         ],
       ),
+      maxLines: 3,
+      overflow: TextOverflow.ellipsis,
     );
   }
 
