@@ -8,6 +8,7 @@ import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:moviepilot_mobile/modules/login/repositories/auth_repository.dart';
 import 'package:moviepilot_mobile/modules/media_detail/controllers/media_detail_service.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/douban_comment_models.dart';
+import 'package:moviepilot_mobile/modules/media_detail/models/douban_review_list_args.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/media_detail_cache.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/media_detail_model.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/media_notexists.dart';
@@ -306,6 +307,30 @@ class MediaDetailController extends GetxController {
 
   bool get hasMoreDoubanReviews =>
       doubanReviews.length < doubanReviewsTotal.value;
+
+  bool get canOpenDoubanReviewList =>
+      doubanReviewsEnabled.value &&
+      (_doubanId?.isNotEmpty ?? false) &&
+      doubanReviews.isNotEmpty;
+
+  DoubanReviewListArgs? buildDoubanReviewListArgs() {
+    final detail = mediaDetail.value;
+    final doubanId = _doubanId;
+    if (doubanId == null || doubanId.isEmpty) {
+      return null;
+    }
+    return DoubanReviewListArgs(
+      doubanId: doubanId,
+      typeName: _doubanTypeName,
+      title: detail?.title ?? args.title,
+      posterPath: detail?.poster_path,
+      initialItems: doubanReviews.toList(),
+      initialTotal: doubanReviewsTotal.value,
+    );
+  }
+
+  String? get doubanId => _doubanId;
+  String get doubanTypeName => _doubanTypeName;
 
   Future<void> loadMoreDoubanComments() => _loadDoubanComments(reset: false);
 

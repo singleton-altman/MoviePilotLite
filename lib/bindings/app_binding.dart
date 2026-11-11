@@ -7,6 +7,7 @@ import 'package:moviepilot_mobile/services/server_api_version_service.dart';
 import '../modules/login/controllers/login_controller.dart';
 import '../modules/login/repositories/auth_repository.dart';
 import '../modules/media_detail/controllers/media_detail_service.dart';
+import '../modules/media_detail/services/danmaku_display_settings_service.dart';
 import '../modules/plugin/services/plugin_palette_cache.dart';
 import '../modules/search/services/search_keyword_hints_service.dart';
 
@@ -20,6 +21,7 @@ class AppBinding extends Bindings {
     Get.put(AuthRepository(), permanent: true);
     Get.put(LoginController(), permanent: true);
     Get.put(MediaDetailService(), permanent: true);
+    Get.put(DanmakuDisplaySettingsService(), permanent: true);
     Get.put(PluginPaletteCache(), permanent: true);
     Get.put(SearchKeywordHintsService(), permanent: true);
   }

@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:flutter/widgets.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
 import 'package:moviepilot_mobile/modules/media_detail/controllers/media_detail_service.dart';
+import 'package:moviepilot_mobile/modules/media_detail/services/danmaku_display_settings_service.dart';
 import 'package:moviepilot_mobile/modules/search/services/app_update_service.dart';
 import 'package:moviepilot_mobile/modules/search/services/update_mirror_store.dart';
 import 'package:moviepilot_mobile/modules/search/services/update_speed_tester.dart';
@@ -50,6 +51,7 @@ Future<void> bootstrapApp() async {
     Get.put(UpdateMirrorStore(), permanent: true);
     Get.put(UpdateSpeedTester(), permanent: true);
     Get.put(MediaDetailService());
+    Get.put(DanmakuDisplaySettingsService(), permanent: true);
     Get.put(ImageUtil());
     // 注册 vue 模式插件适配器
     PluginFormAdapterRegistry.register(
