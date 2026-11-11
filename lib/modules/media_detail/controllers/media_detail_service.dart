@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:moviepilot_mobile/applog/app_log.dart';
+import 'package:moviepilot_mobile/modules/media_detail/models/douban_comment_models.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/media_detail_model.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/media_notexists.dart';
 import 'package:moviepilot_mobile/modules/media_detail/models/season_episode_detail.dart';
@@ -47,8 +48,7 @@ class MediaDetailService extends GetxService {
   }) async {
     try {
       final identity = MediaIdentity.parse(mediaId);
-      final useV3 =
-          identity != null && await _serverApiVersionService.isV3();
+      final useV3 = identity != null && await _serverApiVersionService.isV3();
       final query = useV3
           ? <String, dynamic>{
               'media_source': identity.source,
@@ -132,6 +132,79 @@ class MediaDetailService extends GetxService {
       );
     } catch (e) {
       _log.handle(e, message: '获取订阅状态失败');
+      return null;
+    }
+  }
+
+  /// GET /api/v1/douban/interests/{doubanid}/{type_name}
+  ///
+  /// v3 服务端提供豆瓣短评，type_name 传「电影」或「电视剧」。
+  Future<DoubanCommentPage> getDoubanComments({
+    required String doubanId,
+    required String typeName,
+    int start = 0,
+    int count = 20,
+  }) async {
+    final payload = await _getDoubanPage(
+      kind: 'interests',
+      doubanId: doubanId,
+      typeName: typeName,
+      start: start,
+      count: count,
+      errorMessage: '获取豆瓣短评失败',
+    );
+    return payload == null
+        ? const DoubanCommentPage()
+        : DoubanCommentPage.fromJson(payload);
+  }
+
+  /// GET /api/v1/douban/reviews/{doubanid}/{type_name}
+  ///
+  /// v3 服务端提供豆瓣影评，返回正文摘要而非全文。
+  Future<DoubanReviewPage> getDoubanReviews({
+    required String doubanId,
+    required String typeName,
+    int start = 0,
+    int count = 20,
+  }) async {
+    final payload = await _getDoubanPage(
+      kind: 'reviews',
+      doubanId: doubanId,
+      typeName: typeName,
+      start: start,
+      count: count,
+      errorMessage: '获取豆瓣影评失败',
+    );
+    return payload == null
+        ? const DoubanReviewPage()
+        : DoubanReviewPage.fromJson(payload);
+  }
+
+  Future<Map<String, dynamic>?> _getDoubanPage({
+    required String kind,
+    required String doubanId,
+    required String typeName,
+    required int start,
+    required int count,
+    required String errorMessage,
+  }) async {
+    try {
+      final uri = Uri(
+        pathSegments: ['api', 'v1', 'douban', kind, doubanId, typeName],
+      );
+      final response = await _apiClient.get<dynamic>(
+        '/${uri.path}',
+        queryParameters: {'start': start, 'count': count},
+      );
+      final status = response.statusCode ?? 0;
+      if (status < 200 || status >= 300) {
+        throw ApiHttpException(status, response.statusMessage);
+      }
+      final data = response.data;
+      if (data is Map) return Map<String, dynamic>.from(data);
+      return null;
+    } catch (e) {
+      _log.handle(e, message: errorMessage);
       return null;
     }
   }
