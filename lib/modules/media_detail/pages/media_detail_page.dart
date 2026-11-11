@@ -11,6 +11,7 @@ import 'package:moviepilot_mobile/modules/media_detail/models/media_detail_model
 import 'package:moviepilot_mobile/modules/media_detail/models/media_notexists.dart';
 import 'package:moviepilot_mobile/modules/media_detail/pages/media_season_detail_page.dart';
 import 'package:moviepilot_mobile/modules/media_detail/widgets/media_detail_season_card.dart';
+import 'package:moviepilot_mobile/modules/media_detail/widgets/media_danmaku_overlay.dart';
 import 'package:moviepilot_mobile/modules/search/pages/search_mid_sheet.dart';
 import 'package:moviepilot_mobile/modules/recommend/models/recommend_api_item.dart';
 import 'package:moviepilot_mobile/modules/subscribe/models/subscribe_models.dart';
@@ -218,6 +219,45 @@ class MediaDetailPage extends GetWidget<MediaDetailController> {
                   ],
                   stops: const [0.0, 0.58, 1.0],
                 ),
+              ),
+            ),
+            Positioned.fill(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  if (constraints.maxHeight < 300) {
+                    return const SizedBox.shrink();
+                  }
+                  final comments = controller.doubanComments
+                      .where(
+                        (comment) => comment.comment?.trim().isNotEmpty == true,
+                      )
+                      .take(24)
+                      .toList(growable: false);
+                  if (comments.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+                  return IgnorePointer(
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          top: isWide
+                              ? 60
+                              : MediaQuery.of(context).padding.top + 56,
+                          left: 14,
+                          right: 14,
+                        ),
+                        child: SizedBox(
+                          height: 90,
+                          child: MediaDanmakuOverlay(
+                            comments: comments,
+                            laneCount: 3,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
             Align(
