@@ -50,6 +50,8 @@ class MediaDanmakuOverlay extends StatelessWidget {
                   key: ValueKey('danmaku-$lane-${texts.length}'),
                   entries: _entriesForLane(texts, lane),
                   speed: _speedForLane(lane),
+                  fontSize: _fontSizeForLane(lane),
+                  opacity: _opacityForLane(lane),
                 ),
               ),
           ],
@@ -96,8 +98,18 @@ class MediaDanmakuOverlay extends StatelessWidget {
   }
 
   double _speedForLane(int lane) {
-    const speeds = [24.0, 30.0, 21.0];
+    const speeds = [13.0, 17.0, 22.0];
     return speeds[lane % speeds.length];
+  }
+
+  double _fontSizeForLane(int lane) {
+    const sizes = [11.5, 12.5, 13.5];
+    return sizes[lane % sizes.length];
+  }
+
+  double _opacityForLane(int lane) {
+    const opacities = [0.72, 0.86, 1.0];
+    return opacities[lane % opacities.length];
   }
 }
 
@@ -109,10 +121,18 @@ class _DanmakuEntry {
 }
 
 class _DanmakuLane extends StatefulWidget {
-  const _DanmakuLane({super.key, required this.entries, required this.speed});
+  const _DanmakuLane({
+    super.key,
+    required this.entries,
+    required this.speed,
+    required this.fontSize,
+    required this.opacity,
+  });
 
   final List<_DanmakuEntry> entries;
   final double speed;
+  final double fontSize;
+  final double opacity;
 
   @override
   State<_DanmakuLane> createState() => _DanmakuLaneState();
@@ -149,7 +169,8 @@ class _DanmakuLaneState extends State<_DanmakuLane>
   }
 
   String _signatureFor(_DanmakuLane lane) {
-    return '${lane.speed}|${lane.entries.map((entry) => entry.text).join('|')}';
+    return '${lane.speed}|${lane.fontSize}|${lane.opacity}|'
+        '${lane.entries.map((entry) => entry.text).join('|')}';
   }
 
   void _refreshMeasurement() {
@@ -177,8 +198,8 @@ class _DanmakuLaneState extends State<_DanmakuLane>
 
   TextStyle _textStyle(Color color) {
     return TextStyle(
-      color: color,
-      fontSize: 12.5,
+      color: color.withValues(alpha: widget.opacity),
+      fontSize: widget.fontSize,
       fontWeight: FontWeight.w600,
       height: 1,
       letterSpacing: 0.15,
