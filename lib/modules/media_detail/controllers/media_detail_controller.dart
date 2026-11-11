@@ -323,12 +323,7 @@ class MediaDetailController extends GetxController {
         ? detail.douban_id.toString()
         : null;
     final doubanId =
-        directId ??
-        await _mediaDetailService.resolveDoubanId(
-          title: detail.title ?? detail.original_title ?? '',
-          year: detail.year,
-          typeName: typeName,
-        );
+        directId ?? await _resolveDoubanIdByTitle(detail, typeName);
     if (isClosed) return;
     if (doubanId == null || doubanId.isEmpty) {
       _clearDoubanState();
@@ -355,6 +350,29 @@ class MediaDetailController extends GetxController {
     } catch (e) {
       _log.handle(e, message: '加载豆瓣评论失败');
     }
+  }
+
+  Future<String?> _resolveDoubanIdByTitle(
+    MediaDetail detail,
+    String typeName,
+  ) async {
+    final titles = <String>{
+      if (detail.title?.trim().isNotEmpty == true) detail.title!.trim(),
+      if (detail.original_title?.trim().isNotEmpty == true)
+        detail.original_title!.trim(),
+      if (detail.original_name?.trim().isNotEmpty == true)
+        detail.original_name!.trim(),
+    };
+    for (final title in titles) {
+      final id = await _mediaDetailService.resolveDoubanId(
+        title: title,
+        year: detail.year,
+        typeName: typeName,
+      );
+      if (isClosed) return null;
+      if (id != null && id.isNotEmpty) return id;
+    }
+    return null;
   }
 
   Future<void> _loadDoubanComments({required bool reset}) async {
