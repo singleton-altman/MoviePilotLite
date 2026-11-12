@@ -71,6 +71,51 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/subscribe_calendar_widget_info" />
         </receiver>
+        <!-- 同一渲染逻辑的其它尺寸档位：选择器里按档位添加，渲染按实际尺寸自适应 -->
+        <receiver
+            android:name=".widget.SubscribeCalendarWidgetSmallProvider"
+            android:exported="false"
+            android:label="@string/widget_subscribe_calendar_title_small">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/subscribe_calendar_widget_small_info" />
+        </receiver>
+        <receiver
+            android:name=".widget.SubscribeCalendarWidgetTallProvider"
+            android:exported="false"
+            android:label="@string/widget_subscribe_calendar_title_tall">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/subscribe_calendar_widget_tall_info" />
+        </receiver>
+        <receiver
+            android:name=".widget.SubscribeCalendarWidgetLargeProvider"
+            android:exported="false"
+            android:label="@string/widget_subscribe_calendar_title_large">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/subscribe_calendar_widget_large_info" />
+        </receiver>
+        <receiver
+            android:name=".widget.SubscribeCalendarWidgetBarProvider"
+            android:exported="false"
+            android:label="@string/widget_subscribe_calendar_title_bar">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/subscribe_calendar_widget_bar_info" />
+        </receiver>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
