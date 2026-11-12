@@ -23,8 +23,9 @@ internal object SubscribeCalendarRefreshScheduler {
 
     fun hasWidgets(context: Context): Boolean {
         val manager = AppWidgetManager.getInstance(context)
-        val component = ComponentName(context, SubscribeCalendarWidgetProvider::class.java)
-        return manager.getAppWidgetIds(component).isNotEmpty()
+        return SubscribeCalendarWidgetRenderer.providerClasses.any { providerClass ->
+            manager.getAppWidgetIds(ComponentName(context, providerClass)).isNotEmpty()
+        }
     }
 
     fun ensurePeriodic(context: Context) {

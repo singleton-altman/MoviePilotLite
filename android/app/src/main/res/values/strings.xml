@@ -16,4 +16,10 @@
     <string name="widget_subscribe_calendar_preview_show">片名示例</string>
     <string name="widget_subscribe_calendar_preview_episode">S01E03 · 新的线索出现</string>
     <string name="widget_subscribe_calendar_preview_episode_next">S01E04 · 待播出</string>
+    <string name="widget_subscribe_calendar_title_small">订阅日历 · 小</string>
+    <string name="widget_subscribe_calendar_title_tall">订阅日历 · 竖版</string>
+    <string name="widget_subscribe_calendar_title_large">订阅日历 · 大</string>
+    <string name="widget_subscribe_calendar_title_bar">订阅日历 · 横条</string>
+    <string name="widget_subscribe_calendar_bar_summary">%1$d 条待播 · 最近 %2$s</string>
+    <string name="widget_subscribe_calendar_preview_bar">3 条待播 · 最近 片名示例 · 明天</string>
 </resources>
